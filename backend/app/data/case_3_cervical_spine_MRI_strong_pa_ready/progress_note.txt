@@ -1,0 +1,24 @@
+Patient Name: Robert Chen
+DOB: 02/14/1966
+Date of Visit: 01/02/2026
+
+Chief Complaint:
+Neck pain with right arm numbness.
+
+History of Present Illness:
+The patient reports neck pain for approximately 4 months with associated numbness and tingling radiating into the right arm. Pain severity is rated 7/10 and interferes with sleep and daily activities.
+
+Conservative Treatment:
+The patient completed 8 weeks of physical therapy without significant improvement. Trial of NSAIDs and muscle relaxants provided minimal relief.
+
+Prior Imaging:
+Cervical spine X-ray performed 10/2025 showed degenerative changes.
+
+Physical Exam:
+Reduced cervical range of motion. Positive Spurling test on the right.
+
+Assessment:
+Cervical radiculopathy.
+
+Plan:
+MRI cervical spine recommended due to persistent neurologic symptoms despite adequate conservative management.

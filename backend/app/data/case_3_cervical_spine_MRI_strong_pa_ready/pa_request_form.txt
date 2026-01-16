@@ -1,0 +1,17 @@
+Requested Service:
+CPT: 72141
+MRI Cervical Spine Without Contrast
+
+Diagnosis Codes:
+M54.12 - Cervical radiculopathy
+
+Conservative Treatment:
+Physical therapy: 8 weeks
+NSAIDs: Failed
+Muscle relaxants: Failed
+
+Prior Imaging:
+X-ray cervical spine (10/2025)
+
+Clinical Justification:
+Persistent neurologic symptoms despite adequate conservative management.

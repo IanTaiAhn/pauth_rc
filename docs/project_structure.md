@@ -43,3 +43,27 @@ backend/
 │   │   ├── text.py
 │   └── requirements.py
 
+## Next Steps
+### Step 1: Start with .txt uploads
+
+Keep ingestion simple.
+
+### Step 2: Normalize text
+
+Run everything through normalize_text().
+
+### Step 3: Run evidence detectors
+
+Check:
+* conservative therapy
+* duration
+* failed treatments
+* severity
+* imaging
+
+### Step 4: Validate outputs manually
+
+Ask:
+“Does this checklist match what a clinic would expect?”
+
+If yes — you’re on the right track.
