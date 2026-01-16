@@ -1,0 +1,1 @@
+# todo needs to be able to eat pdfs, text files, etc... i think?

@@ -1,0 +1,18 @@
+def build_justification(evidence: dict) -> str:
+    parts = []
+
+    if evidence["conservative_therapy"]["found"]:
+        parts.append("The patient has undergone conservative management.")
+
+    if evidence["duration_documented"]["found"]:
+        parts.append(
+            f"Treatment duration of {evidence['duration_documented']['value']} is documented."
+        )
+
+    parts.append(
+        "Symptoms persist despite conservative treatment, warranting further evaluation."
+    )
+
+    return " ".join(parts)
+
+# ⚠️ This avoids hallucination and legal risk.
