@@ -170,3 +170,109 @@ This is why staff hate PAs — it’s a scavenger hunt across the chart.
 
 Utah has a high concentration of Family Medicine, Pediatrics, and Orthpedics.
 Perhaps target the P-auth RC tool for that specialty.
+
+
+🧮 Rough Ballpark: 20–60 Active Payers
+Most small/medium clinics regularly interact with:
+
+1. The “Big 5” Commercial Payers
+These alone cover a huge chunk of patients:
+
+UnitedHealthcare
+
+Aetna
+
+Cigna
+
+Anthem/BCBS
+
+Humana
+
+That’s already 5.
+
+2. State Medicaid + Medicaid MCOs
+Every state has:
+
+1 state Medicaid program, plus
+
+3–10 Medicaid managed care plans (e.g., Molina, AmeriHealth, CareFirst Community, etc.)
+
+That adds 4–11 more.
+
+3. Medicare + Medicare Advantage
+Traditional Medicare (1)
+
+Medicare Advantage plans (5–15 depending on region)
+
+That adds 6–16.
+
+4. Local/Regional Plans
+Depending on the state:
+
+Kaiser
+
+Tufts
+
+Geisinger
+
+UPMC
+
+Priority Health
+
+Harvard Pilgrim
+
+Independence Blue Cross
+
+HealthPartners
+
+Regional HMOs
+
+Usually 5–15.
+
+5. Workers’ Comp + Auto Liability
+State workers’ comp
+
+3–10 auto insurers
+
+Add 4–11.
+
+📌 Total Typical Range
+Putting it all together:
+
+Low end: ~20 payers
+High end: ~60 payers
+Extreme cases: 80+ (multi‑specialty clinics in big metro areas)
+Most clinics fall in the 30–50 range.
+
+🧠 Why This Matters for Your Product
+This is exactly why your approach works:
+
+You don’t need to support 50 payers on day one.
+
+You start with the Big 5 + Medicare + Medicaid → covers 70–80% of cases.
+
+Then add Medicare Advantage plans → covers another 10–15%.
+
+The long tail (regional plans) can be added gradually.
+
+Your MVP only needs:
+
+A handful of payer policies
+
+A few CPT codes
+
+A clean mapping workflow
+
+Clinics will still say “wow” because you’re solving the hardest part of the job, not the long tail.
+
+If you want, I can map out:
+
+The top payers by market share in your state
+
+Which payers small clinics complain about the most
+
+Which payers have the most complex PA rules
+
+Which CPT codes to start with for maximum impact
+
+Just tell me the direction you want to go.
