@@ -1,172 +1,223 @@
-# Supposedly my most important file. This determines what clinical facts are worth it.
-
-# def detect_conservative_therapy(text: str) -> dict:
-#     keywords = ["physical therapy", "pt", "chiropractic", "home exercise"]
-#     for kw in keywords:
-#         if kw in text.lower():
-#             return {
-#                 "found": True,
-#                 "evidence_text": kw,
-#                 "confidence": 0.85
-#             }
-#     return {
-#         "found": False,
-#         "confidence": 0.9
-#     }
-# You can later replace this with:
-# LLM classification
-# embeddings + retrieval
-# hybrid rules
-# But start simple and deterministic.
-
-
-# # Aggregator
-# def extract_evidence(text: str) -> dict:
-#     return {
-#         "conservative_therapy": detect_conservative_therapy(text),
-#         "duration_documented": detect_duration(text),
-#         "failed_treatments": detect_failed_treatments(text),
-#         "symptom_severity": detect_severity(text),
-#         "recent_imaging": detect_imaging(text)
-#     }
-
-# def extract_evidence(chart_text: str) -> dict:
-#     """
-#     Output example:
-#     {
-#       "symptom_duration_months": 6,
-#       "failed_pt": True,
-#       "pt_duration_weeks": 8,
-#       "failed_nsaids": True,
-#       "imaging": {
-#         "type": "MRI",
-#         "date": "2024-11-01"
-#       }
-#     }
-#     """
-
 import json
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from pathlib import Path
-import json
 import re
+from typing import Optional, Dict, Any
+import logging
+
+# Set up logging for debugging hallucinations
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 MODEL_PATH = r"C:\Users\n0308g\Git_Repos\pauth_rc\backend\app\services\models\qwen2.5"
 
-# print('MODEL_PATH', MODEL_PATH)
+class EvidenceExtractor:
+    def __init__(self, model_path: str = MODEL_PATH):
+        """Initialize model once - avoid reloading on every call"""
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_path,
+            trust_remote_code=True
+        )
+        
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            dtype=torch.float16,
+            trust_remote_code=True
+        )
+        
+        # Move to GPU if available
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model.to(self.device)
+        self.model.eval()
+        
+        logger.info(f"Model loaded on {self.device}")
 
-tokenizer = AutoTokenizer.from_pretrained(
-    MODEL_PATH,
-    trust_remote_code=True
-)
+    def _validate_evidence(self, extracted_data: dict, chart_text: str) -> dict:
+        """Check if evidence_notes actually exist in chart - FLAG HALLUCINATIONS"""
+        chart_lower = chart_text.lower()
+        validated_notes = []
+        hallucinations = []
+        
+        for note in extracted_data.get("evidence_notes", []):
+            note_lower = note.lower().strip()
+            # Allow fuzzy matching for minor variations
+            if note_lower in chart_lower or any(
+                word in chart_lower for word in note_lower.split() if len(word) > 4
+            ):
+                validated_notes.append(note)
+            else:
+                hallucinations.append(note)
+                logger.warning(f"HALLUCINATION DETECTED: '{note}' not in chart")
+        
+        extracted_data["evidence_notes"] = validated_notes
+        
+        # Add metadata about extraction quality
+        extracted_data["_metadata"] = {
+            "hallucinations_detected": len(hallucinations),
+            "hallucinated_notes": hallucinations,
+            "validation_passed": len(hallucinations) == 0
+        }
+        
+        return extracted_data
 
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    # device_map="auto",
-    dtype=torch.float16,
-    trust_remote_code=True
-)
+    def _extract_json_object(self, text: str) -> str:
+        """Extract JSON with better error handling"""
+        # Try to find JSON object
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            logger.error(f"No JSON found in output: {text[:200]}")
+            raise ValueError("No JSON object found in model output")
+        return match.group(0)
 
-model.eval()
+    def extract_evidence(self, chart_text: str) -> Optional[Dict[str, Any]]:
+        """Main extraction function with validation"""
+        
+        # Input validation
+        if not chart_text or len(chart_text.strip()) < 10:
+            logger.error("Chart text too short or empty")
+            return None
+        
+        # Truncate very long notes (Qwen context limit ~32k tokens)
+        max_chars = 8000  # ~2k tokens with safety margin
+        if len(chart_text) > max_chars:
+            logger.warning(f"Chart truncated from {len(chart_text)} to {max_chars} chars")
+            chart_text = chart_text[:max_chars] + "\n[NOTE TRUNCATED]"
+        
+        prompt = f"""You are a medical chart data extractor. Extract ONLY information explicitly written in the chart note below.
 
-def extract_json_object(text: str) -> str:
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise ValueError("No JSON object found in model output")
-    return match.group(0)
+CRITICAL RULES:
+1. Extract facts word-for-word from the chart - do NOT interpret or infer
+2. If information is absent or unclear, use null or false
+3. Do NOT make clinical assumptions
+4. Do NOT fill in missing data
+5. Output ONLY valid JSON - no other text
 
-def extract_evidence(chart_text: str) -> dict:
-    prompt = f"""
-You are a clinical documentation extraction assistant.
-
-Your task is to extract ONLY facts that are explicitly stated in the chart note.
-Do NOT infer, assume, or guess.
-
-If information is not clearly present, set the value to null or false.
-
-Return valid JSON only. No explanations.
-
-Use this schema exactly:
-
+EXTRACTION SCHEMA:
 {{
-  "symptom_duration_months": number or null,
-
-  "failed_conservative_therapy": boolean,
-  "conservative_therapy_details": {{
+  "symptom_duration_months": null,
+  "conservative_therapy": {{
     "physical_therapy": {{
-      "attempted": boolean,
-      "duration_weeks": number or null
+      "attempted": false,
+      "duration_weeks": null
     }},
     "nsaids": {{
-      "attempted": boolean
+      "documented": false,
+      "outcome": null
     }},
     "injections": {{
-      "attempted": boolean
+      "documented": false,
+      "outcome": null
     }}
   }},
-
   "imaging": {{
-    "performed": boolean,
-    "type": string or null,
-    "body_part": string or null,
-    "months_ago": number or null
+    "documented": false,
+    "type": null,
+    "body_part": null,
+    "months_ago": null
   }},
-
-  "functional_impairment": boolean,
-
-  "confidence_notes": array of strings
+  "functional_impairment": {{
+    "documented": false,
+    "description": null
+  }},
+  "evidence_notes": []
 }}
 
-Chart note:
+FIELD INSTRUCTIONS:
+- symptom_duration_months: Extract only if explicitly stated (e.g., "3 months of pain" = 3)
+- attempted: true ONLY if chart says therapy was done/tried/completed
+- outcome: Use "failed", "partial", or "successful" ONLY if chart uses these exact terms or clear equivalents ("no relief"="failed", "improved"="partial", "resolved"="successful")
+- evidence_notes: Quote exact phrases from chart that support your extractions (max 10 words each)
+
+CHART NOTE:
 \"\"\"
 {chart_text}
 \"\"\"
-"""
 
-    messages = [
-        {"role": "system", "content": "You output JSON only."},
-        {"role": "user", "content": prompt}
-    ]
+OUTPUT (valid JSON only):"""
 
-    text = tokenizer.apply_chat_template(
-        messages,
-        tokenize=False,
-        add_generation_prompt=True
-    )
+        messages = [
+            {"role": "system", "content": "You output JSON only."},
+            {"role": "user", "content": prompt}
+        ]
 
-    inputs = tokenizer(text, return_tensors="pt").to(model.device)
-
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            max_new_tokens=600,
-            temperature=0.0,
-            do_sample=False
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
         )
 
-    raw_output = tokenizer.decode(
-        outputs[0][inputs["input_ids"].shape[-1]:],
-        skip_special_tokens=True
-    ).strip()
+        inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
 
-    try:
-        cleaned = extract_json_object(raw_output)
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        raise ValueError(f"Invalid JSON from model:\n{cleaned}")
+        try:
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=600,
+                    temperature=0.0,
+                    do_sample=False,
+                    repetition_penalty=1.1,  # Reduce repetitive hallucinations
+                    pad_token_id=self.tokenizer.eos_token_id
+                )
+
+            raw_output = self.tokenizer.decode(
+                outputs[0][inputs["input_ids"].shape[-1]:],
+                skip_special_tokens=True
+            ).strip()
+
+            # Extract and parse JSON
+            cleaned = self._extract_json_object(raw_output)
+            extracted_data = json.loads(cleaned)
+            
+            # CRITICAL: Validate evidence against source
+            validated_data = self._validate_evidence(extracted_data, chart_text)
+            
+            return validated_data
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}\nOutput: {raw_output[:500]}")
+            return None
+        except Exception as e:
+            logger.error(f"Extraction error: {e}")
+            return None
 
 
+# Singleton instance for reuse
+_extractor = None
+
+def get_extractor() -> EvidenceExtractor:
+    """Get or create extractor instance - avoid reloading model"""
+    global _extractor
+    if _extractor is None:
+        _extractor = EvidenceExtractor()
+    return _extractor
+
+
+def extract_evidence(chart_text: str) -> Optional[Dict[str, Any]]:
+    """Backward-compatible function wrapper"""
+    extractor = get_extractor()
+    return extractor.extract_evidence(chart_text)
+
+
+# Example usage with validation
 if __name__ == "__main__":
+    test_chart = """
+    Patient reports 4 months of right knee pain.
+    Tried physical therapy for 8 weeks with minimal improvement.
+    NSAIDs provided no relief.
+    MRI of right knee 2 months ago shows meniscal tear.
+    Patient unable to climb stairs or walk more than 10 minutes.
+    """
+    
+    result = extract_evidence(test_chart)
+    
+    if result:
+        print(json.dumps(result, indent=2))
+        
+        # Check validation
+        if not result["_metadata"]["validation_passed"]:
+            print("\n⚠️ HALLUCINATIONS DETECTED:")
+            for note in result["_metadata"]["hallucinated_notes"]:
+                print(f"  - {note}")
 
-
-    chart = """
-Patient presents with chronic right knee pain for 6 months.
-Completed 8 weeks of physical therapy with minimal improvement.
-Failed NSAIDs.
-MRI of the right knee obtained 3 months ago.
-Pain interferes with daily activities.
-"""
-
-evidence = extract_evidence(chart)
-print(json.dumps(evidence, indent=2))
+# LOL Claude killed it haha.
