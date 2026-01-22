@@ -19,3 +19,20 @@ async def analyze_pa(file: UploadFile):
         "missing_items": missing,
         "justification_text": justification
     }
+
+# chat gpt helped
+# @router.post("/analyze")
+# def check_pa(request: PARequest):
+#     text = ingest_document(request.text)
+#     evidence = extract_evidence(text)
+#     criteria = get_policy_criteria(request.payer, request.cpt)
+#     readiness = compute_readiness(evidence, criteria)
+#     justification = generate_justification(
+#         evidence, criteria, criteria["raw_policy_text"]
+#     )
+
+#     return {
+#         "evidence": evidence,
+#         "readiness": readiness,
+#         "justification": justification
+#     }

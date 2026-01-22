@@ -3,6 +3,7 @@
 #retrieves relevant chunks
 #optionally asks LLM to normalize them
 #👉 This is your only RAG dependency
+
 # I think this is supposed to build my index from cpt, payer policy stuff.
 
 def get_policy_criteria(payer: str, cpt: str) -> dict:
