@@ -67,3 +67,28 @@ Ask:
 “Does this checklist match what a clinic would expect?”
 
 If yes — you’re on the right track.
+
+
+### High-level Clarification
+Chart Note (PDF / Text)
+        |
+        v
+[1] Clinical Fact Extraction (NO RAG)
+        |
+        v
+Structured Evidence JSON
+(symptoms, duration, imaging, PT, etc.)
+        |
+        v
+[2] Policy Criteria Retrieval (RAG)
+(payer + CPT → criteria snippets)
+        |
+        v
+[3] Criteria Matching
+(evidence vs criteria checklist)
+        |
+        v
+[4] Output Generation
+- readiness
+- missing items
+- justification (uses RAG text)

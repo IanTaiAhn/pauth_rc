@@ -16,3 +16,7 @@ def build_justification(evidence: dict) -> str:
     return " ".join(parts)
 
 # ⚠️ This avoids hallucination and legal risk.
+# This is where:
+# policy snippets improve tone
+# LLM shines
+# you sound “payer-native”

@@ -1,3 +1,5 @@
+# I'm pretty sure this only works right now because in evidence i have assigned a number to the extract clinical facts.
+
 def compute_readiness(evidence: dict) -> tuple[int, list]:
     score = 100
     missing = []
@@ -14,3 +16,5 @@ def compute_readiness(evidence: dict) -> tuple[int, list]:
     return max(score, 0), missing
 
 # Clinics trust systems they understand.
+# This should be mostly rules-based, not “AI vibes”.
+# This is how you reduce hallucinations.
