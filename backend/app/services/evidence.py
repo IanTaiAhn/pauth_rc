@@ -221,4 +221,43 @@ if __name__ == "__main__":
             for note in result["_metadata"]["hallucinated_notes"]:
                 print(f"  - {note}")
 
-# LOL Claude killed it haha.
+                
+# This is what the extracted test json looks like.
+# {
+#   "symptom_duration_months": 4,
+#   "conservative_therapy": {
+#     "physical_therapy": {
+#       "attempted": true,
+#       "duration_weeks": 8
+#     },
+#     "nsaids": {
+#       "documented": true,
+#       "outcome": "no relief"
+#     },
+#     "injections": {
+#       "documented": false,
+#       "outcome": null
+#     }
+#   },
+#   "imaging": {
+#     "documented": true,
+#     "type": "MRI",
+#     "body_part": "right knee",
+#     "months_ago": 2
+#   },
+#   "functional_impairment": {
+#     "documented": true,
+#     "description": "unable to climb stairs or walk more than 10 minutes"
+#   },
+#   "evidence_notes": [
+#     "Patient reports 4 months of right knee pain.",
+#     "Tried physical therapy for 8 weeks with minimal improvement.",
+#     "NSAIDs provided no relief.",
+#     "MRI of right knee 2 months ago shows meniscal tear."
+#   ],
+#   "_metadata": {
+#     "hallucinations_detected": 0,
+#     "hallucinated_notes": [],
+#     "validation_passed": true
+#   }
+# }

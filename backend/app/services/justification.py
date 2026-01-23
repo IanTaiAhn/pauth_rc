@@ -1,3 +1,4 @@
+# idon't know if I want this since claude helped with this portion in the evidence code...
 def build_justification(evidence: dict) -> str:
     parts = []
 
@@ -19,4 +20,4 @@ def build_justification(evidence: dict) -> str:
 # This is where:
 # policy snippets improve tone
 # LLM shines
-# you sound “payer-native”
+# you sound “payer-native”...
