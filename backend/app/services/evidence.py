@@ -84,6 +84,7 @@ class EvidenceExtractor:
             logger.warning(f"Chart truncated from {len(chart_text)} to {max_chars} chars")
             chart_text = chart_text[:max_chars] + "\n[NOTE TRUNCATED]"
         
+        # this prompt is most fitting for an orthopedics chart...(imaging + failed conservative therapy)
         prompt = f"""You are a medical chart data extractor. Extract ONLY information explicitly written in the chart note below.
 
 CRITICAL RULES:
