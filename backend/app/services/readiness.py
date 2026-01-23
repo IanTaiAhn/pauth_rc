@@ -1,4 +1,5 @@
 # I'm pretty sure this only works right now because in evidence i have assigned a number to the extract clinical facts.
+# Yep, I need to make sure this compute_readiness gets based on the payer policy criteria.
 
 def compute_readiness(evidence: dict) -> tuple[int, list]:
     score = 100

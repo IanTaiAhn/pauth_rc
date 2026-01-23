@@ -92,3 +92,84 @@ Structured Evidence JSON
 - readiness
 - missing items
 - justification (uses RAG text)
+
+### Clarifying how AI is used here.
+| Layer                | What it Understands          | AI Model Role              |
+| -------------------- | ---------------------------- | -------------------------- |
+| **Clinical Reality** | What happened to the patient | **Qwen extracts facts**    |
+| **Insurance Rules**  | What the payer requires      | **RAG retrieves criteria** |
+
+### Iteration upon iteration.
+Chart Note
+   |
+   v
+[1] Evidence Extraction (Qwen, NO RAG)
+   |   → Turns messy note into structured medical facts
+   v
+Structured Evidence JSON
+   |
+   v
+[2] Policy Retrieval (RAG)
+   |   → Fetches payer rules from your policy vector DB
+   v
+Policy Criteria Snippets
+   |
+   v
+[3] Criteria Matching (Pure Logic)
+   |   → Compares evidence JSON vs policy checklist
+   v
+Readiness Score + Missing Items
+   |
+   v
+[4] Justification Generation (LLM + RAG text)
+       → Uses evidence + retrieved policy language
+
+### ⚙️ Important: RAG Is Only for Policies
+### Do NOT put chart notes into this vector DB.
+
+Your vector DB should ONLY contain:
+* Payer medical policies
+* Coverage determination documents
+* Clinical criteria bullet lists
+* If you mix charts in, you’ll get garbage retrieval.
+
+#### Behind the scenes
+
+* One-time setup (offline)
+* Load policy PDFs
+* Split into chunks (300–800 tokens)
+* Embed chunks
+
+Store in vector DB with metadata:
+{
+  "payer": "BCBS",
+  "cpt_codes": ["62323", "64483"],
+  "body_part": "lumbar_spine",
+  "source": "BCBS_Lumbar_ESI_2025.pdf"
+}
+
+### FastAPI call
+User uploads chart
+        ↓
+Qwen extracts facts
+        ↓
+You query RAG with payer + CPT
+        ↓
+Vector DB returns matching policy rules
+        ↓
+Logic compares facts vs rules
+        ↓
+LLM writes justification using those rules
+
+Component	                Changes When?	        Needs Retraining?
+Clinical extractor (Qwen)	Rarely	                ❌
+Policy RAG DB	                Every policy update	✅ Just re-embed
+Matching logic	                When rules change	❌
+Justification writer	        Never	                ❌
+
+#### Another Mental Model
+Step	                Brain Used	        Data Source
+Evidence extraction	Qwen	                Chart
+Policy retrieval	Embeddings + Vector DB	Policy PDFs
+Readiness scoring	Deterministic logic	Evidence + Policy
+Justification writing	LLM	                Evidence + Policy text
