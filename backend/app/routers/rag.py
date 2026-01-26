@@ -1,0 +1,91 @@
+from pathlib import Path
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from backend.app.rag_pipeline.scripts.ask_question import ask_question
+from backend.app.rag_pipeline.scripts.build_index import build_index, INDEX_DIR
+
+router = APIRouter()
+
+
+# ---------------------------------------------------------
+# Pydantic Models
+# ---------------------------------------------------------
+class QueryRequest(BaseModel):
+    query: str
+    index_name: str | None = "default"
+
+
+class QueryResponse(BaseModel):
+    answer: str
+    context: list[str]
+    raw_output: str | None = None
+
+
+class BuildIndexRequest(BaseModel):
+    index_name: str | None = "default"
+
+
+class BuildIndexResponse(BaseModel):
+    message: str
+    index_name: str
+
+
+# ---------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------
+@router.post("/ask_question", response_model=QueryResponse)
+def query_rag(request: QueryRequest):
+    """Query the RAG system with a question."""
+    result = ask_question(request.query, index_name=request.index_name)
+    return QueryResponse(**result)
+
+
+@router.post("/build_index", response_model=BuildIndexResponse)
+def api_build_index(req: BuildIndexRequest):
+    """Build a new RAG index."""
+    try:
+        # If your build_index() function needs the index name,
+        # modify it to accept a parameter. For now, we assume
+        # it builds into INDEX_DIR based on index_name.
+        build_index()
+        return BuildIndexResponse(
+            message="Index built successfully",
+            index_name=req.index_name
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/delete_index/{index_name}")
+def delete_index(index_name: str):
+    """Delete an existing index by name."""
+    faiss_file = INDEX_DIR / f"{index_name}.faiss"
+    meta_file = INDEX_DIR / f"{index_name}_meta.pkl"  # if you store metadata
+
+    deleted = False
+
+    if faiss_file.exists():
+        faiss_file.unlink()
+        deleted = True
+
+    if meta_file.exists():
+        meta_file.unlink()
+        deleted = True
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Index not found")
+
+    return {"message": "Index deleted"}
+
+
+@router.get("/list_indexes")
+def list_indexes():
+    """List all available indexes."""
+    indexes = []
+
+    for faiss_file in INDEX_DIR.glob("*.faiss"):
+        name = faiss_file.stem  # removes .faiss
+        indexes.append(name)
+
+    return {"indexes": indexes}

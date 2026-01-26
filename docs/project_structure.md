@@ -133,6 +133,13 @@ Your vector DB should ONLY contain:
 * Clinical criteria bullet lists
 * If you mix charts in, you’ll get garbage retrieval.
 
+### User's Perspective
+1. Wrangle all the docs/pdfs/text files they can find and dump them into the evidence extraction code and create structured json object.
+2. Once they have all that stuff they need to figure out which payer policy/criteria they're filling out for their patient.
+3. Select the correct codes/policy/insurance company. (The indecies should already be built for them to use...)
+4. They should receive a nice document with PA readiness check out of 100 with certain things highlighted and is usable.
+
+
 #### Behind the scenes
 
 * One-time setup (offline)
@@ -173,3 +180,33 @@ Evidence extraction	Qwen	                Chart
 Policy retrieval	Embeddings + Vector DB	Policy PDFs
 Readiness scoring	Deterministic logic	Evidence + Policy
 Justification writing	LLM	                Evidence + Policy text
+
+### Api endpoints
+/api/ask_question          [POST]   - Query RAG system
+/api/build_index           [POST]   - Build new index
+/api/delete_index/{name}   [DELETE] - Delete index
+/api/list_indexes          [GET]    - List all indexes
+
+/api/upload_document       [POST]   - Upload document
+/api/list_uploaded_docs    [GET]    - List documents
+/api/delete_uploaded_doc/  [DELETE] - Delete document
+
+/api/analyze               [POST]   - Analyze PA document (NEW)
+
+### Backend App Structure
+backend/app/
+├── main.py                 # Main app with all routers
+├── routers/
+│   ├── __init__.py
+│   ├── rag.py             # RAG operations
+│   ├── documents.py       # Document management
+│   └── prior_auth.py      # PA analysis (NEW)
+├── services/
+│   ├── ingestion.py
+│   ├── evidence.py
+│   ├── readiness.py
+│   └── justification.py
+└── rag_pipeline/
+    └── scripts/
+        ├── ask_question.py
+        └── build_index.py

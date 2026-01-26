@@ -9,4 +9,5 @@ package-lock.json
 
 .env
 
-backend/app/services/models/qwen2.5
+backend/app/services/models/*
+backend/app/rag_pipeline/models/*

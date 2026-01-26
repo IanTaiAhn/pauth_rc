@@ -1,0 +1,140 @@
+Section 1 — Overview of the Kanto Region
+The Kanto Region is a coastal territory known for its diverse habitats and well‑established Pokémon research centers. Trainers typically begin their journey in small towns and progress toward major cities, each containing a Gym specializing in a particular battle style. The region includes grasslands, caves, forests, and coastal routes, providing a wide range of Pokémon species for study.
+
+Section 2 — Starter Pokémon
+Bulbasaur Line
+Bulbasaur: A small quadruped Pokémon with a plant bulb on its back. Primary Type: Grass Secondary Type: Poison Evolution: Evolves into Ivysaur at Level 16.
+
+Ivysaur: The bulb begins to bloom as Ivysaur grows stronger. Primary Type: Grass Secondary Type: Poison Evolution: Evolves into Venusaur at Level 32.
+
+Venusaur: A fully developed plant rests on its back, absorbing sunlight for energy. Primary Type: Grass Secondary Type: Poison
+
+Charmander Line
+Charmander: A lizard Pokémon with a flame on its tail. Primary Type: Fire Evolution: Evolves into Charmeleon at Level 16.
+
+Charmeleon: Its fiery temperament intensifies as it grows. Primary Type: Fire Evolution: Evolves into Charizard at Level 36.
+
+Charizard: A large winged Pokémon capable of powerful fire attacks. Primary Type: Fire Secondary Type: Flying
+
+Squirtle Line
+Squirtle: A small turtle Pokémon known for its defensive shell. Primary Type: Water Evolution: Evolves into Wartortle at Level 16.
+
+Wartortle: Its fluffy tail stores air for underwater stability. Primary Type: Water Evolution: Evolves into Blastoise at Level 36.
+
+Blastoise: Equipped with twin water cannons for high‑pressure attacks. Primary Type: Water
+
+Section 3 — Notable Wild Pokémon
+Pikachu
+A small electric rodent Pokémon commonly found in forested areas. Primary Type: Electric Behavior: Stores electricity in its cheeks and releases it when threatened.
+
+Geodude
+A rock‑like Pokémon found in caves and mountainous terrain. Primary Type: Rock Secondary Type: Ground
+
+Abra
+A psychic Pokémon known for its ability to teleport away from danger. Primary Type: Psychic Behavior: Sleeps for most of the day but can sense threats even while resting.
+
+Section 4 — Gym Leaders of the Kanto Region
+Pewter City Gym
+Leader: Brock
+
+Specialty: Rock‑type Pokémon
+
+Badge Awarded: Boulder Badge
+
+Cerulean City Gym
+Leader: Misty
+
+Specialty: Water‑type Pokémon
+
+Badge Awarded: Cascade Badge
+
+Vermilion City Gym
+Leader: Lt. Surge
+
+Specialty: Electric‑type Pokémon
+
+Badge Awarded: Thunder Badge
+
+Celadon City Gym
+Leader: Erika
+
+Specialty: Grass‑type Pokémon
+
+Badge Awarded: Rainbow Badge
+
+Fuchsia City Gym
+Leader: Koga
+
+Specialty: Poison‑type Pokémon
+
+Badge Awarded: Soul Badge
+
+Saffron City Gym
+Leader: Sabrina
+
+Specialty: Psychic‑type Pokémon
+
+Badge Awarded: Marsh Badge
+
+Cinnabar Island Gym
+Leader: Blaine
+
+Specialty: Fire‑type Pokémon
+
+Badge Awarded: Volcano Badge
+
+Viridian City Gym
+Leader: Giovanni
+
+Specialty: Ground‑type Pokémon
+
+Badge Awarded: Earth Badge
+
+Section 5 — Technical Machines (TMs)
+TM01 — Focus Strike
+A high‑precision physical attack that increases accuracy when used repeatedly. Type: Normal Power: 70
+
+TM12 — Aqua Pulse
+A swirling blast of water that may confuse the target. Type: Water Power: 60
+
+TM22 — Solar Burst
+A powerful beam of sunlight that requires one turn to charge. Type: Grass Power: 120
+
+TM34 — Static Shock
+A quick electrical strike with a chance to paralyze. Type: Electric Power: 50
+
+Section 6 — Key Items
+Poké Flute
+A handheld instrument capable of waking sleeping Pokémon. Often used to clear roadblocks caused by large resting Pokémon.
+
+Lift Key
+A small metal key used to activate elevators in restricted facilities.
+
+Silph Scope
+A specialized device that reveals the true form of ghostly Pokémon.
+
+Bike Voucher
+A certificate that can be exchanged for a high‑speed bicycle.
+
+Section 7 — Locations of Interest
+Safari Zone
+A protected wildlife preserve containing rare Pokémon species. Trainers may enter using a special permit.
+
+Power Plant
+An abandoned facility now inhabited by Electric‑type Pokémon. A powerful Legendary Pokémon is rumored to reside within.
+
+Pokémon Tower
+A tall structure dedicated to honoring departed Pokémon. Ghost‑type Pokémon are commonly encountered here.
+
+Section 8 — Evolution Stones
+Fire Stone
+Used to evolve certain Fire‑type Pokémon.
+
+Water Stone
+Triggers evolution in specific Water‑type Pokémon.
+
+Thunder Stone
+Used to evolve certain Electric‑type Pokémon.
+
+Leaf Stone
+Promotes evolution in select Grass‑type Pokémon.

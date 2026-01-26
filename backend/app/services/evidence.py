@@ -10,7 +10,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_PATH = r"C:\Users\n0308g\Git_Repos\pauth_rc\backend\app\services\models\qwen2.5"
+MODEL_PATH = r"C:\Users\n0308g\Git_Repos\pauth_rc\backend\app\rag_pipeline\models\qwen2.5"
 
 class EvidenceExtractor:
     def __init__(self, model_path: str = MODEL_PATH):
