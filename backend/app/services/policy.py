@@ -16,7 +16,7 @@ def get_policy_criteria(payer: str, cpt: str) -> dict:
 
 
 
-# Example of the output I'd probably want.
+# Example of the output I'd probably want. It needs to be transformed twice, so the out put of the RAG is text, and then we have some structured JSON
 [
   {
     "text": "Lumbar epidural steroid injections are medically necessary when radicular pain persists ≥6 weeks despite conservative therapy.",

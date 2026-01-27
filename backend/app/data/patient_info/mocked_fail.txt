@@ -1,0 +1,44 @@
+PATIENT CHART NOTE - ORTHOPEDIC CONSULTATION
+
+Patient Name: Michael Rodriguez
+DOB: 06/22/1988 (Age: 36)
+MRN: ORH-2024-6103
+Date of Visit: January 20, 2025
+Provider: Dr. Jennifer Lee, MD - Orthopedic Surgery
+
+INSURANCE: Aetna PPO (Member ID: W987654321)
+
+CHIEF COMPLAINT:
+Left knee pain x 3 weeks
+
+HPI:
+36-year-old male with acute onset left knee pain 3 weeks ago while playing 
+basketball. Describes pain as sharp, medial sided, worse with pivoting. 
+Denies any prior knee issues. Pain rated 6/10.
+
+PHYSICAL EXAM:
+BMI: 27.5
+Left Knee: Moderate effusion, medial joint line tenderness, positive McMurray's 
+test, full ROM 0-135 degrees
+
+IMAGING:
+X-ray left knee (01/20/2025): Normal. No fracture or significant arthritis.
+
+ASSESSMENT:
+Suspected medial meniscus tear, left knee (ICD-10: M23.202)
+
+TREATMENT TO DATE:
+- Ibuprofen 600mg TID x 3 weeks
+- Ice and rest
+- Activity modification
+
+PLAN:
+Patient very eager to return to basketball. Recommending MRI left knee (CPT 73721) 
+to evaluate for meniscal tear. Patient declines physical therapy, states he 
+"doesn't have time" and wants to proceed directly to MRI and possible surgery.
+
+Discussed risks and benefits. Patient understands and agrees.
+
+___________________________________
+Dr. Jennifer Lee, MD
+Orthopedic Surgery

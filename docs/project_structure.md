@@ -21,53 +21,6 @@
     v
 [JSON PA Readiness Report]
 
-TODO, need and upload and results page.
-
-# 2️⃣ Backend Skeleton (FastAPI)
-backend/
-├── app/
-│   ├── main.py
-│   ├── api/
-│   │   ├── pa.py
-│   ├── core/
-│   │   ├── config.py
-│   │   ├── security.py
-│   ├── models/
-│   │   ├── pa_models.py
-│   ├── services/
-│   │   ├── ingestion.py
-│   │   ├── evidence.py
-│   │   ├── readiness.py
-│   │   ├── justification.py
-│   ├── utils/
-│   │   ├── text.py
-│   └── requirements.py
-
-## Next Steps
-### Step 1: Start with .txt uploads
-
-Keep ingestion simple.
-
-### Step 2: Normalize text
-
-Run everything through normalize_text().
-
-### Step 3: Run evidence detectors
-
-Check:
-* conservative therapy
-* duration
-* failed treatments
-* severity
-* imaging
-
-### Step 4: Validate outputs manually
-
-Ask:
-“Does this checklist match what a clinic would expect?”
-
-If yes — you’re on the right track.
-
 
 ### High-level Clarification
 Chart Note (PDF / Text)
@@ -160,14 +113,15 @@ User uploads chart
         ↓
 Qwen extracts facts
         ↓
-You query RAG with payer + CPT
+You query RAG with payer + CPT (Transform it into Facts JSON for easy comparison)
         ↓
 Vector DB returns matching policy rules
         ↓
-Logic compares facts vs rules
+Logic compares facts vs rules (deterministic rules coded by me)
         ↓
 LLM writes justification using those rules
 
+### Scalability?
 Component	                Changes When?	        Needs Retraining?
 Clinical extractor (Qwen)	Rarely	                ❌
 Policy RAG DB	                Every policy update	✅ Just re-embed
@@ -210,3 +164,63 @@ backend/app/
     └── scripts/
         ├── ask_question.py
         └── build_index.py
+
+### ChatGPT corrected workflow
+Chart Note
+   ↓
+LLM → Evidence Extractor
+   ↓
+Structured Evidence JSON
+   ↓
+RAG → Policy Text
+   ↓
+LLM → Policy Rule Structurer
+   ↓
+Structured Rule JSON
+   ↓
+⚙️ Deterministic Logic Engine (NO LLM)
+   ↓
+Pass/Fail + Missing Items JSON
+   ↓
+LLM → Human-Readable Justification
+
+### Claude Adjusted Workflow
+Chart Note
+   ↓
+LLM → Evidence Extractor (with schema)
+   ↓
+Structured Evidence JSON (standardized medical entities)
+   ↓
+RAG Query (payer + CPT + diagnosis)
+   ↓
+Retrieved Policy Chunks (ranked by relevance)
+   ↓
+LLM → Policy Rule Parser (with strict schema + few-shot examples)
+   ↓
+Structured Criteria JSON (normalized conditions)
+   ↓
+⚙️ Schema Alignment Layer (map evidence fields to criteria fields)
+   ↓
+⚙️ Rules Engine (evaluates boolean logic)
+   ↓
+Authorization Decision + Evidence Gap Analysis
+   ↓
+LLM → Justification Generator (with templates)
+   ↓
+Human-Readable Letter
+
+
+### ⚠️ Edge Cases to Plan For
+* Ambiguous policy language - "reasonable trial of PT" - how does your structurer handle this?
+* Missing evidence - Patient has no documented BMI. Fail or flag for human review?
+* Conflicting rules - RAG returns contradictory policy versions
+* Temporal logic - "Failed treatment for at least 90 days" requires date parsing
+* Negative evidence - Proving something didn't happen (no contraindications documented)
+
+### 🚀 Suggested MVP Scope
+Start with:
+* Single payer (fewer policy variations)
+* 5-10 common CPT codes
+* Simple boolean AND criteria only
+* Manual rule authoring (not LLM-parsed) to validate the engine first
+* Then progressively add the LLM policy parser once the engine works.
