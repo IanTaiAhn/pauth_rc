@@ -2,8 +2,9 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.app.rag_pipeline.scripts.ask_question import ask_question
+# from backend.app.rag_pipeline.scripts.ask_question import ask_question
 from backend.app.rag_pipeline.scripts.build_index import build_index, INDEX_DIR
+from backend.app.rag_pipeline.scripts.extract_policy_rules import extract_policy_rules
 
 router = APIRouter()
 
@@ -31,14 +32,31 @@ class BuildIndexResponse(BaseModel):
     index_name: str
 
 
+class PolicyRuleRequest(BaseModel):
+    payer: str
+    cpt_code: str
+    index_name: str = "default"
+
+class PolicyRuleResponse(BaseModel):
+    rules: dict
+    context: list[str]
+    raw_output: str
+
+
 # ---------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------
-@router.post("/ask_question", response_model=QueryResponse)
-def query_rag(request: QueryRequest):
-    """Query the RAG system with a question."""
-    result = ask_question(request.query, index_name=request.index_name)
-    return QueryResponse(**result)
+@router.post("/extract_policy_rules", response_model=PolicyRuleResponse)
+def extract_policy_rules_endpoint(request: PolicyRuleRequest):
+    """Extract structured medical necessity rules from payer policy documents."""
+    
+    result = extract_policy_rules(
+        payer=request.payer,
+        cpt_code=request.cpt_code,
+        index_name=request.index_name
+    )
+
+    return PolicyRuleResponse(**result)
 
 
 @router.post("/build_index", response_model=BuildIndexResponse)

@@ -1,0 +1,116 @@
+{
+  "policy_metadata": {
+    "payer": "aetna",
+    "cpt_code": "73721",
+    "policy_document": "aetna_radiology_policy_2024.pdf",
+    "policy_version": "2024-v1",
+    "policy_effective_date": "2025-01-01"
+  },
+  "criteria": [
+    {
+      "criterion_id": "diagnosis_requirement",
+      "category": "diagnosis",
+      "field": "diagnosis.primary_diagnosis",
+      "operator": "starts_with_any",
+      "value": ["M23.2", "M23.3", "S83.5", "S83.6", "M25.56", "M17", "M93.2"],
+      "description": "Member must have documented diagnosis consistent with suspected meniscal tear, ligamentous injury, knee pain with mechanical symptoms, osteoarthritis, or osteochondral lesion",
+      "required": true,
+      "citation": "Page 2, Section 2.1, Aetna Radiology Policy 2024"
+    },
+    {
+      "criterion_id": "clinical_findings",
+      "category": "clinical_exam",
+      "field": "clinical_findings.physical_exam",
+      "operator": "contains_any",
+      "value": [
+        "mcmurray_test:positive",
+        "joint_line_tenderness:true",
+        "effusion:true",
+        "lachman_test:positive",
+        "instability:true"
+      ],
+      "description": "At least ONE clinical finding must be documented: positive McMurray's test, joint line tenderness with mechanical symptoms, persistent effusion after 4 weeks, positive Lachman test, or instability on stress testing",
+      "required": true,
+      "citation": "Page 2, Section 2.2, Aetna Radiology Policy 2024"
+    },
+    {
+      "criterion_id": "xray_requirement",
+      "category": "imaging",
+      "field": "prior_imaging.xray_completed",
+      "operator": "equals",
+      "value": true,
+      "description": "Weight-bearing X-rays must be completed within 60 days",
+      "required": true,
+      "citation": "Page 2, Section 2.3, Aetna Radiology Policy 2024"
+    },
+    {
+      "criterion_id": "xray_timeframe",
+      "category": "imaging",
+      "field": "prior_imaging.days_since_xray",
+      "operator": "lte",
+      "value": 60,
+      "description": "X-ray must be within past 60 days",
+      "required": true,
+      "citation": "Page 2, Section 2.3, Aetna Radiology Policy 2024"
+    },
+    {
+      "criterion_id": "conservative_treatment_duration",
+      "category": "prior_treatment",
+      "field": "conservative_treatment.total_conservative_care_days",
+      "operator": "gte",
+      "value": 42,
+      "description": "Member must have completed at least 6 weeks (42 days) of conservative therapy",
+      "required": true,
+      "exceptions": [
+        "suspected_complete_ligament_rupture",
+        "acute_trauma_unable_to_bear_weight",
+        "locked_knee",
+        "red_flag_symptoms"
+      ],
+      "citation": "Page 3, Section 2.4, Aetna Radiology Policy 2024"
+    },
+    {
+      "criterion_id": "conservative_treatment_modalities",
+      "category": "prior_treatment",
+      "field": "conservative_treatment",
+      "operator": "has_minimum_count",
+      "value": 2,
+      "check_fields": [
+        "physical_therapy.completed",
+        "medications.nsaids",
+        "activity_modification.completed"
+      ],
+      "description": "At least TWO conservative treatment modalities must be documented: PT (min 6 sessions), NSAIDs (min 4 weeks), activity modification, or bracing",
+      "required": true,
+      "citation": "Page 3, Section 2.4, Aetna Radiology Policy 2024"
+    },
+    {
+      "criterion_id": "pt_sessions_minimum",
+      "category": "prior_treatment",
+      "field": "conservative_treatment.physical_therapy.total_sessions",
+      "operator": "gte",
+      "value": 6,
+      "description": "If physical therapy used, minimum 6 sessions required",
+      "required": false,
+      "conditional": "if physical_therapy.completed == true",
+      "citation": "Page 1, Conservative Therapy Definitions, Aetna Guidelines Supplement"
+    }
+  ],
+  "logic": "AND",
+  "exception_rules": [
+    {
+      "exception_id": "acute_trauma_exception",
+      "overrides_criteria": ["conservative_treatment_duration", "conservative_treatment_modalities"],
+      "conditions": {
+        "any_of": [
+          "red_flags.acute_trauma == true",
+          "red_flags.unable_to_bear_weight == true",
+          "red_flags.locked_knee == true"
+        ]
+      },
+      "citation": "Page 3, Section 2.4 Exceptions, Aetna Radiology Policy 2024"
+    }
+  ],
+  "confidence": "high",
+  "ambiguities": []
+}

@@ -44,6 +44,8 @@ def ask_question(query: str, index_name="default"):
     }
 
 
+
+
 if __name__ == "__main__":
     ask_question("What are the highlighted portions of this text?")
     

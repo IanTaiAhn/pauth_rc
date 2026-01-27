@@ -1,0 +1,110 @@
+AETNA SUPPLEMENTARY GUIDELINES
+Knee MRI Clinical Decision Support
+Document ID: RAD-KNEE-2024-SUPP
+Version: 2.1
+
+================================================================================
+CLINICAL CONTEXT AND EVIDENCE BASIS
+================================================================================
+
+These supplementary guidelines provide additional context for knee MRI 
+authorization decisions.
+
+CONSERVATIVE THERAPY DEFINITIONS:
+
+Physical Therapy:
+- Minimum 6 sessions over 6-week period
+- Must include documented treatment plan with objective measures
+- Home exercise program compliance documented
+- Acceptable if member unable to tolerate due to pain severity
+
+NSAIDs/Analgesics:
+- Minimum 4-week trial at therapeutic doses
+- Document medication name, dose, frequency, duration
+- May substitute with documented reason if contraindicated
+
+Activity Modification:
+- Documentation of specific modifications attempted
+- Work restrictions if applicable
+- Use of assistive devices
+
+SPECIAL POPULATIONS:
+
+Athletes (High School, College, Professional):
+- Expedited review process available
+- Conservative care may be shortened to 3-4 weeks if documented 
+  competitive season timeline
+- Must still meet diagnostic and clinical criteria
+
+Elderly (>75 years):
+- Surgical candidacy assessment required
+- Document discussion of risks/benefits of surgical intervention
+- Consider conservative management as definitive treatment
+
+Obesity (BMI >35):
+- Document weight optimization plan if surgical candidate
+- May require bariatric or nutrition consultation documentation for 
+  surgical planning cases
+
+IMAGING INTERPRETATION CONSIDERATIONS:
+
+X-ray findings that support MRI necessity:
+- Joint space narrowing (any grade)
+- Osteophyte formation
+- Subchondral sclerosis
+- Loose bodies
+- Effusion on cross-table lateral view
+
+X-ray findings that may argue against MRI:
+- Severe tricompartmental arthritis (may proceed directly to arthroplasty)
+- Acute fracture visible on X-ray (CT may be more appropriate)
+
+TIMEFRAME CLARIFICATIONS:
+
+"6 weeks of conservative therapy":
+- Calculate from first documented treatment intervention
+- Need not be continuous if compliant during treatment period
+- Gaps in care acceptable if documented (holidays, illness, scheduling)
+
+"Recent clinical notes":
+- Preferably within 14 days
+- Up to 30 days acceptable if clinical status stable
+- Older notes acceptable if clearly documented "no interval change"
+
+RED FLAGS requiring expedited review:
+- Suspected septic arthritis (fever, severe pain, systemic symptoms)
+- Suspected tumor or malignancy (night pain, unexplained weight loss)
+- Neurovascular compromise
+- Acute locked knee unable to extend
+
+AUTHORIZATION OUTCOMES:
+
+APPROVED: All criteria clearly met
+PENDED: Missing documentation, request additional records within 5 business days
+DENIED: Criteria not met, specific deficiencies listed in denial letter
+PEER-TO-PEER: Complex case, offer physician reviewer discussion
+
+================================================================================
+FREQUENTLY ASKED QUESTIONS
+================================================================================
+
+Q: Can physical therapy and NSAIDs occur simultaneously?
+A: Yes, simultaneous treatment counts as conservative care. Total duration 
+   must be at least 6 weeks.
+
+Q: What if patient cannot tolerate physical therapy due to pain?
+A: Document attempt and reason for intolerance. If pain prevents PT, this 
+   may support medical necessity. Ensure other conservative measures attempted.
+
+Q: Does chiropractic care count as conservative treatment?
+A: Yes, if documented and includes specific knee treatment. Must still meet 
+   6-week minimum duration.
+
+Q: Member had MRI 8 months ago at another facility. Do they need a new one?
+A: Review indication. If new injury or significant clinical change, yes. 
+   If same complaint without interval change, consider obtaining outside 
+   imaging records first.
+
+Q: What BMI threshold triggers need for weight optimization?
+A: No absolute threshold. For BMI >40, document discussion of weight impact 
+   on surgical outcomes if planning surgical intervention.

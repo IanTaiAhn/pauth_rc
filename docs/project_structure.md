@@ -136,7 +136,7 @@ Readiness scoring	Deterministic logic	Evidence + Policy
 Justification writing	LLM	                Evidence + Policy text
 
 ### Api endpoints
-/api/ask_question          [POST]   - Query RAG system
+/api/extract_policy_rules  [POST]   - Query RAG system
 /api/build_index           [POST]   - Build new index
 /api/delete_index/{name}   [DELETE] - Delete index
 /api/list_indexes          [GET]    - List all indexes

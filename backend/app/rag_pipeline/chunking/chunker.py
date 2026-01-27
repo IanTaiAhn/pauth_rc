@@ -1,105 +1,155 @@
 # chunking/chunker.py
-from pathlib import Path
 import re
 from typing import List, Dict
 
 
+# --------------------------------------------------
+# 1. Sentence splitter (same idea, slightly safer)
+# --------------------------------------------------
 def sentence_split(text: str) -> List[str]:
-    # Very simple sentence splitter; replace with nltk if desired
-    toks = re.split(r'(?<=[.!?])\s+', text)
-    return [t.strip() for t in toks if t.strip()]
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    return [s.strip() for s in sentences if s.strip()]
 
-def chunk_text(
-    text: str,
-    tokenizer,
-    max_tokens: int = 400,
-    overlap: int = 100,
-    min_chunk_tokens: int = 150
-):
-    """
-    Chunk text by sentence boundaries with token-accurate sizing,
-    token-based overlap, whitespace normalization, and minimum chunk size.
-    """
 
-    # --- 1. Clean text ---
-    cleaned = " ".join(text.split())  # normalize whitespace
+# --------------------------------------------------
+# 2. Detect section headers and assign rule types
+# --------------------------------------------------
+SECTION_PATTERNS = [
+    (r"SECTION\s+\d+.*POLICY STATEMENT", "policy_statement"),
+    (r"SECTION\s+\d+.*PRIOR AUTHORIZATION REQUIREMENTS?", "pa_requirements"),
+    (r"COVERAGE CRITERIA", "coverage_criteria"),
+    (r"DIAGNOSIS REQUIREMENT", "diagnosis_requirement"),
+    (r"CLINICAL FINDINGS", "clinical_findings"),
+    (r"IMAGING REQUIREMENT", "imaging_requirement"),
+    (r"CONSERVATIVE TREATMENT REQUIREMENT", "conservative_treatment"),
+    (r"EXCEPTIONS", "exceptions"),
+    (r"AGE CONSIDERATIONS", "age_rules"),
+    (r"PRIOR IMAGING", "prior_imaging"),
+    (r"NOT MEDICALLY NECESSARY", "not_medically_necessary"),
+    (r"DOCUMENTATION REQUIREMENTS", "documentation"),
+    (r"AUTHORIZATION VALIDITY", "admin"),
+    (r"APPENDIX", "appendix"),
+]
 
-    # --- 2. Split into sentences ---
-    sents = sentence_split(cleaned)
+
+def detect_rule_type(header_text: str) -> str:
+    header_text = header_text.upper()
+    for pattern, rule_type in SECTION_PATTERNS:
+        if re.search(pattern, header_text):
+            return rule_type
+    return "general"
+
+
+# --------------------------------------------------
+# 3. Split document by headers first
+# --------------------------------------------------
+HEADER_REGEX = re.compile(
+    r"(SECTION\s+\d+:[^\n]+|[A-Z][A-Z \-/()]{3,}:)",
+    re.MULTILINE
+)
+
+
+def split_by_headers(text: str) -> List[Dict]:
+    parts = HEADER_REGEX.split(text)
+    sections = []
+
+    current_header = "GENERAL"
+    current_rule_type = "general"
+
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+
+        # If this part looks like a header
+        if HEADER_REGEX.match(part):
+            current_header = part
+            current_rule_type = detect_rule_type(part)
+        else:
+            sections.append({
+                "header": current_header,
+                "rule_type": current_rule_type,
+                "text": part
+            })
+
+    return sections
+
+
+# --------------------------------------------------
+# 4. Token-aware chunking WITHIN each section
+# --------------------------------------------------
+def chunk_section_text(section: Dict, tokenizer, max_tokens=400, overlap=80, min_chunk_tokens=120):
+    sentences = sentence_split(section["text"])
 
     chunks = []
     current_sents = []
     current_tokens = 0
+    chunk_id = 0
 
     def count_tokens(s):
         return len(tokenizer.encode(s))
 
-    def flush_chunk(chunk_id, sents_list):
-        if not sents_list:
-            return None
-        chunk_text = " ".join(sents_list)
-        chunk_text = " ".join(chunk_text.split())  # normalize again
-        return {"chunk_id": chunk_id, "text": chunk_text}
+    def flush():
+        nonlocal chunk_id
+        if not current_sents:
+            return
+        chunk_text = " ".join(current_sents).strip()
+        chunks.append({
+            "chunk_id": f"{section['rule_type']}_{chunk_id}",
+            "text": chunk_text,
+            "metadata": {
+                "header": section["header"],
+                "rule_type": section["rule_type"]
+            }
+        })
+        chunk_id += 1
 
-    chunk_id = 0
+    for sent in sentences:
+        t = count_tokens(sent)
 
-    for sent in sents:
-        sent_tokens = count_tokens(sent)
-
-        # If adding this sentence fits within max_tokens
-        if current_tokens + sent_tokens <= max_tokens:
+        if current_tokens + t <= max_tokens:
             current_sents.append(sent)
-            current_tokens += sent_tokens
-            continue
-
-        # Otherwise: flush current chunk if it's big enough
-        if current_tokens >= min_chunk_tokens:
-            chunk = flush_chunk(chunk_id, current_sents)
-            if chunk:
-                chunks.append(chunk)
-                chunk_id += 1
+            current_tokens += t
         else:
-            # If too small, try to add anyway (avoid tiny chunks)
-            current_sents.append(sent)
-            current_tokens += sent_tokens
-            continue
+            if current_tokens >= min_chunk_tokens:
+                flush()
 
-        # --- 3. Build token-based overlap ---
-        if overlap > 0:
-            overlap_sents = []
-            overlap_tokens = 0
+                # build overlap
+                overlap_sents = []
+                overlap_tokens = 0
+                for s in reversed(current_sents):
+                    st = count_tokens(s)
+                    if overlap_tokens + st > overlap:
+                        break
+                    overlap_sents.insert(0, s)
+                    overlap_tokens += st
 
-            # Walk backwards through current_sents
-            for s in reversed(current_sents):
-                t = count_tokens(s)
-                if overlap_tokens + t > overlap:
-                    break
-                overlap_sents.insert(0, s)
-                overlap_tokens += t
+                current_sents = overlap_sents + [sent]
+                current_tokens = overlap_tokens + t
+            else:
+                current_sents.append(sent)
+                current_tokens += t
 
-            current_sents = overlap_sents
-            current_tokens = overlap_tokens
-        else:
-            current_sents = []
-            current_tokens = 0
-
-        # Add the new sentence
-        current_sents.append(sent)
-        current_tokens += sent_tokens
-
-    # --- 4. Flush final chunk ---
     if current_sents:
-        chunk = flush_chunk(chunk_id, current_sents)
-        if chunk:
-            chunks.append(chunk)
+        flush()
 
     return chunks
 
 
+# --------------------------------------------------
+# 5. Main entry point
+# --------------------------------------------------
+def chunk_text(text: str, tokenizer) -> List[Dict]:
+    # Normalize whitespace
+    text = " ".join(text.split())
 
-if __name__ == "__main__":
-    t = Path(__file__).parent.parent / "data" / "raw_docs" / "sample.txt"
-    if t.exists():
-        text = t.read_text()
-        ch = chunk_text(text)
-        print("Chunks:", len(ch))
+    # Step 1 — split by policy structure
+    sections = split_by_headers(text)
+
+    # Step 2 — chunk inside each section
+    all_chunks = []
+    for section in sections:
+        section_chunks = chunk_section_text(section, tokenizer)
+        all_chunks.extend(section_chunks)
+
+    return all_chunks
