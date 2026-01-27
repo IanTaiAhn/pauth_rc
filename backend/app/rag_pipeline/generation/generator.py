@@ -20,7 +20,7 @@ class MedicalGenerator:
             self.tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
             self.model = AutoModelForCausalLM.from_pretrained(
                 MODEL_DIR,
-                torch_dtype=torch.float32,  # or torch.float16 if supported
+                dtype=torch.float32,  # or torch.float16 if supported
                 low_cpu_mem_usage=True
             )
             self.model.eval()

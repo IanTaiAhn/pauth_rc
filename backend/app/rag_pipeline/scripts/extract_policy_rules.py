@@ -55,7 +55,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     print('✓ Built medical policy extraction prompt')
 
     # Generate with higher token limit for medical policies
-    raw_output = generate_with_context(prompt, max_new_tokens=256) # maybe change back to 800
+    raw_output = generate_with_context(prompt, max_new_tokens=400) # maybe change back to 800, yah so 256 didn't work :cry_face:, 400 was quicker and gave comproable results.
     print('✓ Generated policy extraction')
     
     if not raw_output:
