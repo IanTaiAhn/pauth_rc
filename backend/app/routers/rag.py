@@ -5,9 +5,10 @@ from pydantic import BaseModel
 # from backend.app.rag_pipeline.scripts.ask_question import ask_question
 from backend.app.rag_pipeline.scripts.build_index import build_index, INDEX_DIR
 from backend.app.rag_pipeline.scripts.extract_policy_rules import extract_policy_rules
+from backend.app.utils.save_json import save_analysis_to_json
 
 router = APIRouter()
-
+# THIS OUTPUTS MY POLICY CRITERIA CHECKLIST JSON
 
 # ---------------------------------------------------------
 # Pydantic Models
@@ -55,6 +56,11 @@ def extract_policy_rules_endpoint(request: PolicyRuleRequest):
         cpt_code=request.cpt_code,
         index_name=request.index_name
     )
+
+    result_dict = result.model_dump()
+    saved_path = save_analysis_to_json(result_dict, output_dir=".")
+        
+    print(f'Analysis succeeded and saved to {saved_path}!')
 
     return PolicyRuleResponse(**result)
 

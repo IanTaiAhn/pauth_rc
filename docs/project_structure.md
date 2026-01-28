@@ -224,3 +224,8 @@ Start with:
 * Simple boolean AND criteria only
 * Manual rule authoring (not LLM-parsed) to validate the engine first
 * Then progressively add the LLM policy parser once the engine works.
+
+
+### Policy Criteria Rag Pipeline
+Policy PDFs → Embeddings → Retrieval(uses specialized query to get relevant chunks) → Rerank → LLM Structuring(create another prompt using the reranked specialized chunks) → Policy Rules JSON
+“I use semantic search to locate payer policy text, refine it with a relevance model, and then use an LLM to transform authoritative policy language into structured decision rules.”

@@ -1,19 +1,20 @@
 # generation/prompt.py
 from typing import List
 
-PROMPT_TEMPLATE = """<output_format>JSON only - no explanations</output_format>
+# THIS IS NOT USED ATM
+# PROMPT_TEMPLATE = """<output_format>JSON only - no explanations</output_format>
 
-Extract prior authorization rules from the context below.
+# Extract prior authorization rules from the context below.
 
-Rules:
-- Output valid JSON only
-- No markdown, no explanations
-- Start with {{ and end with }}
+# Rules:
+# - Output valid JSON only
+# - No markdown, no explanations
+# - Start with {{ and end with }}
 
-{context}
+# {context}
 
-JSON OUTPUT:
-"""
+# JSON OUTPUT:
+# """
 
 # def build_prompt(chunks: List[dict]) -> str:
 #     """
@@ -69,6 +70,7 @@ JSON OUTPUT:
 #     return PROMPT_TEMPLATE.format(context=context)
 
 # generation/prompt.py
+# This is building another prompt that utilizes the top ranked chunks to create the structured JSON I need.
 def build_medical_policy_prompt(context_chunks: list, payer: str, cpt_code: str) -> str:
     """
     Build a structured prompt for medical policy extraction

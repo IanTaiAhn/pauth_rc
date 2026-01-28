@@ -28,6 +28,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
         build_index.CURRENT_INDEX = index_name
 
     # 🔍 Enhanced retrieval query
+    # THIS IS COOL. I retrieve relevant chunks first.
     query = (
         f"{payer} CPT {cpt_code} medical necessity coverage criteria "
         f"requirements prior authorization documentation"
@@ -45,12 +46,14 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
             "raw_output": ""
         }
 
-    # Rerank
+    # Rerank 
+    # With the specialized retrieved chunks I then rerank to get my top chunks.
     reranker = Reranker()
     reranked = reranker.rerank(query, candidates, top_k=8)
     print(f'✓ Reranked to top {len(reranked)} chunks')
 
     # 🧠 Build medical-specific prompt
+    # This uses the chunks to build the query that will finally go to qwen2.5.
     prompt = build_medical_policy_prompt(reranked, payer, cpt_code)
     print('✓ Built medical policy extraction prompt')
 
