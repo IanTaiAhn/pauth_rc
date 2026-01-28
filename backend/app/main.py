@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.routers import rag, documents, pa
+from backend.app.routers import rag, documents, pa, authz
 
 app = FastAPI(title="P-Auth RC")
 
@@ -20,6 +20,8 @@ app.add_middleware(
 app.include_router(rag.router, prefix="/api", tags=["RAG"])
 app.include_router(documents.router, prefix="/api", tags=["Documents"])
 app.include_router(pa.router, prefix="/api", tags=["Prior Authorization"])
+app.include_router(authz.router, prefix="/api", tags=["Evaluate"])
+
 
 @app.get("/")
 def read_root():
