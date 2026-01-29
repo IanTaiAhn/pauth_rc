@@ -57,8 +57,8 @@ def extract_policy_rules_endpoint(request: PolicyRuleRequest):
         index_name=request.index_name
     )
 
-    result_dict = result.model_dump()
-    saved_path = save_analysis_to_json(result_dict, output_dir=".")
+    # result_dict = result.model_dump()
+    saved_path = save_analysis_to_json(result, output_dir=".")
         
     print(f'Analysis succeeded and saved to {saved_path}!')
 

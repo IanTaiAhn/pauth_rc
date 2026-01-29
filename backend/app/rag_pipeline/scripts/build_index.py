@@ -67,10 +67,10 @@ def build_index():
         # Pass tokenizer into chunk_text
         chunks = chunk_text(
             text,
-            tokenizer=tokenizer,
-            max_tokens=400,
-            overlap=100,
-            min_chunk_tokens=150
+            tokenizer=tokenizer
+            # max_tokens=400,
+            # overlap=100,
+            # min_chunk_tokens=150
         )
 
         chunk_texts = [c["text"] for c in chunks]
