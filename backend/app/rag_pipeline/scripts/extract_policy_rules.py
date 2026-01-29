@@ -7,8 +7,9 @@
 
 # Updated policy_extraction.py
 import json
-import backend.app.rag_pipeline.scripts.build_index as build_index
+import backend.app.rag_pipeline.scripts.build_index_updated as build_index
 from backend.app.rag_pipeline.retrieval.retriever import Retriever
+from backend.app.rag_pipeline.retrieval.enhanced_retriever import retrieve_and_format
 from backend.app.rag_pipeline.retrieval.reranker import Reranker
 from backend.app.rag_pipeline.generation.prompt import build_medical_policy_prompt
 from backend.app.rag_pipeline.generation.generator import generate_with_context
@@ -33,12 +34,19 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
         f"{payer} CPT {cpt_code} coverage criteria clinical findings conservative treatment imaging requirements"
     )
 
-    # Retrieve candidates
-    retriever = Retriever(build_index.EMBEDDER, build_index.STORE, top_k=40)
-    candidates = retriever.retrieve(query)
-    print(f'✓ Retrieved {len(candidates)} candidate chunks')
+    # Retrieve candidates/context
+    context = retrieve_and_format(
+        query=query,
+        store= build_index.STORE,
+        embedder=build_index.EMBEDDER,
+        top_k=3,
+        verbose=True
+    )
+    # retriever = Retriever(build_index.EMBEDDER, build_index.STORE, top_k=40)
+    # candidates = retriever.retrieve(query)
+    print(f'✓ Retrieved {len(context)} candidate chunks')
     
-    if not candidates:
+    if not context:
         return {
             "rules": {"error": "No relevant policy documents found"},
             "context": [],
@@ -48,7 +56,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     # Rerank 
     # With the specialized retrieved chunks I then rerank to get my top chunks.
     reranker = Reranker()
-    reranked = reranker.rerank(query, candidates, top_k=10)
+    reranked = reranker.rerank(query, context, top_k=10)
     print(f'✓ Reranked to top {len(reranked)} chunks')
     print("\n📚 TOP RERANKED CHUNKS SENT TO LLM:\n")
     for i, c in enumerate(reranked, 1):

@@ -1,12 +1,11 @@
 """
 Enhanced retrieval functions that leverage the rich metadata from improved_chunker.
 
-This module provides metadata-aware retrieval that boosts relevant chunks
-based on query intent and structural information.
+FIXED VERSION: Handles different FaissStore.search() return formats
 """
 
 import re
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
 
 def extract_codes_from_query(query: str) -> Tuple[List[str], List[str]]:
@@ -25,7 +24,7 @@ def extract_codes_from_query(query: str) -> Tuple[List[str], List[str]]:
     return cpt_codes, icd_codes
 
 
-def analyze_query_intent(query: str) -> Dict[str, bool]:
+def analyze_query_intent(query: str) -> Dict[str, Any]:
     """
     Analyze query to understand user intent.
     
@@ -73,6 +72,75 @@ def analyze_query_intent(query: str) -> Dict[str, bool]:
     }
 
 
+def normalize_search_results(results, store) -> List[Tuple[float, Dict]]:
+    """
+    Normalize different FaissStore.search() return formats to a standard format.
+    
+    Returns: List of (score, metadata_dict) tuples
+    """
+    normalized = []
+    
+    # Case 1: Already in correct format - list of (score, metadata_dict) tuples
+    if results and isinstance(results[0], tuple) and len(results[0]) == 2:
+        score_or_dist, second_item = results[0]
+        
+        # Check if second item is a dict (metadata)
+        if isinstance(second_item, dict):
+            # Already correct format!
+            return results
+        
+        # Check if second item is an index
+        elif isinstance(second_item, (int, np.integer)):
+            # Format: [(distance, index), ...]
+            # Need to fetch metadata from store
+            for dist, idx in results:
+                if hasattr(store, 'metadata') and idx < len(store.metadata):
+                    metadata = store.metadata[idx]
+                    # Convert distance to similarity score (closer = higher score)
+                    score = 1.0 / (1.0 + dist)  # Simple conversion
+                    normalized.append((score, metadata))
+            return normalized
+    
+    # Case 2: List of dicts with 'score' and 'metadata' keys
+    elif results and isinstance(results[0], dict):
+        for result in results:
+            if 'metadata' in result and 'score' in result:
+                normalized.append((result['score'], result['metadata']))
+            elif 'metadata' in result:
+                # No score, use 1.0 as default
+                normalized.append((1.0, result['metadata']))
+            else:
+                # The whole dict might be the metadata
+                normalized.append((1.0, result))
+        return normalized
+    
+    # Case 3: Tuple of (distances, indices) arrays
+    elif isinstance(results, tuple) and len(results) == 2:
+        distances, indices = results
+        if hasattr(store, 'metadata'):
+            for dist, idx in zip(distances, indices):
+                if idx < len(store.metadata):
+                    metadata = store.metadata[idx]
+                    score = 1.0 / (1.0 + dist)
+                    normalized.append((score, metadata))
+        return normalized
+    
+    # Case 4: Just a list of indices
+    elif results and isinstance(results[0], (int, np.integer)):
+        if hasattr(store, 'metadata'):
+            for idx in results:
+                if idx < len(store.metadata):
+                    metadata = store.metadata[idx]
+                    normalized.append((1.0, metadata))
+        return normalized
+    
+    # Unknown format - try to handle gracefully
+    print(f"Warning: Unknown search result format: {type(results)}")
+    if results:
+        print(f"First result: {results[0]}")
+    return []
+
+
 def retrieve_with_metadata_boost(
     query: str,
     store,
@@ -98,12 +166,30 @@ def retrieve_with_metadata_boost(
     
     # Embed query and search
     query_vector = embedder.embed([query])[0]
-    results = store.search(query_vector, k=top_k)
+    raw_results = store.query(query_vector, top_k=top_k)
+    
+    # Normalize results to standard format
+    results = normalize_search_results(raw_results, store)
+    
+    if not results:
+        print("Warning: No results returned from search")
+        return []
     
     # Apply metadata-based boosts
     boosted_results = []
     
     for score, metadata in results:
+        # Handle case where metadata might be a string (shouldn't happen, but defensive)
+        if isinstance(metadata, str):
+            print(f"Warning: metadata is string, not dict: {metadata[:100]}")
+            # Try to recover - maybe it's the 'text' field
+            metadata = {'text': metadata}
+        
+        # Ensure metadata is a dict
+        if not isinstance(metadata, dict):
+            print(f"Warning: Skipping non-dict metadata: {type(metadata)}")
+            continue
+        
         boost_factor = 1.0
         boost_reasons = []
         
@@ -211,7 +297,7 @@ def format_chunk_for_llm(chunk: Dict, include_metadata: bool = True) -> str:
     
     # Add the main text
     parts.append("")
-    parts.append(chunk['text'])
+    parts.append(chunk.get('text', '[No text available]'))
     
     # Add codes if present
     if chunk.get('cpt_codes') or chunk.get('icd_codes'):
@@ -286,36 +372,48 @@ def retrieve_and_format(
     return context
 
 
-# Example usage
-if __name__ == "__main__":
-    # This would normally be called from your main retrieval pipeline
+# Import numpy if available (for type checking)
+try:
+    import numpy as np
+except ImportError:
+    # Create a dummy numpy module for type checking
+    class DummyNumpy:
+        class integer:
+            pass
+    np = DummyNumpy()
+
+
+# Quick test function
+def test_retrieval(store, embedder):
+    """Quick test to verify retrieval works"""
+    test_query = "What are the requirements for knee MRI?"
     
-    from backend.app.rag_pipeline.build_index import STORE, EMBEDDER, load_index
+    print("Testing retrieval with query:", test_query)
+    print("="*80)
     
-    # Load the index
-    load_index("mocked_insurance_policy")
-    
-    # Test queries
-    test_queries = [
-        "Do I need physical therapy before knee MRI?",
-        "I tore my ACL, do I still need 6 weeks of treatment?",
-        "What ICD-10 codes qualify for knee MRI?",
-        "Can athletes get expedited approval?",
-    ]
-    
-    for query in test_queries:
-        print(f"\n{'='*80}")
-        print(f"TESTING QUERY: {query}")
-        print(f"{'='*80}\n")
-        
-        context = retrieve_and_format(
-            query=query,
-            store=STORE,
-            embedder=EMBEDDER,
-            top_k=3,
-            verbose=True
+    try:
+        chunks = retrieve_with_metadata_boost(
+            query=test_query,
+            store=store,
+            embedder=embedder,
+            top_k=10,
+            final_k=3
         )
         
-        print("\nFormatted Context for LLM:")
-        print(context)
-        print("\n")
+        print(f"✓ Successfully retrieved {len(chunks)} chunks")
+        
+        if chunks:
+            print("\nFirst chunk sample:")
+            chunk = chunks[0]
+            print(f"  Section: {chunk.get('section_header', 'N/A')}")
+            print(f"  Rule Type: {chunk.get('rule_type', 'N/A')}")
+            print(f"  Is Exception: {chunk.get('is_exception', 'N/A')}")
+            print(f"  Text preview: {chunk.get('text', '')[:100]}...")
+        
+        return True
+        
+    except Exception as e:
+        print(f"✗ Retrieval failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False

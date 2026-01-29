@@ -3,9 +3,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 # from backend.app.rag_pipeline.scripts.ask_question import ask_question
-from backend.app.rag_pipeline.scripts.build_index import build_index, INDEX_DIR
+# from backend.app.rag_pipeline.scripts.build_index import build_index, INDEX_DIR
 from backend.app.rag_pipeline.scripts.extract_policy_rules import extract_policy_rules
 from backend.app.utils.save_json import save_analysis_to_json
+from backend.app.rag_pipeline.scripts.build_index_updated import build_index, INDEX_DIR
+
 
 router = APIRouter()
 # THIS OUTPUTS MY POLICY CRITERIA CHECKLIST JSON
