@@ -30,12 +30,11 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     # 🔍 Enhanced retrieval query
     # THIS IS COOL. I retrieve relevant chunks first.
     query = (
-        f"{payer} CPT {cpt_code} medical necessity coverage criteria "
-        f"requirements prior authorization documentation"
+        f"{payer} CPT {cpt_code} coverage criteria clinical findings conservative treatment imaging requirements"
     )
 
     # Retrieve candidates
-    retriever = Retriever(build_index.EMBEDDER, build_index.STORE, top_k=20)
+    retriever = Retriever(build_index.EMBEDDER, build_index.STORE, top_k=40)
     candidates = retriever.retrieve(query)
     print(f'✓ Retrieved {len(candidates)} candidate chunks')
     
@@ -49,24 +48,62 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     # Rerank 
     # With the specialized retrieved chunks I then rerank to get my top chunks.
     reranker = Reranker()
-    reranked = reranker.rerank(query, candidates, top_k=8)
+    reranked = reranker.rerank(query, candidates, top_k=10)
     print(f'✓ Reranked to top {len(reranked)} chunks')
+    print("\n📚 TOP RERANKED CHUNKS SENT TO LLM:\n")
+    for i, c in enumerate(reranked, 1):
+        meta = c["metadata"]
+        text = (meta.get("text") or meta.get("chunk_text", ""))[:500]
+        print(f"\n--- Chunk {i} ---")
+        print(f"Doc: {meta.get('doc_id')} | Chunk: {meta.get('chunk_id')}")
+        print(text)
+
 
     # 🧠 Build medical-specific prompt
     # This uses the chunks to build the query that will finally go to qwen2.5.
     prompt = build_medical_policy_prompt(reranked, payer, cpt_code)
     print('✓ Built medical policy extraction prompt')
+    print("\n🧠 FINAL PROMPT SENT TO MODEL:\n")
+    print(prompt)
+
 
     # Generate with higher token limit for medical policies
     raw_output = generate_with_context(prompt, max_new_tokens=400) # maybe change back to 800, yah so 256 didn't work :cry_face:, 400 was quicker and gave comproable results.
     print('✓ Generated policy extraction')
-    
+    print("\n🤖 RAW MODEL OUTPUT:\n")
+    print(raw_output)
+    print("\n🔚 END RAW OUTPUT\n")
+
+    if raw_output.count("{") != raw_output.count("}"):
+        print("⚠️ Brace mismatch detected — model likely cut off or added text")
+
+    if "Human:" in raw_output or "JSON OUTPUT" in raw_output:
+        print("⚠️ Model is continuing conversation instead of stopping at JSON")
+
     if not raw_output:
         return {
             "rules": {"error": "Generation failed"},
             "context": [],
             "raw_output": ""
         }
+
+    ### Nice and clean debug printer
+    # print("\n================ RAG DEBUG ================")
+    # print(f"Payer: {payer} | CPT: {cpt_code}")
+    # print(f"Retrieved: {len(candidates)} | Reranked: {len(reranked)}")
+
+    # print("\n--- TOP CHUNKS ---")
+    # for i, c in enumerate(reranked[:5], 1):
+    #     meta = c["metadata"]
+    #     text = (meta.get("text") or meta.get("chunk_text", ""))[:300]
+    #     print(f"{i}. {meta.get('doc_id')} | {meta.get('chunk_id')}")
+    #     print(text, "\n")
+
+    # print("\n--- PROMPT ---\n", prompt[:2000])  # avoid terminal spam
+
+    # print("\n--- RAW OUTPUT ---\n", raw_output)
+    # print("===========================================\n")
+
 
     # 🧾 Parse JSON safely with fallback
     try:
@@ -76,6 +113,9 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
         
         if json_start >= 0 and json_end > json_start:
             json_str = raw_output[json_start:json_end]
+            print("\n✂️ EXTRACTED JSON STRING:\n")
+            print(json_str)
+            print("\n📏 Length:", len(json_str))
             rules_json = json.loads(json_str)
         else:
             rules_json = json.loads(raw_output)
