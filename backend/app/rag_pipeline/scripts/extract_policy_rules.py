@@ -8,9 +8,10 @@
 # Updated policy_extraction.py
 import json
 import backend.app.rag_pipeline.scripts.build_index_updated as build_index
-from backend.app.rag_pipeline.retrieval.retriever import Retriever
+# from backend.app.rag_pipeline.retrieval.retriever import Retriever
+from backend.app.rag_pipeline.retrieval.enhanced_reranker import Reranker
 from backend.app.rag_pipeline.retrieval.enhanced_retriever import retrieve_and_format
-from backend.app.rag_pipeline.retrieval.reranker import Reranker
+# from backend.app.rag_pipeline.retrieval.reranker import Reranker
 from backend.app.rag_pipeline.generation.prompt import build_medical_policy_prompt
 from backend.app.rag_pipeline.generation.generator import generate_with_context
 
@@ -39,7 +40,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
         query=query,
         store= build_index.STORE,
         embedder=build_index.EMBEDDER,
-        top_k=3,
+        top_k=6,
         verbose=True
     )
     # retriever = Retriever(build_index.EMBEDDER, build_index.STORE, top_k=40)
@@ -56,7 +57,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     # Rerank 
     # With the specialized retrieved chunks I then rerank to get my top chunks.
     reranker = Reranker()
-    reranked = reranker.rerank(query, context, top_k=10)
+    reranked = reranker.rerank(query, context, top_k=3, verbose=True)
     print(f'✓ Reranked to top {len(reranked)} chunks')
     print("\n📚 TOP RERANKED CHUNKS SENT TO LLM:\n")
     for i, c in enumerate(reranked, 1):
