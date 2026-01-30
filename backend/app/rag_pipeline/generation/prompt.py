@@ -86,8 +86,7 @@ OUTPUT FORMAT (JSON only, no additional text):
   }},
   "source_references": ["document IDs used"]
 }}
-
-JSON OUTPUT:"""
+"""
 
     return prompt
 
