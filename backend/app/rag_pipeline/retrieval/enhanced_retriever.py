@@ -359,17 +359,17 @@ def retrieve_and_format(
                 print(f"   Boost Reasons: {', '.join(chunk['boost_reasons'])}")
             print()
     
-    # Format chunks for LLM
-    formatted_chunks = [
-        format_chunk_for_llm(chunk, include_metadata=include_metadata)
-        for chunk in chunks
-    ]
+    # # Format chunks for LLM
+    # formatted_chunks = [
+    #     format_chunk_for_llm(chunk, include_metadata=include_metadata)
+    #     for chunk in chunks
+    # ]
     
-    # Combine with separators
-    context = "\n\n" + "="*80 + "\n\n"
-    context += "\n\n---\n\n".join(formatted_chunks)
+    # # Combine with separators
+    # context = "\n\n" + "="*80 + "\n\n"
+    # context += "\n\n---\n\n".join(formatted_chunks)
     
-    return context
+    return chunks
 
 
 # Import numpy if available (for type checking)

@@ -291,11 +291,18 @@ class Reranker:
             # Extract text for CrossEncoder
             pairs = []
             for c in candidates:
-                text = c.get("metadata", {}).get("text", "")
+                meta = c.get("metadata", c)  # works for both wrapped and raw dicts
+                text = meta.get("text", "")
                 if not text:
-                    # Fallback if text is missing
-                    text = str(c.get("metadata", {}))
+                    text = ""
                 pairs.append((query, text))
+            # Old code that broke the dang thing
+            # for c in candidates:
+            #     text = c.get("metadata", {}).get("text", "")
+            #     if not text:
+            #         # Fallback if text is missing
+            #         text = str(c.get("metadata", {}))
+            #     pairs.append((query, text))
             
             base_scores = self.model.predict(pairs)
         else:
@@ -305,9 +312,13 @@ class Reranker:
         # Apply all boosting factors
         adjusted = []
         for i, (candidate, base_score) in enumerate(zip(candidates, base_scores)):
-            metadata = candidate.get("metadata", {})
+            metadata = candidate.get("metadata", candidate)
             text = metadata.get("text", "")
             rule_type = metadata.get("rule_type", "general")
+
+            # metadata = candidate.get("metadata", {})
+            # text = metadata.get("text", "")
+            # rule_type = metadata.get("rule_type", "general")
             
             # Factor 1: Rule type importance
             type_weight = RULE_TYPE_WEIGHTS.get(rule_type, 1.0)
@@ -316,7 +327,9 @@ class Reranker:
             kw_boost = self.keyword_boost(text)
             
             # Factor 3: Metadata alignment (NEW!)
-            meta_boost = self.metadata_boost(candidate, query_intent, query_codes)
+            meta_boost = self.metadata_boost({"metadata": metadata}, query_intent, query_codes)
+
+            # meta_boost = self.metadata_boost(candidate, query_intent, query_codes)
             
             # Combine all factors
             final_score = base_score * type_weight * kw_boost * meta_boost
@@ -356,7 +369,13 @@ class Reranker:
                 
                 print()
         
-        return [r[0] for r in ranked[:top_k]]
+        # return [r[0] for r in ranked[:top_k]]
+        final = []
+        for r, _ in ranked[:top_k]:
+            final.append(r.get("metadata", r))
+        return final
+
+
     
     def _normalize_candidates(self, candidates: List) -> List[Dict]:
         """

@@ -1,11 +1,3 @@
-# import json
-# import backend.app.rag_pipeline.scripts.build_index as build_index
-# from backend.app.rag_pipeline.retrieval.retriever import Retriever
-# from backend.app.rag_pipeline.retrieval.reranker import Reranker
-# from backend.app.rag_pipeline.generation.prompt import build_prompt
-# from backend.app.rag_pipeline.generation.generator import generate_with_context
-
-# Updated policy_extraction.py
 import json
 import backend.app.rag_pipeline.scripts.build_index_updated as build_index
 # from backend.app.rag_pipeline.retrieval.retriever import Retriever
@@ -46,7 +38,11 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     # retriever = Retriever(build_index.EMBEDDER, build_index.STORE, top_k=40)
     # candidates = retriever.retrieve(query)
     print(f'✓ Retrieved {len(context)} candidate chunks')
-    
+    print("\nDEBUG TYPE CHECK:")
+    print("Type of context:", type(context))
+    print("First element type:", type(context[0]) if isinstance(context, list) else "N/A")
+    print("Preview:", repr(context[:200]))
+
     if not context:
         return {
             "rules": {"error": "No relevant policy documents found"},
@@ -60,13 +56,6 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     reranked = reranker.rerank(query, context, top_k=3, verbose=True)
     print(f'✓ Reranked to top {len(reranked)} chunks')
     print("\n📚 TOP RERANKED CHUNKS SENT TO LLM:\n")
-    for i, c in enumerate(reranked, 1):
-        meta = c["metadata"]
-        text = (meta.get("text") or meta.get("chunk_text", ""))[:500]
-        print(f"\n--- Chunk {i} ---")
-        print(f"Doc: {meta.get('doc_id')} | Chunk: {meta.get('chunk_id')}")
-        print(text)
-
 
     # 🧠 Build medical-specific prompt
     # This uses the chunks to build the query that will finally go to qwen2.5.
@@ -96,24 +85,6 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
             "raw_output": ""
         }
 
-    ### Nice and clean debug printer
-    # print("\n================ RAG DEBUG ================")
-    # print(f"Payer: {payer} | CPT: {cpt_code}")
-    # print(f"Retrieved: {len(candidates)} | Reranked: {len(reranked)}")
-
-    # print("\n--- TOP CHUNKS ---")
-    # for i, c in enumerate(reranked[:5], 1):
-    #     meta = c["metadata"]
-    #     text = (meta.get("text") or meta.get("chunk_text", ""))[:300]
-    #     print(f"{i}. {meta.get('doc_id')} | {meta.get('chunk_id')}")
-    #     print(text, "\n")
-
-    # print("\n--- PROMPT ---\n", prompt[:2000])  # avoid terminal spam
-
-    # print("\n--- RAW OUTPUT ---\n", raw_output)
-    # print("===========================================\n")
-
-
     # 🧾 Parse JSON safely with fallback
     try:
         # Try to find JSON in the output (in case of extra text)
@@ -138,11 +109,28 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
         }
 
     # Format context as STRINGS to match Pydantic model
-    context_chunks = [
-        f"[{c['metadata'].get('doc_id','unknown')}:{c['metadata'].get('chunk_id','?')}] "
-        f"{c['metadata'].get('text') or c['metadata'].get('chunk_text', '')[:300]}..."
-        for c in reranked
-    ]
+    context_chunks = []
+
+    for c in reranked:
+        meta = c.get("metadata", c)  # fallback to flat structure
+
+        doc_id = (
+            meta.get("doc_id")
+            or meta.get("doc_name")
+            or "unknown_doc"
+        )
+
+        chunk_id = meta.get("chunk_id", "?")
+
+        text = (
+            meta.get("text")
+            or meta.get("chunk_text")
+            or ""
+        )
+
+        preview = text[:300].replace("\n", " ").strip()
+
+        context_chunks.append(f"[{doc_id}:{chunk_id}] {preview}...")
 
     return {
         "rules": rules_json,
@@ -162,6 +150,5 @@ if __name__ == "__main__":
     print("\n" + "="*60)
     print("SOURCE CONTEXT")
     print("="*60)
-    for i, ctx in enumerate(result["context"][:3]):  # Show first 3
-        print(f"\n[{i+1}] Doc: {ctx['doc_id']}, Chunk: {ctx['chunk_id']}, Score: {ctx['score']:.3f}")
-        print(f"Text: {ctx['text'][:200]}...")
+    for i, ctx in enumerate(result["context"][:3]):
+        print(f"\n[{i+1}] {ctx}")
