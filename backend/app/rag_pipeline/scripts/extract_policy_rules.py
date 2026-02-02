@@ -41,7 +41,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     print("\nDEBUG TYPE CHECK:")
     print("Type of context:", type(context))
     print("First element type:", type(context[0]) if isinstance(context, list) else "N/A")
-    print("Preview:", repr(context[:200]))
+    # print("Preview:", repr(context[:200]))
 
     if not context:
         return {
@@ -54,12 +54,14 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     # With the specialized retrieved chunks I then rerank to get my top chunks.
     reranker = Reranker()
     reranked = reranker.rerank(query, context, top_k=3, verbose=True)
-    print(f'✓ Reranked to top {len(reranked)} chunks')
-    print("\n📚 TOP RERANKED CHUNKS SENT TO LLM:\n")
+    # print(f'✓ Reranked to top {len(reranked)} chunks')
+    # print("\n📚 TOP RERANKED CHUNKS SENT TO LLM:\n")
 
     # 🧠 Build medical-specific prompt
     # This uses the chunks to build the query that will finally go to qwen2.5.
-    prompt = build_medical_policy_prompt(reranked, payer, cpt_code)
+
+    # prompt = build_medical_policy_prompt(context, payer, cpt_code) # trying with just the first retrieved chunks.
+    prompt = build_medical_policy_prompt(reranked, payer, cpt_code) # reranked line
     print('✓ Built medical policy extraction prompt')
     print("\n🧠 FINAL PROMPT SENT TO MODEL:\n")
     print(prompt)
@@ -139,16 +141,16 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     }
 
 
-if __name__ == "__main__":
-    result = extract_policy_rules("Aetna", "73721")
+# if __name__ == "__main__":
+#     result = extract_policy_rules("Aetna", "73721")
     
-    print("\n" + "="*60)
-    print("EXTRACTED POLICY RULES")
-    print("="*60)
-    print(json.dumps(result["rules"], indent=2))
+#     print("\n" + "="*60)
+#     print("EXTRACTED POLICY RULES")
+#     print("="*60)
+#     print(json.dumps(result["rules"], indent=2))
     
-    print("\n" + "="*60)
-    print("SOURCE CONTEXT")
-    print("="*60)
-    for i, ctx in enumerate(result["context"][:3]):
-        print(f"\n[{i+1}] {ctx}")
+#     print("\n" + "="*60)
+#     print("SOURCE CONTEXT")
+#     print("="*60)
+#     for i, ctx in enumerate(result["context"][:3]):
+#         print(f"\n[{i+1}] {ctx}")
