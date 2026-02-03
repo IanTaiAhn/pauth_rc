@@ -1,16 +1,16 @@
 from fastapi import APIRouter, HTTPException
-from backend.app.models.schemas import AuthzRequest, AuthzResponse, RuleResult
+from app.models.schemas import AuthzRequest, AuthzResponse, RuleResult
 from fastapi.responses import StreamingResponse
 import io
 # from backend.app.normalization.normalize import normalize_patient_evidence, normalize_policy_criteria
 # from backend.app.rules.rule_engine import evaluate_all
-from backend.app.rules.rule_engine import evaluate_all
-from backend.app.normalization.normalized_custom import (
+from app.rules.rule_engine import evaluate_all
+from app.normalization.normalized_custom import (
     normalize_patient_evidence, 
     normalize_policy_criteria,
     # normalize_policy_criteria_manual
 )
-from backend.app.utils.make_report import build_authz_report
+from app.utils.make_report import build_authz_report
 # import json
 
 router = APIRouter()

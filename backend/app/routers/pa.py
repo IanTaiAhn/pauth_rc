@@ -1,10 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
 
-from backend.app.services.ingestion import extract_text
-from backend.app.services.evidence import extract_evidence
-from backend.app.services.readiness import compute_readiness
-from backend.app.utils.save_json import save_analysis_to_json
+from app.services.ingestion import extract_text
+from app.services.evidence import extract_evidence
+from app.services.readiness import compute_readiness
+from app.utils.save_json import save_analysis_to_json
 # from app.services.justification import build_justification
 # THIS OUTPUTS MY PATIENT CHART JSON
 

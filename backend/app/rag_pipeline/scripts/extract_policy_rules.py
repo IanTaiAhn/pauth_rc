@@ -1,11 +1,9 @@
 import json
-import backend.app.rag_pipeline.scripts.build_index_updated as build_index
-# from backend.app.rag_pipeline.retrieval.retriever import Retriever
-from backend.app.rag_pipeline.retrieval.enhanced_reranker import Reranker
-from backend.app.rag_pipeline.retrieval.enhanced_retriever import retrieve_and_format
-# from backend.app.rag_pipeline.retrieval.reranker import Reranker
-from backend.app.rag_pipeline.generation.prompt import build_medical_policy_prompt
-from backend.app.rag_pipeline.generation.generator import generate_with_context
+import app.rag_pipeline.scripts.build_index_updated as build_index
+from app.rag_pipeline.retrieval.enhanced_reranker import Reranker
+from app.rag_pipeline.retrieval.enhanced_retriever import retrieve_and_format
+from app.rag_pipeline.generation.prompt import build_medical_policy_prompt
+from app.rag_pipeline.generation.generator import generate_with_context
 
 
 def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):

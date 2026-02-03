@@ -1,12 +1,12 @@
 import os
-from backend.app.rag_pipeline.ingestion.pdf_loader import load_pdf_text
-from backend.app.rag_pipeline.ingestion.text_loader import load_text_file
+from app.rag_pipeline.ingestion.pdf_loader import load_pdf_text
+from app.rag_pipeline.ingestion.text_loader import load_text_file
 
 # NEW: Import the improved chunker instead of the old one
-from backend.app.rag_pipeline.chunking.improved_chunker import InsurancePolicyChunker
+from app.rag_pipeline.chunking.improved_chunker import InsurancePolicyChunker
 
-from backend.app.rag_pipeline.embeddings.embedder import get_embedder
-from backend.app.rag_pipeline.embeddings.vectorstore import FaissStore
+from app.rag_pipeline.embeddings.embedder import get_embedder
+from app.rag_pipeline.embeddings.vectorstore import FaissStore
 from transformers import AutoTokenizer
 
 from pathlib import Path

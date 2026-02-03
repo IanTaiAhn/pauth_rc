@@ -4,9 +4,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from backend.app.services.ingestion import extract_text
-from backend.app.services.evidence import extract_evidence
-from backend.app.services.readiness import compute_readiness
+from app.services.ingestion import extract_text
+from app.services.evidence import extract_evidence
+from app.services.readiness import compute_readiness
 # THIS IS A BUNCH OF BOGUS RN, BUT I NEED TO FIGURE OUT HOW TO COMPARE THE JSON OBJECTS USING REAL RULES.
 
 router = APIRouter()

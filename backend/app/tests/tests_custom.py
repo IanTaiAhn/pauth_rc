@@ -2,8 +2,8 @@
 Test with YOUR actual JSON formats
 """
 
-from backend.app.rules.rule_engine import evaluate_all
-from backend.app.normalization.normalized_custom import (
+from app.rules.rule_engine import evaluate_all
+from app.normalization.normalized_custom import (
     normalize_patient_evidence, 
     normalize_policy_criteria,
     normalize_policy_criteria_manual
