@@ -26,57 +26,60 @@ def build_medical_policy_prompt(context_chunks: list, payer: str, cpt_code: str)
 
     context_text = "\n\n".join(formatted_sources)
 
-    prompt = f"""You are a medical policy analyst extracting coverage criteria from insurance documents.
+    prompt = f"""You are a medical policy analyst. Extract coverage criteria with PRECISE categorization.
 
-CRITICAL INSTRUCTIONS:
-1. Extract COMPLETE lists - if text says "ALL of the following criteria are met:", 
-   you MUST find what those criteria are in the context (may be in a different source)
-2. Look for EXCEPTIONS clauses - if text says "EXCEPTIONS to [requirement]:", 
-   extract those as separate items or note them
-3. Extract ALL timing/quantity restrictions:
+CRITICAL CLASSIFICATION RULES:
+
+1. CLINICAL INDICATIONS = Diagnoses/conditions that QUALIFY for coverage
+   - Extract from sections titled: "DIAGNOSIS REQUIREMENT", "CLINICAL FINDINGS"
+   - These answer: "What medical conditions make a patient eligible?"
+   - Example: "Meniscal tear (ICD M23.2xx)", "Positive McMurray's test"
+   
+2. PREREQUISITES = What must be done BEFORE getting the MRI
+   - Conservative treatment requirements (e.g., "6 weeks physical therapy")
+   - Prior imaging requirements (e.g., "X-rays within 60 days")
+   - These answer: "What must the patient complete first?"
+   - DO NOT include repeat imaging criteria here
+   
+3. EXCLUSION CRITERIA = When coverage is explicitly DENIED
+   - Sections titled: "NOT MEDICALLY NECESSARY"
+   - These start with phrases like: "MRI is NOT covered for..."
+   - Example: "Routine screening without symptoms"
+   
+4. DOCUMENTATION REQUIREMENTS = Paperwork needed for authorization
+   - What must be submitted with the prior auth request
+   - Example: "Clinical notes within 30 days", "X-ray report"
+
+5. QUANTITY LIMITS = Timing/frequency restrictions
    - Authorization validity periods
-   - Repeat imaging requirements  
-   - Time windows for documentation
-4. If a field's header appears but content is incomplete, note "See additional criteria in source"
+   - Repeat imaging rules (if member already had MRI)
+   - Example: "Valid for 60 days", "Repeat within 12 months requires..."
+
+DO NOT MIX CATEGORIES:
+- Exclusions go ONLY in exclusion_criteria (not in clinical_indications)
+- Repeat imaging rules go in quantity_limits (not in prerequisites)
+- Conservative treatment goes in prerequisites (not in clinical_indications)
 
 CONTEXT DOCUMENTS:
 {context_text}
 
-EXTRACTION RULES:
-- For "prerequisites": Extract ALL treatment requirements including duration/quantity details
-- For "clinical_indications": Extract the specific conditions that qualify for coverage
-- For "exclusion_criteria": Extract situations where MRI is NOT covered
-- For "documentation_requirements": Extract what must be submitted with auth request
-- For "quantity_limits": Extract any timing restrictions (e.g., "within 60 days", "12 months")
+Extract for CPT code {cpt_code}.
 
-EXAMPLE:
-If source says: "when ALL of the following criteria are met:" but doesn't list them,
-AND another source lists diagnosis requirements,
-THEN extract from the second source as clinical_indications.
-
-If source says: "EXCEPTIONS to conservative treatment requirement: [list]"
-THEN add these to prerequisites with prefix "EXCEPTIONS: [list]"
-
-Extract as:
-"prerequisites": [
-  "Completed at least 6 weeks (42 days) of conservative therapy, including at least TWO of the following: (1) Physical therapy (minimum 6 sessions documented), (2) NSAIDs or analgesics (trial of at least 4 weeks), (3) Activity modification and home exercise program, (4) Bracing or orthotics"
-]
-
-TASK:
-Extract ALL medical necessity criteria for Aetna's coverage of CPT code 73721.
-
-OUTPUT FORMAT (valid JSON only, no markdown):
+OUTPUT (valid JSON only, no markdown):
 {{
   "payer": "Aetna",
-  "cpt_code": "73721",
+  "cpt_code": "{cpt_code}",
   "coverage_criteria": {{
-    "clinical_indications": ["specific condition 1", "specific condition 2"],
-    "prerequisites": ["complete requirement with details"],
+    "clinical_indications": ["diagnosis/condition 1", "clinical finding 2"],
+    "prerequisites": ["completed treatment requirement", "prior imaging requirement"],
     "exclusion_criteria": ["NOT covered scenario 1", "NOT covered scenario 2"],
-    "documentation_requirements": ["specific doc requirement with timeframe"],
-    "quantity_limits": {{"type": "description with timeframe"}}
+    "documentation_requirements": ["specific paperwork needed"],
+    "quantity_limits": {{
+      "authorization_validity": "timeframe",
+      "repeat_imaging": "rules for repeat within timeframe"
+    }}
   }},
-  "source_references": ["general_main", "prior_imaging_main", "conservative_treatment_main"]
+  "source_references": ["chunk_id_1", "chunk_id_2"]
 }}
 """
 
