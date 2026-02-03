@@ -3,7 +3,7 @@ Test cases for the rules engine with example JSON structures
 """
 
 from backend.app.rules.rule_engine import evaluate_all
-from backend.app.normalization.normalize import normalize_patient_evidence, normalize_policy_criteria
+from backend.app.normalization.normalize_custom import normalize_patient_evidence, normalize_policy_criteria
 
 
 # Example 1: Patient chart with nested structure

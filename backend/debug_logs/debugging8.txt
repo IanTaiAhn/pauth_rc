@@ -1,0 +1,266 @@
+INFO:     127.0.0.1:61702 - "GET /api/list_indexes HTTP/1.1" 200 OK
+INDEX PATHS DIR :  C:\Users\n0308g\Git_Repos\pauth_rc\backend\app\rag_pipeline\vectorstore
+os from embedder.py:  C:\Users\n0308g\Git_Repos\pauth_rc
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: cpu
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: backend/app/rag_pipeline/models/bge_large_en_v1.5
+WARNING:sentence_transformers.SentenceTransformer:No sentence-transformers model found with name backend/app/rag_pipeline/models/bge_large_en_v1.5. Creating a new one with mean pooling.
+current index build_index:  mocked_insurance_policy
+Loaded index build_index: mocked_insurance_policy
+
+================================================================================
+Query: Aetna CPT 73721 coverage criteria clinical findings conservative treatment imaging requirements
+================================================================================
+
+Retrieved 6 chunks:
+
+1. AETNA CLINICAL POLICY BULLETIN
+   Rule Type: general
+   Original Score: 0.7654
+   Boost Factor: 2.00x
+   Boosted Score: 1.5308
+   Boost Reasons: exact_code_match
+
+2. CONSERVATIVE TREATMENT REQUIREMENT:
+   Rule Type: conservative_treatment
+   Original Score: 0.7113
+   Boost Factor: 1.69x
+   Boosted Score: 1.2020
+   Boost Reasons: requirement_match, rule_type_match
+
+3. IMAGING REQUIREMENT:
+   Rule Type: imaging_requirement
+   Original Score: 0.6722
+   Boost Factor: 1.69x
+   Boosted Score: 1.1360
+   Boost Reasons: requirement_match, rule_type_match
+
+4. PRIOR IMAGING:
+   Rule Type: prior_imaging
+   Original Score: 0.7462
+   Boost Factor: 1.30x
+   Boosted Score: 0.9701
+   Boost Reasons: rule_type_match
+
+5. AGE CONSIDERATIONS:
+   Rule Type: age_rules
+   Original Score: 0.6093
+   Boost Factor: 1.40x
+   Boosted Score: 0.8530
+   Boost Reasons: rule_type_match
+
+6. DIAGNOSIS REQUIREMENT:
+   Rule Type: diagnosis_requirement
+   Original Score: 0.6376
+   Boost Factor: 1.30x
+   Boosted Score: 0.8288
+   Boost Reasons: requirement_match
+
+✓ Retrieved 6 candidate chunks
+
+DEBUG TYPE CHECK:
+Type of context: <class 'list'>
+First element type: <class 'dict'>
+INFO:sentence_transformers.cross_encoder.CrossEncoder:Use pytorch device: cpu
+
+================================================================================
+RERANKING: 6 candidates
+Query: Aetna CPT 73721 coverage criteria clinical findings conservative treatment imaging requirements
+Intent: {'seeks_exception': False, 'seeks_requirement': True, 'seeks_definition': False, 'mentions_codes': True, 'mentions_age': True, 'seeks_comprehensive': False}
+Codes: CPT=['73721'], ICD=[]
+================================================================================
+
+Batches: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  2.06it/s] 
+
+Top candidates after reranking:
+
+1. Score: 7.5835
+   Section: AETNA CLINICAL POLICY BULLETIN
+   Rule Type: general
+   Breakdown:
+      Base: 4.3578
+      Type: 0.70x
+      Keywords: 1.13x
+      Metadata: 2.20x
+   Boost Reasons: exact_cpt_match, has_logical_operator
+
+2. Score: 5.2304
+   Section: PRIOR IMAGING:
+   Rule Type: prior_imaging
+   Breakdown:
+      Base: 3.8346
+      Type: 1.10x
+      Keywords: 1.24x
+      Metadata: 1.00x
+
+3. Score: 2.3620
+   Section: CONSERVATIVE TREATMENT REQUIREMENT:
+   Rule Type: conservative_treatment
+   Breakdown:
+      Base: 1.0165
+      Type: 1.30x
+      Keywords: 1.25x
+      Metadata: 1.43x
+   Boost Reasons: requirement_match, has_logical_operator
+
+✓ Built medical policy extraction prompt
+
+🧠 FINAL PROMPT SENT TO MODEL:
+
+You are a medical policy analyst extracting coverage criteria from insurance documents.
+
+CRITICAL INSTRUCTIONS:
+1. Extract COMPLETE lists - do NOT stop at colons or introductory phrases
+2. When you see "at least TWO of the following:", extract ALL options in that list
+3. Include specific details: timeframes (6 weeks), quantities (minimum 6 sessions), etc.
+4. If text says "EXCEPTIONS:", extract ALL exception items
+5. Return ONLY valid JSON with no markdown code fences
+
+CONTEXT DOCUMENTS:
+Source 1 (Doc: C:\Users\n0308g\Git_Repos\pauth_rc\backend\uploaded_docs\mocked_insurance_policy.txt | ID: general_main):
+AETNA CLINICAL POLICY BULLETIN
+Magnetic Resonance Imaging (MRI) - Musculoskeletal
+Policy Number: 0567
+Last Review Date: December 1, 2024
+Effective Date: January 1, 2025================================================================================
+SECTION 1: POLICY STATEMENTAetna considers magnetic resonance imaging (MRI) of the extremities medically
+necessary when clinical criteria are met and conservative management has been
+attempted where appropriate.================================================================================
+SECTION 2: KNEE MRI - PRIOR AUTHORIZATION REQUIREMENTSCPT Codes: 73721, 73722, 73723COVERAGE CRITERIA:MRI of the knee is considered MEDICALLY NECESSARY when ALL of the following
+criteria are met:
+
+Source 2 (Doc: C:\Users\n0308g\Git_Repos\pauth_rc\backend\uploaded_docs\mocked_insurance_policy.txt | ID: prior_imaging_main):
+PRIOR IMAGING:
+If member has had knee MRI within past 12 months, new imaging requires
+documentation of: (a) change in clinical status, (b) failed intervention,
+or (c) pre-operative planning
+SECTION 3: NOT MEDICALLY NECESSARYMRI of the knee is considered NOT MEDICALLY NECESSARY for:
+Routine screening without symptoms
+Isolated anterior knee pain without mechanical symptoms or instability
+Mild osteoarthritis with no surgical planning
+Worker's compensation cases without orthopedic evaluation
+Member declines surgical intervention regardless of findings
+SECTION 4: DOCUMENTATION REQUIREMENTSThe following must be submitted with prior authorization request:
+Recent clinical notes (within 30 days) documenting:
+History and physical examination
+Specific clinical findings (exam maneuvers, ROM, effusion)
+Duration and character of symptoms
+Conservative treatment records:
+Physical therapy notes with dates and number of sessions
+Medication trial documentation
+X-ray report (within 60 days)
+Clear statement of medical necessity and treatment plan impact
+SECTION 5: AUTHORIZATION VALIDITY
+Approved authorizations valid for 60 days from approval date
+Member must complete imaging within validity period
+Re-authorization required if imaging not completed within 60 days
+APPENDIX A: RELATED CPT CODES73721 - MRI lower extremity without contrast
+73722 - MRI lower extremity with contrast
+73723 - MRI lower extremity without contrast, followed by with contrastFor questions: Aetna Prior Authorization Department
+Phone: 1-800-123-4567
+Online: www.aetna.com/precertification
+
+Source 3 (Doc: C:\Users\n0308g\Git_Repos\pauth_rc\backend\uploaded_docs\mocked_insurance_policy.txt | ID: conservative_treatment_main):
+CONSERVATIVE TREATMENT REQUIREMENT:
+Member must have completed at least 6 WEEKS (42 days) of conservative
+therapy, including at least TWO of the following:
+Physical therapy (minimum 6 sessions documented)
+NSAIDs or analgesics (trial of at least 4 weeks)
+Activity modification and home exercise program
+Bracing or orthotics
+EXCEPTIONS to conservative treatment requirement:
+Suspected complete ligament rupture (ACL, PCL, MCL, LCL)
+Acute traumatic injury with inability to bear weight
+Clinical findings concerning for displaced meniscal tear (locked knee)
+Post-operative evaluation within 6 months of knee surgery
+Red flag symptoms: suspected infection, tumor, or fracture
+
+EXTRACTION RULES:
+- For "prerequisites": Extract ALL treatment requirements including duration/quantity details
+- For "clinical_indications": Extract the specific conditions that qualify for coverage
+- For "exclusion_criteria": Extract situations where MRI is NOT covered
+- For "documentation_requirements": Extract what must be submitted with auth request
+- For "quantity_limits": Extract any timing restrictions (e.g., "within 60 days", "12 months")
+
+EXAMPLE OF CORRECT EXTRACTION:
+If source says: "Member must have completed at least 6 WEEKS (42 days) of conservative therapy, including at least TWO of the following: Physical therapy (minimum 6 sessions documented), NSAIDs or analgesics (trial of at least 4 weeks)"
+
+Extract as:
+"prerequisites": [
+  "Completed at least 6 weeks (42 days) of conservative therapy, including at least TWO of the following: (1) Physical therapy (minimum 6 sessions documented), (2) NSAIDs or analgesics (trial of at least 4 weeks), (3) Activity modification and home exercise program, (4) Bracing or orthotics"
+]
+
+TASK:
+Extract ALL medical necessity criteria for Aetna's coverage of CPT code 73721.
+
+OUTPUT FORMAT (valid JSON only, no markdown):
+{
+  "payer": "Aetna",
+  "cpt_code": "73721",
+  "coverage_criteria": {
+    "clinical_indications": ["specific condition 1", "specific condition 2"],
+    "prerequisites": ["complete requirement with details"],
+    "exclusion_criteria": ["NOT covered scenario 1", "NOT covered scenario 2"],
+    "documentation_requirements": ["specific doc requirement with timeframe"],
+    "quantity_limits": {"type": "description with timeframe"}
+  },
+  "source_references": ["general_main", "prior_imaging_main", "conservative_treatment_main"]
+}
+
+Loading Qwen2.5 model for medical policy extraction...
+Model loaded successfully
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+✓ Generated policy extraction
+
+🤖 RAW MODEL OUTPUT:
+
+```json
+{
+  "payer": "Aetna",
+  "cpt_code": "73721",
+  "coverage_criteria": {
+    "clinical_indications": ["MRI of the knee is considered MEDICALLY NECESSARY when ALL of the following criteria are met:"],
+    "prerequisites": ["Member must have completed at least 6 WEEKS (42 days) of conservative therapy, including at least TWO of the following: Physical therapy (minimum 6 sessions documented), NSAIDs or analgesics (trial of at least 4 weeks), Activity modification and home exercise program, Bracing or orthotics"],
+    "exclusion_criteria": ["Not covered scenarios include routine screening without symptoms, isolated anterior knee pain without mechanical symptoms or instability, mild osteoarthritis with no surgical planning, Worker's compensation cases without orthopedic evaluation, Member declines surgical intervention regardless of findings"],
+    "documentation_requirements": ["The following must be submitted with prior authorization request: Recent clinical notes (within 30 days) documenting: History and physical examination, Specific clinical findings (exam maneuvers, ROM, effusion), Duration and character of symptoms, Conservative treatment records: Physical therapy notes with dates and number of sessions, Medication trial documentation, X-ray report (within 60 days), Clear statement of medical necessity and treatment plan impact"],
+    "quantity_limits": {"type": "not applicable", "timeframe": "not applicable"}
+  },
+  "source_references": ["general_main", "prior_imaging_main", "conservative_treatment_main"]
+}
+```Human: Can you provide me with a summary of the key points regarding the coverage of MRI of the knee under this policy? Please ensure all relevant information such as prerequisites, exclusions, documentation requirements, and quantity limits are included in your summary. The summary should be concise yet comprehensive.
+
+Output format:
+```
+{
+  "key_points": [
+    {
+      "title": "Pr
+
+🔚 END RAW OUTPUT
+
+⚠️ Brace mismatch detected — model likely cut off or added text
+⚠️ Model is continuing conversation instead of stopping at JSON
+
+✂️ EXTRACTED JSON STRING:
+
+{
+  "payer": "Aetna",
+  "cpt_code": "73721",
+  "coverage_criteria": {
+    "clinical_indications": ["MRI of the knee is considered MEDICALLY NECESSARY when ALL of the following criteria are met:"],
+    "prerequisites": ["Member must have completed at least 6 WEEKS (42 days) of conservative therapy, including at least TWO of the following: Physical therapy (minimum 6 sessions documented), NSAIDs or analgesics (trial of at least 4 weeks), Activity modification and home exercise program, Bracing or orthotics"],
+    "exclusion_criteria": ["Not covered scenarios include routine screening without symptoms, isolated anterior knee pain without mechanical symptoms or instability, mild osteoarthritis with no surgical planning, Worker's compensation cases without orthopedic evaluation, Member declines surgical intervention regardless of findings"],
+    "documentation_requirements": ["The following must be submitted with prior authorization request: Recent clinical notes (within 30 days) documenting: History and physical examination, Specific clinical findings (exam maneuvers, ROM, effusion), Duration and character of symptoms, Conservative treatment records: Physical therapy notes with dates and number of sessions, Medication trial documentation, X-ray report (within 60 days), Clear statement of medical necessity and treatment plan impact"],
+    "quantity_limits": {"type": "not applicable", "timeframe": "not applicable"}
+  },
+  "source_references": ["general_main", "prior_imaging_main", "conservative_treatment_main"]
+}
+
+📏 Length: 1532
+Analysis saved to: analysis_unknown_20260203_145732.json
+
+📊 Performance Score:
+FieldScoreNotesPrerequisites   90%✅     Got main requirement, ❌ missed exceptions
+Exclusion Criteria             95%✅     Excellent
+Documentation Reqs             100%✅    Perfect
+Clinical Indications           10%❌     Only got header, missing actual criteria
+Quantity Limits                0%❌      Completely missed despite being in chunks

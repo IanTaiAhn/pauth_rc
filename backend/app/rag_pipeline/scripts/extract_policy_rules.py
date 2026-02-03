@@ -22,17 +22,33 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
         build_index.CURRENT_INDEX = index_name
 
     # 🔍 Enhanced retrieval query
-    # THIS IS COOL. I retrieve relevant chunks first.
-    query = (
-        f"{payer} CPT {cpt_code} coverage criteria clinical findings conservative treatment imaging requirements"
-    )
+
+    # query = f"""
+    #     {payer} CPT code {cpt_code} knee MRI medical necessity criteria including:
+    #     diagnosis requirements, clinical findings, examination tests,
+    #     conservative treatment, imaging requirements, documentation,
+    #     authorization validity, and coverage exclusions"""
+    
+    #     query = """
+    # Aetna policy CPT 73721 knee MRI:
+    # - Diagnosis requirements and ICD codes
+    # - Clinical examination findings (McMurray, Thessaly, Lachman tests)
+    # - Conservative treatment duration requirements
+    # - Prior imaging requirements (X-rays)
+    # - Documentation needed for authorization
+    # - Coverage exclusions and non-covered scenarios
+    # """
+
+    # Or be even more explicit:
+    query = f"{payer} CPT {cpt_code} medical necessity criteria: diagnosis codes, clinical findings, conservative treatment requirements, imaging prerequisites, authorization documentation"    
+
 
     # Retrieve candidates/context
     context = retrieve_and_format(
         query=query,
         store= build_index.STORE,
         embedder=build_index.EMBEDDER,
-        top_k=6,
+        top_k=12,
         verbose=True
     )
     # retriever = Retriever(build_index.EMBEDDER, build_index.STORE, top_k=40)
@@ -53,7 +69,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     # Rerank 
     # With the specialized retrieved chunks I then rerank to get my top chunks.
     reranker = Reranker()
-    reranked = reranker.rerank(query, context, top_k=3, verbose=True)
+    reranked = reranker.rerank(query, context, top_k=6, verbose=True)
     # print(f'✓ Reranked to top {len(reranked)} chunks')
     # print("\n📚 TOP RERANKED CHUNKS SENT TO LLM:\n")
 

@@ -1,6 +1,6 @@
-import backend.app.rag_pipeline.scripts.build_index as build_index
-from backend.app.rag_pipeline.retrieval.retriever import Retriever
-from backend.app.rag_pipeline.retrieval.reranker import Reranker
+import backend.app.rag_pipeline.scripts.build_index_deprecated as build_index_deprecated
+from backend.app.rag_pipeline.retrieval.retriever_NU import Retriever
+from backend.app.rag_pipeline.retrieval.reranker_NU import Reranker
 from backend.app.rag_pipeline.generation.prompt import build_prompt
 from backend.app.rag_pipeline.generation.generator import generate_answer
 
@@ -14,14 +14,14 @@ def extract_answer(full_output: str) -> str:
 def ask_question(query: str, index_name="default"):
     # If the requested index is not loaded, load it
     if (
-        build_index.STORE is None or 
-        build_index.EMBEDDER is None or
-        build_index.CURRENT_INDEX != index_name
+        build_index_deprecated.STORE is None or 
+        build_index_deprecated.EMBEDDER is None or
+        build_index_deprecated.CURRENT_INDEX != index_name
     ):
-        build_index.load_index(index_name)
-        build_index.CURRENT_INDEX = index_name
+        build_index_deprecated.load_index(index_name)
+        build_index_deprecated.CURRENT_INDEX = index_name
 
-    retriever = Retriever(build_index.EMBEDDER, build_index.STORE, top_k=15)
+    retriever = Retriever(build_index_deprecated.EMBEDDER, build_index_deprecated.STORE, top_k=15)
     candidates = retriever.retrieve(query)
 
     reranker = Reranker()

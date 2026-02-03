@@ -1,7 +1,7 @@
 import os
 from backend.app.rag_pipeline.ingestion.pdf_loader import load_pdf_text
 from backend.app.rag_pipeline.ingestion.text_loader import load_text_file
-from backend.app.rag_pipeline.chunking.chunker import chunk_text
+from backend.app.rag_pipeline.chunking.chunker_NU import chunk_text
 from backend.app.rag_pipeline.embeddings.embedder import get_embedder
 from backend.app.rag_pipeline.embeddings.vectorstore import FaissStore
 from transformers import AutoTokenizer
