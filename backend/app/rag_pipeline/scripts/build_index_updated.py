@@ -11,6 +11,13 @@ from transformers import AutoTokenizer
 
 from pathlib import Path
 
+#TODO  File "/opt/render/project/src/backend/app/main.py", line 4, in <module>
+#     from app.routers import rag, documents, pa, authz
+#   File "/opt/render/project/src/backend/app/routers/rag.py", line 9, in <module>
+#     from app.rag_pipeline.scripts.build_index_updated import build_index, INDEX_DIR
+# ImportError: cannot import name 'build_index' from 'app.rag_pipeline.scripts.build_index_updated' (/opt/render/project/src/backend/app/rag_pipeline/scripts/build_index_updated.py). Did you mean: 'load_index'?
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent  # backend/rag_pipeline
 FRONTEND_BASE_DIR = Path(__file__).resolve().parents[3]
 # DATA_DIR is for local file usage
