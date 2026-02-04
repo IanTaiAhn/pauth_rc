@@ -48,5 +48,5 @@ httpx==0.27.2
 
 # Going to avoid using this dependency because it is quite large, 300mb...
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.3.1+cpu
+torch==2.6.0+cpu
 sentence-transformers==3.0.1
