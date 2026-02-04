@@ -20,7 +20,7 @@ class MedicalGenerator:
         
         Args:
             provider: "local" for Qwen2.5, "groq" for Groq API
-            model_name: Model to use (e.g., "llama-3.1-70b-versatile" for Groq)
+            model_name: Model to use (e.g., "llama-3.3-70b-versatile" for Groq)
             api_key: API key for Groq (or set GROQ_API_KEY env var)
         """
         self.provider = provider
@@ -72,7 +72,7 @@ class MedicalGenerator:
         
         # Set default model if not provided
         if not self.model_name:
-            self.model_name = "llama-3.1-70b-versatile"
+            self.model_name = "llama-3.3-70b-versatile"
         
         print(f"Initialized Groq client with model: {self.model_name}")
     
@@ -223,7 +223,7 @@ def generate_with_context(
         max_tokens: Maximum tokens to generate
         temperature: Sampling temperature
         provider: "local" or "groq"
-        model_name: Model name for Groq (e.g., "llama-3.1-70b-versatile")
+        model_name: Model name for Groq (e.g., "llama-3.3-70b-versatile")
         api_key: Groq API key
     
     Returns:
@@ -233,11 +233,11 @@ def generate_with_context(
         # Use local Qwen2.5
         result = generate_with_context(prompt, provider="local")
         
-        # Use Groq with Llama 3.1 70B
+        # Use Groq with Llama 3.3 70B
         result = generate_with_context(
             prompt, 
             provider="groq",
-            model_name="llama-3.1-70b-versatile",
+            model_name="llama-3.3-70b-versatile",
             api_key="your_api_key_here"
         )
     """

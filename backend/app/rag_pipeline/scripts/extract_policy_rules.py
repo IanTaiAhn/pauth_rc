@@ -86,7 +86,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
     raw_output = generate_with_context(
             prompt, 
             provider="groq",
-            model_name="llama-3.1-70b-versatile",
+            model_name="llama-3.3-70b-versatile",
         )
     
     print('✓ Generated policy extraction')
