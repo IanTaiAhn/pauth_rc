@@ -82,7 +82,13 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
 
 
     # Generate with higher token limit for medical policies
-    raw_output = generate_with_context(prompt, max_tokens=400, provider="local") # maybe change back to 800, yah so 256 didn't work :cry_face:, 400 was quicker and gave comproable results.
+    # raw_output = generate_with_context(prompt, max_tokens=400, provider="local") # maybe change back to 800, yah so 256 didn't work :cry_face:, 400 was quicker and gave comproable results.
+    raw_output = generate_with_context(
+            prompt, 
+            provider="groq",
+            model_name="llama-3.1-70b-versatile",
+        )
+    
     print('✓ Generated policy extraction')
     print("\n🤖 RAW MODEL OUTPUT:\n")
     print(raw_output)
