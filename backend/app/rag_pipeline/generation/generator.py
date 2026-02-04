@@ -209,7 +209,7 @@ def get_generator(
 
 def generate_with_context(
     prompt: str, 
-    max_tokens: int = 1024,
+    max_tokens: int = 8192,
     temperature: float = 0.1,
     provider: Literal["local", "groq"] = "local",
     model_name: Optional[str] = None,

@@ -87,6 +87,7 @@ def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
             prompt, 
             provider="groq",
             model_name="llama-3.3-70b-versatile",
+            max_tokens= 2048
         )
     
     print('✓ Generated policy extraction')
