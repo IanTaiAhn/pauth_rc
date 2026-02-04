@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import AuthzRequest, AuthzResponse, RuleResult
+from app.api_models.schemas import AuthzRequest, AuthzResponse, RuleResult
 from fastapi.responses import StreamingResponse
 import io
 # from backend.app.normalization.normalize import normalize_patient_evidence, normalize_policy_criteria
