@@ -20,7 +20,12 @@ class RuleResult(BaseModel):
     description: str
     met: bool
 
-
 class AuthzResponse(BaseModel):
     results: List[RuleResult]
     all_criteria_met: bool
+
+class InitialPatientExtraction(BaseModel):
+    filename: str
+    score: float | int
+    requirements: dict
+    missing_items: list[str]
