@@ -1,0 +1,85 @@
+================================================================================
+PRIOR AUTHORIZATION RULE EVALUATION REPORT
+================================================================================
+
+📋 Normalized Patient Data:
+--------------------------------------------------------------------------------
+  symptom_duration_months: 4
+  symptom_duration_weeks: 16
+  pt_attempted: True
+  pt_duration_weeks: 12
+  nsaid_documented: True
+  nsaid_outcome: failed
+  nsaid_failed: True
+  injection_documented: False
+  injection_outcome: None
+  injection_failed: False
+  imaging_documented: True
+  imaging_type: X-ray
+  imaging_body_part: Right Knee
+  imaging_months_ago: 1
+  functional_impairment_documented: True
+  functional_impairment_description: significant functional limitations affecting work and daily activities
+  validation_passed: True
+  hallucinations_detected: 0
+  score: 100
+  missing_items: []
+
+📜 Extracted 5 Rules from Policy:
+--------------------------------------------------------------------------------
+
+  [xray_requirement] Weight-bearing X-rays must be completed within 60 days
+    → imaging_documented eq True
+    → imaging_type eq X-ray
+    → imaging_months_ago lte 2
+
+  [physical_therapy_requirement] Physical therapy must be attempted and documented
+    → pt_attempted eq True
+
+  [medication_trial_requirement] Medication trial must be documented
+    → nsaid_documented eq True
+
+  [recent_clinical_notes] Clinical notes must be within 30 days
+    → validation_passed eq True
+
+  [evidence_quality] Evidence must be validated with no hallucinations
+    → hallucinations_detected eq 0
+    → validation_passed eq True
+
+================================================================================
+🏥 PRIOR AUTHORIZATION EVALUATION RESULTS
+================================================================================
+
+✅ APPROVED
+
+Rules Met: 5/5
+
+--------------------------------------------------------------------------------
+Detailed Results:
+--------------------------------------------------------------------------------
+
+✅ [xray_requirement] Weight-bearing X-rays must be completed within 60 days
+  ✓ imaging_documented eq True
+     Patient value: True
+  ✓ imaging_type eq X-ray
+     Patient value: X-ray
+  ✓ imaging_months_ago lte 2
+     Patient value: 1
+
+✅ [physical_therapy_requirement] Physical therapy must be attempted and documented
+  ✓ pt_attempted eq True
+     Patient value: True
+
+✅ [medication_trial_requirement] Medication trial must be documented
+  ✓ nsaid_documented eq True
+     Patient value: True
+
+✅ [recent_clinical_notes] Clinical notes must be within 30 days
+  ✓ validation_passed eq True
+     Patient value: True
+
+✅ [evidence_quality] Evidence must be validated with no hallucinations
+  ✓ hallucinations_detected eq 0
+     Patient value: 0
+  ✓ validation_passed eq True
+     Patient value: True

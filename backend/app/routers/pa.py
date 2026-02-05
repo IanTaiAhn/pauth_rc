@@ -7,6 +7,7 @@ from app.services.readiness import compute_readiness
 from app.utils.save_json import save_analysis_to_json
 # from app.services.justification import build_justification
 # THIS OUTPUTS MY PATIENT CHART JSON
+# TODO make this strictly a patient chart extracter. Since this will be working with HIPPA, I probably will need to rework this.
 
 router = APIRouter()
 
