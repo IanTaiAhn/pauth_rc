@@ -1,245 +1,268 @@
-# generation/generator.py
-import os
-from pathlib import Path
-from typing import Optional, Literal
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import json
 import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from pathlib import Path
+import re
+from typing import Optional, Dict, Any
+import logging
+import os
+from groq import Groq
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_DIR = BASE_DIR / "models" / "qwen2.5"
+# Set up logging for debugging hallucinations
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-class MedicalGenerator:
-    def __init__(
-        self, 
-        provider: Literal["local", "groq"] = "local",
-        model_name: Optional[str] = None,
-        api_key: Optional[str] = None
-    ):
-        """
-        Initialize medical policy generator
+MODEL_PATH = r"C:\Users\n0308g\Git_Repos\pauth_rc\backend\app\rag_pipeline\models\qwen2.5"
+
+class EvidenceExtractor:
+    def __init__(self, model_path: str = MODEL_PATH, use_groq: bool = False, groq_api_key: Optional[str] = None):
+        """Initialize model once - avoid reloading on every call"""
+        self.use_groq = use_groq
         
-        Args:
-            provider: "local" for Qwen2.5, "groq" for Groq API
-            model_name: Model to use (e.g., "llama-3.3-70b-versatile" for Groq)
-            api_key: API key for Groq (or set GROQ_API_KEY env var)
-        """
-        self.provider = provider
-        self.model_name = model_name
-        self.api_key = api_key or os.getenv("GROQ_API_KEY")
-        
-        # Local model attributes
-        self.model = None
-        self.tokenizer = None
-        
-        # Groq client
-        self.groq_client = None
-        
-        if provider == "local":
-            self._load_local_model()
-        elif provider == "groq":
-            self._init_groq_client()
+        if self.use_groq:
+            api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
+            if not api_key:
+                raise ValueError("GROQ_API_KEY must be provided or set in environment")
+            self.groq_client = Groq(api_key=api_key)
+            self.groq_model = "llama-3.3-70b-versatile"
+            logger.info(f"Using Groq API with {self.groq_model}")
         else:
-            raise ValueError(f"Unknown provider: {provider}")
-    
-    def _load_local_model(self):
-        """Load Qwen2.5 model locally"""
-        if self.model is None:
-            print("Loading Qwen2.5 model for medical policy extraction...")
-            self.tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path,
+                trust_remote_code=True
+            )
+            
             self.model = AutoModelForCausalLM.from_pretrained(
-                MODEL_DIR,
-                torch_dtype=torch.float32,
-                low_cpu_mem_usage=True
+                model_path,
+                dtype=torch.float16,
+                trust_remote_code=True
             )
+            
+            # Move to GPU if available
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.model.to(self.device)
             self.model.eval()
-            print("Model loaded successfully")
-    
-    def _init_groq_client(self):
-        """Initialize Groq API client"""
-        try:
-            from groq import Groq
-        except ImportError:
-            raise ImportError(
-                "Groq library not installed. Run: pip install groq"
-            )
-        
-        if not self.api_key:
-            raise ValueError(
-                "Groq API key required. Set GROQ_API_KEY env var or pass api_key parameter"
-            )
-        
-        self.groq_client = Groq(api_key=self.api_key)
-        
-        # Set default model if not provided
-        if not self.model_name:
-            self.model_name = "llama-3.3-70b-versatile"
-        
-        print(f"Initialized Groq client with model: {self.model_name}")
-    
-    def generate_answer(
-        self, 
-        prompt: str, 
-        max_tokens: int = 1024,
-        temperature: float = 0.1
-    ) -> Optional[str]:
-        """
-        Generate medical policy extraction
-        
-        Args:
-            prompt: The extraction prompt
-            max_tokens: Maximum tokens to generate
-            temperature: Sampling temperature (0.0-1.0)
-        
-        Returns:
-            Generated response or None if failed
-        """
-        if self.provider == "local":
-            return self._generate_local(prompt, max_tokens, temperature)
-        elif self.provider == "groq":
-            return self._generate_groq(prompt, max_tokens, temperature)
-    
-    def _generate_local(
-        self, 
-        prompt: str, 
-        max_tokens: int,
-        temperature: float
-    ) -> Optional[str]:
-        """Generate using local Qwen2.5 model"""
-        try:
-            inputs = self.tokenizer(
-                prompt,
-                return_tensors="pt",
-                truncation=True,
-                max_length=4096
-            )
             
-            generation_kwargs = {
-                "max_new_tokens": max_tokens,
-                "pad_token_id": self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
-                "eos_token_id": self.tokenizer.eos_token_id,
-                "repetition_penalty": 1.1
-            }
-            
-            # Add sampling parameters only if temperature > 0
-            if temperature > 0:
-                generation_kwargs.update({
-                    "temperature": temperature,
-                    "do_sample": True,
-                    "top_p": 0.95
-                })
+            logger.info(f"Model loaded on {self.device}")
+
+    def _validate_evidence(self, extracted_data: dict, chart_text: str) -> dict:
+        """Check if evidence_notes actually exist in chart - FLAG HALLUCINATIONS"""
+        chart_lower = chart_text.lower()
+        validated_notes = []
+        hallucinations = []
+        
+        for note in extracted_data.get("evidence_notes", []):
+            note_lower = note.lower().strip()
+            # Allow fuzzy matching for minor variations
+            if note_lower in chart_lower or any(
+                word in chart_lower for word in note_lower.split() if len(word) > 4
+            ):
+                validated_notes.append(note)
             else:
-                generation_kwargs["do_sample"] = False
-            
-            with torch.no_grad():
-                outputs = self.model.generate(
-                    inputs.input_ids,
-                    **generation_kwargs
-                )
-            
-            # Decode only new tokens
-            generated_ids = outputs[0][inputs.input_ids.shape[1]:]
-            response = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
-            
-            return response.strip()
-            
-        except Exception as e:
-            print(f"❌ Local generation failed: {type(e).__name__}: {e}")
-            return None
-    
-    def _generate_groq(
-        self, 
-        prompt: str, 
-        max_tokens: int,
-        temperature: float
-    ) -> Optional[str]:
-        """Generate using Groq API"""
-        try:
-            response = self.groq_client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a medical policy analyst expert at extracting structured data from insurance documents."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens,
-                top_p=0.95,
-                stream=False
-            )
-            
-            return response.choices[0].message.content.strip()
-            
-        except Exception as e:
-            print(f"❌ Groq generation failed: {type(e).__name__}: {e}")
-            return None
-
-
-# Global instance
-_generator = None
-
-def get_generator(
-    provider: Literal["local", "groq"] = "local",
-    model_name: Optional[str] = None,
-    api_key: Optional[str] = None
-) -> MedicalGenerator:
-    """
-    Get or create generator instance
-    
-    Args:
-        provider: "local" or "groq"
-        model_name: Model name (for Groq)
-        api_key: API key (for Groq)
-    """
-    global _generator
-    
-    # Create new instance if doesn't exist or provider changed
-    if _generator is None or _generator.provider != provider:
-        _generator = MedicalGenerator(
-            provider=provider,
-            model_name=model_name,
-            api_key=api_key
-        )
-    
-    return _generator
-
-def generate_with_context(
-    prompt: str, 
-    max_tokens: int = 8192,
-    temperature: float = 0.1,
-    provider: Literal["local", "groq"] = "local",
-    model_name: Optional[str] = None,
-    api_key: Optional[str] = None
-) -> Optional[str]:
-    """
-    Convenience function for generation
-    
-    Args:
-        prompt: Extraction prompt
-        max_tokens: Maximum tokens to generate
-        temperature: Sampling temperature
-        provider: "local" or "groq"
-        model_name: Model name for Groq (e.g., "llama-3.3-70b-versatile")
-        api_key: Groq API key
-    
-    Returns:
-        Generated text or None
-    
-    Example:
-        # Use local Qwen2.5
-        result = generate_with_context(prompt, provider="local")
+                hallucinations.append(note)
+                logger.warning(f"HALLUCINATION DETECTED: '{note}' not in chart")
         
-        # Use Groq with Llama 3.3 70B
-        result = generate_with_context(
-            prompt, 
-            provider="groq",
-            model_name="llama-3.3-70b-versatile",
-            api_key="your_api_key_here"
+        extracted_data["evidence_notes"] = validated_notes
+        
+        # Add metadata about extraction quality
+        extracted_data["_metadata"] = {
+            "hallucinations_detected": len(hallucinations),
+            "hallucinated_notes": hallucinations,
+            "validation_passed": len(hallucinations) == 0
+        }
+        
+        return extracted_data
+
+    def _extract_json_object(self, text: str) -> str:
+        """Extract JSON with better error handling"""
+        # Try to find JSON object
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            logger.error(f"No JSON found in output: {text[:200]}")
+            raise ValueError("No JSON object found in model output")
+        return match.group(0)
+
+    def _generate_with_groq(self, prompt: str) -> str:
+        """Generate response using Groq API"""
+        try:
+            chat_completion = self.groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You output JSON only."},
+                    {"role": "user", "content": prompt}
+                ],
+                model=self.groq_model,
+                temperature=0.0,
+                max_tokens=800,
+            )
+            return chat_completion.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"Groq API error: {e}")
+            raise
+
+    def _generate_with_local_model(self, prompt: str) -> str:
+        """Generate response using local model"""
+        messages = [
+            {"role": "system", "content": "You output JSON only."},
+            {"role": "user", "content": prompt}
+        ]
+
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
         )
-    """
-    generator = get_generator(provider, model_name, api_key)
-    return generator.generate_answer(prompt, max_tokens, temperature)
+
+        inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=800,
+                temperature=0.0,
+                do_sample=False,
+                repetition_penalty=1.1,
+                pad_token_id=self.tokenizer.eos_token_id
+            )
+
+        raw_output = self.tokenizer.decode(
+            outputs[0][inputs["input_ids"].shape[-1]:],
+            skip_special_tokens=True
+        ).strip()
+
+        return raw_output
+
+    def extract_evidence(self, chart_text: str) -> Optional[Dict[str, Any]]:
+        """Main extraction function with validation"""
+        
+        # Input validation
+        if not chart_text or len(chart_text.strip()) < 10:
+            logger.error("Chart text too short or empty")
+            return None
+        
+        # Truncate very long notes (Qwen context limit ~32k tokens)
+        max_chars = 8000  # ~2k tokens with safety margin
+        if len(chart_text) > max_chars:
+            logger.warning(f"Chart truncated from {len(chart_text)} to {max_chars} chars")
+            chart_text = chart_text[:max_chars] + "\n[NOTE TRUNCATED]"
+        
+        prompt = f"""You are a medical chart data extractor. Extract ONLY information explicitly written in the chart note below.
+
+CRITICAL RULES:
+1. Extract facts word-for-word from the chart - do NOT interpret or infer
+2. If information is absent or unclear, use null or false
+3. Do NOT make clinical assumptions
+4. Do NOT fill in missing data
+5. Output ONLY valid JSON - no other text
+
+EXTRACTION SCHEMA:
+{{
+  "symptom_duration_months": null,
+  "affected_body_part": null,
+  "laterality": null,
+  "conservative_therapy": {{
+    "physical_therapy": {{
+      "attempted": false,
+      "duration_weeks": null,
+      "outcome": null
+    }},
+    "nsaids": {{
+      "documented": false,
+      "outcome": null
+    }},
+    "injections": {{
+      "documented": false,
+      "type": null,
+      "outcome": null
+    }},
+    "other_treatments": {{
+      "documented": false,
+      "description": null,
+      "outcome": null
+    }}
+  }},
+  "imaging": {{
+    "documented": false,
+    "type": null,
+    "body_part": null,
+    "laterality": null,
+    "months_ago": null,
+    "findings": null
+  }},
+  "functional_impairment": {{
+    "documented": false,
+    "description": null
+  }},
+  "neurological_symptoms": {{
+    "documented": false,
+    "description": null
+  }},
+  "pain_characteristics": {{
+    "documented": false,
+    "severity": null,
+    "quality": null,
+    "radiation": null
+  }},
+  "red_flags": {{
+    "documented": false,
+    "description": null
+  }},
+  "evidence_notes": []
+}}
+
+FIELD INSTRUCTIONS:
+- symptom_duration_months: Extract only if explicitly stated (e.g., "3 months of pain" = 3)
+- affected_body_part: knee, shoulder, lumbar spine, cervical spine, brain, etc.
+- laterality: "right", "left", "bilateral", or null
+- attempted: true ONLY if chart says therapy was done/tried/completed
+- outcome: Use "failed", "partial", or "successful" ONLY if chart uses these terms or clear equivalents ("no relief"="failed", "minimal improvement"="partial", "improved"="partial", "resolved"="successful")
+- imaging.type: MRI, CT, X-ray, etc.
+- neurological_symptoms: numbness, tingling, weakness, radiculopathy, etc.
+- pain_characteristics.radiation: where pain radiates to (e.g., "down leg", "into arm")
+- red_flags: fever, weight loss, trauma, bowel/bladder dysfunction, progressive neurological deficits
+- evidence_notes: Quote exact phrases from chart that support your extractions (max 10 words each)
+
+CHART NOTE:
+\"\"\"
+{chart_text}
+\"\"\"
+
+OUTPUT (valid JSON only):"""
+
+        try:
+            if self.use_groq:
+                raw_output = self._generate_with_groq(prompt)
+            else:
+                raw_output = self._generate_with_local_model(prompt)
+
+            # Extract and parse JSON
+            cleaned = self._extract_json_object(raw_output)
+            extracted_data = json.loads(cleaned)
+            
+            # CRITICAL: Validate evidence against source
+            validated_data = self._validate_evidence(extracted_data, chart_text)
+            
+            return validated_data
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}\nOutput: {raw_output[:500]}")
+            return None
+        except Exception as e:
+            logger.error(f"Extraction error: {e}")
+            return None
+
+
+# Singleton instance for reuse
+_extractor = None
+
+def get_extractor(use_groq: bool = False, groq_api_key: Optional[str] = None) -> EvidenceExtractor:
+    """Get or create extractor instance - avoid reloading model"""
+    global _extractor
+    if _extractor is None:
+        _extractor = EvidenceExtractor(use_groq=use_groq, groq_api_key=groq_api_key)
+    return _extractor
+
+
+def extract_evidence(chart_text: str, use_groq: bool = False, groq_api_key: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Backward-compatible function wrapper"""
+    extractor = get_extractor(use_groq=use_groq, groq_api_key=groq_api_key)
+    return extractor.extract_evidence(chart_text)

@@ -11,13 +11,6 @@ from transformers import AutoTokenizer
 
 from pathlib import Path
 
-#TODO  File "/opt/render/project/src/backend/app/main.py", line 4, in <module>
-#     from app.routers import rag, documents, pa, authz
-#   File "/opt/render/project/src/backend/app/routers/rag.py", line 9, in <module>
-#     from app.rag_pipeline.scripts.build_index_updated import build_index, INDEX_DIR
-# ImportError: cannot import name 'build_index' from 'app.rag_pipeline.scripts.build_index_updated' (/opt/render/project/src/backend/app/rag_pipeline/scripts/build_index_updated.py). Did you mean: 'load_index'?
-
-
 BASE_DIR = Path(__file__).resolve().parent.parent  # backend/rag_pipeline
 FRONTEND_BASE_DIR = Path(__file__).resolve().parents[3]
 # DATA_DIR is for local file usage
@@ -53,7 +46,7 @@ def load_all_documents():
 
     return docs
 
-# no building of index in prod for now.
+# # no building of index in prod for now.
 # def build_index():
 #     INDEX_DIR.mkdir(exist_ok=True)
 
@@ -133,10 +126,10 @@ def load_all_documents():
 #     print("\nIndex build complete!")
 #     print(f"Total vectors stored: {store.index.ntotal}")
 
-# Global cache
-STORE = None
-EMBEDDER = None
-CURRENT_INDEX = None
+# # Global cache
+# STORE = None
+# EMBEDDER = None
+# CURRENT_INDEX = None
 
 def load_index(index_name="default"):
     global STORE, EMBEDDER, CURRENT_INDEX

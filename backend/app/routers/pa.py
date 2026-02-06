@@ -37,7 +37,7 @@ async def analyze_pa(file: UploadFile = File(...)):
 
         print('long wait begins...')
         # Process the document
-        evidence = extract_evidence(text)
+        evidence = extract_evidence(text, use_groq=True)
         print('evidence extracted...')
 
 
