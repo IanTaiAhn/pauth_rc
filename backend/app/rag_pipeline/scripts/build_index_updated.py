@@ -126,10 +126,10 @@ def load_all_documents():
 #     print("\nIndex build complete!")
 #     print(f"Total vectors stored: {store.index.ntotal}")
 
-# # Global cache
-# STORE = None
-# EMBEDDER = None
-# CURRENT_INDEX = None
+# Global cache
+STORE = None
+EMBEDDER = None
+CURRENT_INDEX = None
 
 def load_index(index_name="default"):
     global STORE, EMBEDDER, CURRENT_INDEX
