@@ -9,7 +9,9 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     """
     Normalize YOUR specific patient chart JSON format.
 
-    Input format (from Groq):
+    Handles TWO formats:
+
+    Format 1 - Groq output (needs parsing):
     {
       "filename": "...",
       "score": 100,
@@ -22,10 +24,28 @@ def normalize_patient_evidence(evidence: dict) -> dict:
       "missing_items": [...]
     }
 
+    Format 2 - Pre-normalized (ready to use):
+    {
+      "normalized_data": {
+        "symptom_duration_months": 4,
+        "pt_attempted": true,
+        ...
+      },
+      "metadata": {...}
+    }
+
     Handles edge cases and ensures all fields have proper defaults.
+
+    IMPROVED: Detects format and handles both Groq output and pre-normalized data.
     """
     normalized = {}
 
+    # DETECTION: Check if this is pre-normalized data (Format 2)
+    if "normalized_data" in evidence:
+        # Already normalized - just extract and return
+        return evidence["normalized_data"]
+
+    # Otherwise, it's Format 1 (Groq output) - parse it
     # Extract the requirements section (directly at top level in Groq output)
     requirements = evidence.get("requirements", {})
 
@@ -131,7 +151,9 @@ def normalize_policy_criteria(criteria: dict) -> list:
     """
     Normalize YOUR specific insurance policy JSON format.
 
-    Input format (from Groq):
+    Handles TWO formats:
+
+    Format 1 - Groq output (needs parsing):
     {
       "rules": {
         "payer": "Aetna",
@@ -146,15 +168,38 @@ def normalize_policy_criteria(criteria: dict) -> list:
       "raw_output": "..."
     }
 
+    Format 2 - Pre-normalized (ready to use):
+    {
+      "rules": [
+        {
+          "id": "imaging_requirement",
+          "description": "...",
+          "logic": "all",
+          "conditions": [...]
+        }
+      ],
+      "metadata": {...}
+    }
+
     Output: List of rules in standardized condition format
 
-    IMPROVED: Now uses structured JSON data directly instead of fragile text parsing.
+    IMPROVED: Detects format and handles both Groq output and pre-normalized data.
     """
     import re
 
     rules_list = []
 
     rules = criteria.get("rules", {})
+
+    # DETECTION: Check if rules is already a list (Format 2: pre-normalized)
+    if isinstance(rules, list):
+        # Rules are already in the correct format - just validate and return
+        for rule in rules:
+            if isinstance(rule, dict) and "id" in rule and "conditions" in rule:
+                rules_list.append(rule)
+        return rules_list
+
+    # Otherwise, it's Format 1 (Groq output) - parse it
     coverage = rules.get("coverage_criteria", {})
 
     # Extract all text sources for intelligent parsing
