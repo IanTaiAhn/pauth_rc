@@ -9,25 +9,25 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     """
     Normalize YOUR specific patient chart JSON format.
 
-    Input format:
+    Input format (from Groq):
     {
-      "timestamp": "...",
-      "analysis": {
-        "requirements": {
-          "symptom_duration_months": 4,
-          "conservative_therapy": {...},
-          "imaging": {...},
-          ...
-        }
-      }
+      "filename": "...",
+      "score": 100,
+      "requirements": {
+        "symptom_duration_months": 4,
+        "conservative_therapy": {...},
+        "imaging": {...},
+        ...
+      },
+      "missing_items": [...]
     }
 
     Handles edge cases and ensures all fields have proper defaults.
     """
     normalized = {}
 
-    # Extract the requirements section (where all the data lives)
-    requirements = evidence.get("analysis", {}).get("requirements", {})
+    # Extract the requirements section (directly at top level in Groq output)
+    requirements = evidence.get("requirements", {})
 
     # Symptom duration - handle both months and weeks
     symptom_months = requirements.get("symptom_duration_months")
@@ -114,13 +114,12 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     # Evidence notes
     normalized["evidence_notes"] = requirements.get("evidence_notes", [])
 
-    # Analysis level data
-    analysis = evidence.get("analysis", {})
-    normalized["score"] = analysis.get("score")
-    normalized["missing_items"] = analysis.get("missing_items", [])
-    normalized["filename"] = analysis.get("filename")
+    # Top level data from Groq output
+    normalized["score"] = evidence.get("score")
+    normalized["missing_items"] = evidence.get("missing_items", [])
+    normalized["filename"] = evidence.get("filename")
 
-    # Add timestamp from top level
+    # Add timestamp if present (may not be in Groq output)
     normalized["timestamp"] = evidence.get("timestamp")
 
     return normalized
@@ -130,7 +129,7 @@ def normalize_policy_criteria(criteria: dict) -> list:
     """
     Normalize YOUR specific insurance policy JSON format.
 
-    Input format:
+    Input format (from Groq):
     {
       "rules": {
         "payer": "Aetna",
@@ -140,7 +139,9 @@ def normalize_policy_criteria(criteria: dict) -> list:
           "prerequisites": [...],
           "documentation_requirements": [...]
         }
-      }
+      },
+      "context": [...],
+      "raw_output": "..."
     }
 
     Output: List of rules in standardized condition format
