@@ -6,7 +6,7 @@ into standardized formats suitable for rule evaluation.
 """
 
 from fastapi import APIRouter, HTTPException
-from backend.app.models.schemas import (
+from app.api_models.schemas import (
     NormalizePatientRequest,
     NormalizePolicyRequest,
     NormalizeBothRequest,
@@ -16,7 +16,7 @@ from backend.app.models.schemas import (
     PolicyRule,
     RuleCondition
 )
-from backend.app.normalization.normalized_custom import (
+from app.normalization.normalized_custom import (
     normalize_patient_evidence,
     normalize_policy_criteria
 )

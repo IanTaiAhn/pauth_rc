@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.routers import rag, documents, pa, authz, normalization
+from app.routers import rag, documents, pa, authz, normalization
 
 app = FastAPI(title="P-Auth RC")
 

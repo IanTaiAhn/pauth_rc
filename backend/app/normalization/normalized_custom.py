@@ -409,7 +409,7 @@ def compare_normalized_data(patient_norm: dict, policy_rules: list) -> dict:
         - rules_met: Count of rules that passed
         - rules_failed: Count of rules that failed
     """
-    from backend.app.rules.rule_engine import evaluate_all
+    from app.rules.rule_engine import evaluate_all
     return evaluate_all(patient_norm, policy_rules)
 
 
