@@ -29,25 +29,30 @@ async def normalize_patient(request: NormalizePatientRequest):
     """
     Normalize patient chart JSON to canonical format.
 
-    Takes raw patient evidence JSON (from chart extraction) and converts it to a
+    Takes raw patient evidence JSON (from Groq chart extraction) and converts it to a
     flat dictionary with standardized field names suitable for rule evaluation.
 
     **Example Input:**
     ```json
     {
       "patient_evidence": {
-        "timestamp": "2026-01-27T16:32:19.123456",
-        "analysis": {
-          "requirements": {
-            "symptom_duration_months": 4,
-            "conservative_therapy": {
-              "physical_therapy": {
-                "attempted": true,
-                "duration_weeks": 8
-              }
+        "filename": "mocked_patient_pass.txt",
+        "score": 100,
+        "requirements": {
+          "symptom_duration_months": 4,
+          "conservative_therapy": {
+            "physical_therapy": {
+              "attempted": true,
+              "duration_weeks": 8,
+              "outcome": "failed"
             }
+          },
+          "_metadata": {
+            "hallucinations_detected": 0,
+            "validation_passed": true
           }
-        }
+        },
+        "missing_items": []
       }
     }
     ```
@@ -59,11 +64,15 @@ async def normalize_patient(request: NormalizePatientRequest):
         "symptom_duration_months": 4,
         "symptom_duration_weeks": 16,
         "pt_attempted": true,
-        "pt_duration_weeks": 8
+        "pt_duration_weeks": 8,
+        "validation_passed": true,
+        "hallucinations_detected": 0
       },
       "metadata": {
-        "fields_extracted": 4,
-        "source": "patient_chart"
+        "fields_extracted": 6,
+        "source": "patient_chart",
+        "validation_passed": true,
+        "hallucinations_detected": 0
       }
     }
     ```
@@ -220,14 +229,19 @@ async def normalize_both(request: NormalizeBothRequest):
     ```json
     {
       "patient_evidence": {
-        "analysis": {
-          "requirements": {
-            "symptom_duration_months": 4,
-            "conservative_therapy": {
-              "physical_therapy": {"attempted": true}
-            }
+        "filename": "patient_chart.txt",
+        "score": 100,
+        "requirements": {
+          "symptom_duration_months": 4,
+          "conservative_therapy": {
+            "physical_therapy": {"attempted": true, "duration_weeks": 8}
+          },
+          "_metadata": {
+            "hallucinations_detected": 0,
+            "validation_passed": true
           }
-        }
+        },
+        "missing_items": []
       },
       "policy_criteria": {
         "rules": {
