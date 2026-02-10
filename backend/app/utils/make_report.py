@@ -1,4 +1,9 @@
 def build_authz_report(patient_norm: dict, policy_rules: list, evaluation: dict) -> str:
+    """
+    Build a comprehensive authorization report from normalized data and evaluation results.
+
+    IMPROVED: Better formatting, more informative output, and clearer presentation.
+    """
     lines = []
 
     lines.append("=" * 80)
@@ -12,8 +17,37 @@ def build_authz_report(patient_norm: dict, policy_rules: list, evaluation: dict)
     lines.append("📋 Normalized Patient Data:")
     lines.append("-" * 80)
 
+    # Group related fields for better readability
+    important_fields = [
+        "symptom_duration_months",
+        "symptom_duration_weeks",
+        "pt_attempted",
+        "pt_duration_weeks",
+        "nsaid_documented",
+        "nsaid_outcome",
+        "nsaid_failed",
+        "injection_documented",
+        "injection_outcome",
+        "injection_failed",
+        "imaging_documented",
+        "imaging_type",
+        "imaging_body_part",
+        "imaging_months_ago",
+        "functional_impairment_documented",
+        "functional_impairment_description",
+        "validation_passed",
+        "hallucinations_detected",
+        "score",
+        "missing_items"
+    ]
+
+    for key in important_fields:
+        if key in patient_norm:
+            lines.append(f"  {key}: {patient_norm[key]}")
+
+    # Include any additional fields not in the important list
     for key, value in patient_norm.items():
-        if key != "evidence_notes":
+        if key not in important_fields and key != "evidence_notes":
             lines.append(f"  {key}: {value}")
 
     # ---------------------------
