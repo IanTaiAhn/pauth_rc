@@ -1,0 +1,54 @@
+================================================================================
+PRIOR AUTHORIZATION RULE EVALUATION REPORT
+================================================================================
+
+📋 Normalized Patient Data:
+--------------------------------------------------------------------------------
+  symptom_duration_months: None
+  symptom_duration_weeks: None
+  pt_attempted: False
+  pt_duration_weeks: None
+  pt_sessions: None
+  nsaid_documented: False
+  nsaid_outcome: None
+  nsaid_failed: False
+  injection_documented: False
+  injection_outcome: None
+  injection_failed: False
+  imaging_documented: False
+  imaging_type: None
+  imaging_body_part: None
+  imaging_months_ago: None
+  functional_impairment_documented: False
+  functional_impairment_description: None
+  validation_passed: False
+  hallucinations_detected: 0
+  score: None
+  missing_items: []
+  filename: None
+  timestamp: None
+
+📜 Extracted 1 Rules from Policy:
+--------------------------------------------------------------------------------
+
+  [evidence_quality] Evidence must be validated with no hallucinations
+    → hallucinations_detected eq 0
+    → validation_passed eq True
+
+================================================================================
+🏥 PRIOR AUTHORIZATION EVALUATION RESULTS
+================================================================================
+
+❌ DENIED
+
+Rules Met: 0/1
+
+--------------------------------------------------------------------------------
+Detailed Results:
+--------------------------------------------------------------------------------
+
+❌ [evidence_quality] Evidence must be validated with no hallucinations
+  ✓ hallucinations_detected eq 0
+     Patient value: 0
+  ✗ validation_passed eq True
+     Patient value: False
