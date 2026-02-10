@@ -36,31 +36,36 @@ class NormalizePatientRequest(BaseModel):
     """Request schema for normalizing patient evidence JSON."""
     patient_evidence: Dict[str, Any] = Field(
         ...,
-        description="Raw patient chart JSON data to normalize",
+        description="Raw patient chart JSON data to normalize (Groq format)",
         examples=[{
-            "timestamp": "2026-01-27T16:32:19.123456",
-            "analysis": {
-                "requirements": {
-                    "symptom_duration_months": 4,
-                    "conservative_therapy": {
-                        "physical_therapy": {
-                            "attempted": True,
-                            "duration_weeks": 8,
-                            "outcome": "failed"
-                        },
-                        "nsaids": {
-                            "documented": True,
-                            "outcome": "failed"
-                        }
+            "filename": "mocked_patient_pass.txt",
+            "score": 100,
+            "requirements": {
+                "symptom_duration_months": 4,
+                "conservative_therapy": {
+                    "physical_therapy": {
+                        "attempted": True,
+                        "duration_weeks": 8,
+                        "outcome": "failed"
                     },
-                    "imaging": {
+                    "nsaids": {
                         "documented": True,
-                        "type": "X-ray",
-                        "body_part": "shoulder",
-                        "months_ago": 1
+                        "outcome": "failed"
                     }
+                },
+                "imaging": {
+                    "documented": True,
+                    "type": "X-ray",
+                    "body_part": "knee",
+                    "months_ago": 1
+                },
+                "_metadata": {
+                    "hallucinations_detected": 0,
+                    "hallucinated_notes": [],
+                    "validation_passed": True
                 }
-            }
+            },
+            "missing_items": []
         }]
     )
 
