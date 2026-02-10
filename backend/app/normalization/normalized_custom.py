@@ -63,7 +63,8 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     normalized["nsaid_outcome"] = nsaids.get("outcome")
 
     # Check for failed/unsuccessful outcome (multiple possible values)
-    outcome = nsaids.get("outcome", "").lower()
+    outcome = nsaids.get("outcome") or ""
+    outcome = outcome.lower() if isinstance(outcome, str) else ""
     normalized["nsaid_failed"] = outcome in ["failed", "no relief", "unsuccessful", "ineffective"]
 
     # Injections
@@ -71,7 +72,8 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     normalized["injection_documented"] = injections.get("documented", False)
     normalized["injection_outcome"] = injections.get("outcome")
 
-    outcome = injections.get("outcome", "").lower()
+    outcome = injections.get("outcome") or ""
+    outcome = outcome.lower() if isinstance(outcome, str) else ""
     normalized["injection_failed"] = outcome in ["failed", "no relief", "unsuccessful", "ineffective"]
 
     # Imaging - normalize type field
