@@ -1,0 +1,91 @@
+================================================================================
+PRIOR AUTHORIZATION RULE EVALUATION REPORT
+================================================================================
+
+📋 Normalized Patient Data:
+--------------------------------------------------------------------------------
+  symptom_duration_months: 4
+  symptom_duration_weeks: 16
+  pt_attempted: True
+  pt_duration_weeks: 8
+  nsaid_documented: True
+  nsaid_outcome: partial
+  nsaid_failed: False
+  injection_documented: False
+  injection_outcome: None
+  injection_failed: False
+  imaging_documented: True
+  imaging_type: X-ray
+  imaging_body_part: knee
+  imaging_months_ago: 0
+  functional_impairment_documented: True
+  functional_impairment_description: significant functional limitations affecting work and daily activities
+  validation_passed: True
+  hallucinations_detected: 0
+  score: 100
+  missing_items: []
+  pt_sessions: None
+  filename: mocked_patient_pass.txt
+  timestamp: None
+
+📜 Extracted 5 Rules from Policy:
+--------------------------------------------------------------------------------
+
+  [imaging_requirement] Imaging (X-ray) must be completed within 2 months
+    → imaging_documented eq True
+    → imaging_months_ago lte 2
+
+  [physical_therapy_requirement] Physical therapy must be attempted and documented (minimum 6 weeks)
+    → pt_attempted eq True
+    → pt_duration_weeks gte 6
+
+  [medication_trial_requirement] Medication trial must be documented and failed
+    → nsaid_documented eq True
+    → nsaid_failed eq True
+
+  [recent_clinical_notes] Clinical notes must be within 30 days
+    → validation_passed eq True
+
+  [evidence_quality] Evidence must be validated with no hallucinations
+    → hallucinations_detected eq 0
+    → validation_passed eq True
+
+================================================================================
+🏥 PRIOR AUTHORIZATION EVALUATION RESULTS
+================================================================================
+
+❌ DENIED
+
+Rules Met: 4/5
+
+--------------------------------------------------------------------------------
+Detailed Results:
+--------------------------------------------------------------------------------
+
+✅ [imaging_requirement] Imaging (X-ray) must be completed within 2 months
+  ✓ imaging_documented eq True
+     Patient value: True
+  ✓ imaging_months_ago lte 2
+     Patient value: 0
+
+✅ [physical_therapy_requirement] Physical therapy must be attempted and documented (minimum 6 weeks)
+  ✓ pt_attempted eq True
+     Patient value: True
+  ✓ pt_duration_weeks gte 6
+     Patient value: 8
+
+❌ [medication_trial_requirement] Medication trial must be documented and failed
+  ✓ nsaid_documented eq True
+     Patient value: True
+  ✗ nsaid_failed eq True
+     Patient value: False
+
+✅ [recent_clinical_notes] Clinical notes must be within 30 days
+  ✓ validation_passed eq True
+     Patient value: True
+
+✅ [evidence_quality] Evidence must be validated with no hallucinations
+  ✓ hallucinations_detected eq 0
+     Patient value: 0
+  ✓ validation_passed eq True
+     Patient value: True
