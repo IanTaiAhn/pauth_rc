@@ -1,0 +1,136 @@
+INDEX PATHS DIR :  C:\Users\n0308g\Git_Repos\pauth_rc\backend\app\rag_pipeline\vectorstore
+os from embedder.py:  C:\Users\n0308g\Git_Repos\pauth_rc
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: cpu
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: backend/app/rag_pipeline/models/minilm
+WARNING:sentence_transformers.SentenceTransformer:No sentence-transformers model found with name backend/app/rag_pipeline/models/minilm. Creating a new one with mean pooling.
+current index build_index:  mocked_insurance_policy
+Loaded index build_index: mocked_insurance_policy
+
+================================================================================
+Query: Aetna CPT 73721 coverage criteria clinical findings conservative treatment imaging requirements
+================================================================================
+
+Retrieved 6 chunks:
+
+1. AETNA CLINICAL POLICY BULLETIN
+   Rule Type: general
+   Original Score: 0.5587
+   Boost Factor: 2.00x
+   Boosted Score: 1.1175
+   Boost Reasons: exact_code_match
+
+2. PRIOR IMAGING:
+   Rule Type: prior_imaging
+   Original Score: 0.4916
+   Boost Factor: 1.30x
+   Boosted Score: 0.6391
+   Boost Reasons: rule_type_match
+
+3. AETNA SUPPLEMENTARY GUIDELINES
+   Rule Type: general
+   Original Score: 0.5693
+   Boost Factor: 1.00x
+   Boosted Score: 0.5693
+
+4. IMAGING REQUIREMENT:
+   Rule Type: imaging_requirement
+   Original Score: 0.3149
+   Boost Factor: 1.69x
+   Boosted Score: 0.5323
+   Boost Reasons: requirement_match, rule_type_match
+
+5. DIAGNOSIS REQUIREMENT:
+   Rule Type: diagnosis_requirement
+   Original Score: 0.2898
+   Boost Factor: 1.30x
+   Boosted Score: 0.3768
+   Boost Reasons: requirement_match
+
+6. AUTHORIZATION OUTCOMES:
+   Rule Type: general
+   Original Score: 0.3638
+   Boost Factor: 1.00x
+   Boosted Score: 0.3638
+
+✓ Retrieved 3793 candidate chunks
+INFO:sentence_transformers.cross_encoder.CrossEncoder:Use pytorch device: cpu
+
+================================================================================
+RERANKING: 3793 candidates
+Query: Aetna CPT 73721 coverage criteria clinical findings conservative treatment imaging requirements
+Intent: {'seeks_exception': False, 'seeks_requirement': True, 'seeks_definition': False, 'mentions_codes': True, 'mentions_age': True, 'seeks_comprehensive': False}
+Codes: CPT=['73721'], ICD=[]
+================================================================================
+
+Batches: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 119/119 [00:17<00:00,  6.90it/s] 
+
+Top candidates after reranking:
+
+1. Score: -6.4195
+   Section: N/A
+   Rule Type: N/A
+   Breakdown:
+      Base: -9.1707
+      Type: 0.70x
+      Keywords: 1.00x
+      Metadata: 1.00x
+
+2. Score: -6.4195
+   Section: N/A
+   Rule Type: N/A
+   Breakdown:
+      Base: -9.1707
+      Type: 0.70x
+      Keywords: 1.00x
+      Metadata: 1.00x
+
+3. Score: -6.4195
+   Section: N/A
+   Rule Type: N/A
+   Breakdown:
+      Base: -9.1707
+      Type: 0.70x
+      Keywords: 1.00x
+      Metadata: 1.00x
+
+✓ Reranked to top 3 chunks
+
+📚 TOP RERANKED CHUNKS SENT TO LLM:
+
+✓ Built medical policy extraction prompt
+
+🧠 FINAL PROMPT SENT TO MODEL:
+
+You are a medical policy analyst extracting coverage criteria from insurance documents.
+
+CONTEXT DOCUMENTS:
+Source 1 (Doc: unknown_doc | ID: chunk_1):
+e
+
+Source 2 (Doc: unknown_doc | ID: chunk_2):
+E
+
+Source 3 (Doc: unknown_doc | ID: chunk_3):
+E
+
+TASK:
+Extract the medical necessity criteria for Aetna's coverage of CPT code 73721.
+
+OUTPUT FORMAT (JSON only, no additional text):
+{
+  "payer": "Aetna",
+  "cpt_code": "73721",
+  "coverage_criteria": {
+    "clinical_indications": ["list of approved diagnoses/conditions"],
+    "prerequisites": ["required prior treatments or tests"],
+    "exclusion_criteria": ["conditions where NOT covered"],
+    "documentation_requirements": ["required medical documentation"],
+    "quantity_limits": {"description": "frequency/quantity limits if any"}
+  },
+  "source_references": ["document IDs used"]
+}
+
+JSON OUTPUT:
+Loading Qwen2.5 model for medical policy extraction...
+Model loaded successfully
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.

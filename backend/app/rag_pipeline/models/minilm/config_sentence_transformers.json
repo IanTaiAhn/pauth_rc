@@ -1,0 +1,19 @@
+{
+  "architectures": [
+    "SentenceTransformer"
+  ],
+  "modules": {
+    "0": {
+      "type": "Transformer",
+      "path": "./",
+      "max_seq_length": 256
+    },
+    "1": {
+      "type": "Pooling",
+      "pooling_mode_cls_token": false,
+      "pooling_mode_mean_tokens": true,
+      "pooling_mode_max_tokens": false,
+      "pooling_mode_mean_sqrt_len_tokens": false
+    }
+  }
+}

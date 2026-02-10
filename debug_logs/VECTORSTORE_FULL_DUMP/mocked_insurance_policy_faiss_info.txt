@@ -1,0 +1,6 @@
+FAISS INDEX REPORT: C:\Users\n0308g\Git_Repos\pauth_rc\backend\app\rag_pipeline\vectorstore\mocked_insurance_policy.faiss
+================================================================================
+Type: <class 'faiss.swigfaiss_avx2.IndexFlatIP'>
+Total vectors: 15
+Dimension: 1024
+Is trained: True
