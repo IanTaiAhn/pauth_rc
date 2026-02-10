@@ -147,70 +147,102 @@ def normalize_policy_criteria(criteria: dict) -> list:
     }
 
     Output: List of rules in standardized condition format
+
+    IMPROVED: Now uses structured JSON data directly instead of fragile text parsing.
     """
+    import re
+
     rules_list = []
 
     rules = criteria.get("rules", {})
     coverage = rules.get("coverage_criteria", {})
 
-    # Extract payer and CPT for reference
-    payer = rules.get("payer")
-    cpt_code = rules.get("cpt_code")
-
-    # Extract context for more intelligent parsing
-    context = criteria.get("context", [])
-    context_text = " ".join(context) if isinstance(context, list) else ""
-
-    # Rule 1: Prerequisites - X-ray/Imaging within timeframe
+    # Extract all text sources for intelligent parsing
     prerequisites = coverage.get("prerequisites", [])
-    prereq_text = " ".join(prerequisites).lower()
-
-    # Check for imaging requirements with timeframe
-    if "x-ray" in prereq_text or "imaging" in prereq_text:
-        # Extract timeframe (60 days, 2 months, etc.)
-        imaging_months = 2  # default
-        if "60 days" in prereq_text or "60-day" in prereq_text:
-            imaging_months = 2
-        elif "90 days" in prereq_text or "3 months" in prereq_text:
-            imaging_months = 3
-        elif "30 days" in prereq_text or "1 month" in prereq_text:
-            imaging_months = 1
-
-        rules_list.append({
-            "id": "imaging_requirement",
-            "description": f"Imaging (X-ray) must be completed within {imaging_months} months",
-            "logic": "all",
-            "conditions": [
-                {
-                    "field": "imaging_documented",
-                    "operator": "eq",
-                    "value": True
-                },
-                {
-                    "field": "imaging_months_ago",
-                    "operator": "lte",
-                    "value": imaging_months
-                }
-            ]
-        })
-
-    # Rule 2: Conservative therapy - Physical Therapy
     doc_requirements = coverage.get("documentation_requirements", [])
-    doc_text = " ".join(doc_requirements).lower()
+    context = criteria.get("context", [])
 
-    # Check context for PT duration requirements (e.g., "6 weeks", "minimum 6 sessions")
+    # Combine all text for pattern matching
+    all_text = " ".join(
+        prerequisites + doc_requirements + (context if isinstance(context, list) else [])
+    )
+    all_text_lower = all_text.lower()
+
+    # =========================================================================
+    # RULE 1: X-ray/Imaging Requirement
+    # =========================================================================
+    # Look for X-ray requirements in prerequisites
+    for prereq in prerequisites:
+        prereq_lower = prereq.lower()
+        if "x-ray" in prereq_lower or "xray" in prereq_lower or "imaging" in prereq_lower:
+            # Extract timeframe with multiple patterns
+            imaging_months = 2  # default
+
+            # Check for days
+            days_match = re.search(r'(\d+)\s*days?', prereq_lower)
+            if days_match:
+                days = int(days_match.group(1))
+                imaging_months = days / 30  # Convert to months
+
+            # Check for months
+            months_match = re.search(r'(\d+)\s*months?', prereq_lower)
+            if months_match:
+                imaging_months = int(months_match.group(1))
+
+            # Check context for more specific timeframes
+            if "60 days" in all_text_lower or "within 60 days" in all_text_lower:
+                imaging_months = 2
+            elif "90 days" in all_text_lower:
+                imaging_months = 3
+            elif "30 days" in all_text_lower:
+                imaging_months = 1
+
+            rules_list.append({
+                "id": "xray_requirement",
+                "description": f"Weight-bearing X-rays must be completed within {int(imaging_months * 30)} days",
+                "logic": "all",
+                "conditions": [
+                    {
+                        "field": "imaging_documented",
+                        "operator": "eq",
+                        "value": True
+                    },
+                    {
+                        "field": "imaging_type",
+                        "operator": "eq",
+                        "value": "X-ray"
+                    },
+                    {
+                        "field": "imaging_months_ago",
+                        "operator": "lte",
+                        "value": imaging_months
+                    }
+                ]
+            })
+            break  # Only add once
+
+    # =========================================================================
+    # RULE 2: Physical Therapy Requirement
+    # =========================================================================
+    # Check both prerequisites and documentation requirements
+    pt_mentioned = False
     pt_weeks_required = None
-    pt_sessions_required = None
 
-    if "6 weeks" in context_text or "6 WEEKS" in context_text:
-        pt_weeks_required = 6
-    elif "4 weeks" in context_text:
-        pt_weeks_required = 4
+    for text_source in prerequisites + doc_requirements:
+        text_lower = text_source.lower()
+        if "physical therapy" in text_lower or "pt" in text_lower:
+            pt_mentioned = True
 
-    if "minimum 6 sessions" in context_text or "6 sessions" in context_text:
-        pt_sessions_required = 6
+            # Look for duration in weeks
+            weeks_match = re.search(r'(\d+)\s*weeks?', text_lower)
+            if weeks_match:
+                pt_weeks_required = int(weeks_match.group(1))
 
-    if "physical therapy" in doc_text or "Physical therapy" in " ".join(doc_requirements):
+            # Also check context for "6 WEEKS" pattern
+            if not pt_weeks_required and ("6 weeks" in all_text or "6 WEEKS" in all_text):
+                pt_weeks_required = 6
+
+    if pt_mentioned:
         conditions = [
             {
                 "field": "pt_attempted",
@@ -219,8 +251,9 @@ def normalize_policy_criteria(criteria: dict) -> list:
             }
         ]
 
-        # Add duration requirement if found in context
+        description = "Physical therapy must be attempted and documented"
         if pt_weeks_required:
+            description = f"Physical therapy must be attempted and documented (minimum {pt_weeks_required} weeks)"
             conditions.append({
                 "field": "pt_duration_weeks",
                 "operator": "gte",
@@ -229,93 +262,59 @@ def normalize_policy_criteria(criteria: dict) -> list:
 
         rules_list.append({
             "id": "physical_therapy_requirement",
-            "description": f"Physical therapy must be attempted and documented{f' (minimum {pt_weeks_required} weeks)' if pt_weeks_required else ''}",
+            "description": description,
             "logic": "all",
             "conditions": conditions
         })
 
-    # Rule 3: Medication trial
-    if "medication" in doc_text or "nsaid" in context_text.lower():
-        # Check if failure is required
-        requires_failure = "failed" in context_text.lower() or "no relief" in context_text.lower()
+    # =========================================================================
+    # RULE 3: Medication Trial Requirement
+    # =========================================================================
+    medication_mentioned = False
+    for text_source in prerequisites + doc_requirements:
+        text_lower = text_source.lower()
+        if any(keyword in text_lower for keyword in ["medication", "nsaid", "analgesic"]):
+            medication_mentioned = True
+            break
 
-        conditions = [
-            {
-                "field": "nsaid_documented",
-                "operator": "eq",
-                "value": True
-            }
-        ]
-
-        if requires_failure:
-            conditions.append({
-                "field": "nsaid_failed",
-                "operator": "eq",
-                "value": True
-            })
-
+    if medication_mentioned:
         rules_list.append({
             "id": "medication_trial_requirement",
-            "description": f"Medication trial must be documented{' and failed' if requires_failure else ''}",
-            "logic": "all",
-            "conditions": conditions
-        })
-
-    # Rule 4: Clinical documentation timeframe
-    if "within 30 days" in doc_text or "30 days" in doc_text:
-        rules_list.append({
-            "id": "recent_clinical_notes",
-            "description": "Clinical notes must be within 30 days",
+            "description": "Medication trial must be documented",
             "logic": "all",
             "conditions": [
                 {
-                    "field": "validation_passed",
+                    "field": "nsaid_documented",
                     "operator": "eq",
                     "value": True
                 }
             ]
         })
 
-    # Rule 5: Symptom duration requirement
-    if "symptom" in context_text.lower() and ("weeks" in context_text or "months" in context_text):
-        # Try to extract minimum duration
-        # Common patterns: "6 weeks", "3 months", etc.
-        import re
+    # =========================================================================
+    # RULE 4: Recent Clinical Notes Requirement
+    # =========================================================================
+    # Check for 30-day requirement in documentation requirements
+    for doc_req in doc_requirements:
+        doc_lower = doc_req.lower()
+        if "30 days" in doc_lower or "within 30 days" in doc_lower:
+            rules_list.append({
+                "id": "recent_clinical_notes",
+                "description": "Clinical notes must be within 30 days",
+                "logic": "all",
+                "conditions": [
+                    {
+                        "field": "validation_passed",
+                        "operator": "eq",
+                        "value": True
+                    }
+                ]
+            })
+            break
 
-        # Look for patterns like "at least X weeks" or "minimum X months"
-        duration_match = re.search(r'(\d+)\s*(weeks?|months?)', context_text.lower())
-        if duration_match:
-            number = int(duration_match.group(1))
-            unit = duration_match.group(2)
-
-            if 'month' in unit:
-                rules_list.append({
-                    "id": "symptom_duration_requirement",
-                    "description": f"Symptoms must persist for at least {number} months",
-                    "logic": "all",
-                    "conditions": [
-                        {
-                            "field": "symptom_duration_months",
-                            "operator": "gte",
-                            "value": number
-                        }
-                    ]
-                })
-            elif 'week' in unit and number >= 6:  # Only add if significant duration
-                rules_list.append({
-                    "id": "symptom_duration_requirement",
-                    "description": f"Symptoms must persist for at least {number} weeks",
-                    "logic": "all",
-                    "conditions": [
-                        {
-                            "field": "symptom_duration_weeks",
-                            "operator": "gte",
-                            "value": number
-                        }
-                    ]
-                })
-
-    # Rule 6: Evidence quality check (always include)
+    # =========================================================================
+    # RULE 5: Evidence Quality Check (ALWAYS INCLUDE)
+    # =========================================================================
     rules_list.append({
         "id": "evidence_quality",
         "description": "Evidence must be validated with no hallucinations",

@@ -23,7 +23,7 @@ def get_nested_value(data: dict, path: str, default=None) -> Any:
 def compare_values(patient_value: Any, operator: str, threshold: Any) -> bool:
     """
     Compare patient value against threshold using specified operator.
-    
+
     Operators:
     - gte: greater than or equal
     - gt: greater than
@@ -34,24 +34,50 @@ def compare_values(patient_value: Any, operator: str, threshold: Any) -> bool:
     - in: value in list
     - contains: list contains value
     - any_in: any overlap between lists
+
+    IMPROVED: Better handling of None values and string comparisons
     """
+    # Handle None values more intelligently
     if patient_value is None:
+        # For equality checks, None can equal None or False
+        if operator == "eq" and (threshold is None or threshold is False):
+            return True
         return False
-    
+
+    # String comparison normalization for "eq" operator
+    if operator == "eq" and isinstance(patient_value, str) and isinstance(threshold, str):
+        # Case-insensitive comparison for string equality
+        return patient_value.lower().strip() == threshold.lower().strip()
+
     if operator == "gte":
-        return patient_value >= threshold
+        try:
+            return patient_value >= threshold
+        except TypeError:
+            return False
     elif operator == "gt":
-        return patient_value > threshold
+        try:
+            return patient_value > threshold
+        except TypeError:
+            return False
     elif operator == "lte":
-        return patient_value <= threshold
+        try:
+            return patient_value <= threshold
+        except TypeError:
+            return False
     elif operator == "lt":
-        return patient_value < threshold
+        try:
+            return patient_value < threshold
+        except TypeError:
+            return False
     elif operator == "eq":
         return patient_value == threshold
     elif operator == "neq":
         return patient_value != threshold
     elif operator == "in":
-        return patient_value in threshold
+        try:
+            return patient_value in threshold
+        except TypeError:
+            return False
     elif operator == "contains":
         if isinstance(patient_value, list):
             return threshold in patient_value
