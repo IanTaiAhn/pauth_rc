@@ -1,29 +1,20 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from pydantic import BaseModel
-
-from backend.app.services.ingestion import extract_text
-from backend.app.services.evidence import extract_evidence
-from backend.app.services.readiness import compute_readiness
-from backend.app.utils.save_json import save_analysis_to_json
+from app.services.ingestion import extract_text
+from app.services.evidence import extract_evidence
+from app.services.readiness import compute_readiness
+from app.utils.save_json import save_analysis_to_json
+from app.api_models.schemas import InitialPatientExtraction
 # from app.services.justification import build_justification
 # THIS OUTPUTS MY PATIENT CHART JSON
+# TODO make this strictly a patient chart extracter. Since this will be working with HIPPA, I probably will need to rework this.
 
 router = APIRouter()
-
-# Pydantic Models
-# ---------------------------------------------------------
-class AnalysisResponse(BaseModel):
-    filename: str
-    score: float | int
-    requirements: dict
-    missing_items: list[str]
-    # justification_text: str | None = None
 
 
 # ---------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------
-@router.post("/extract_patient_chart", response_model=AnalysisResponse)
+@router.post("/extract_patient_chart", response_model=InitialPatientExtraction)
 async def analyze_pa(file: UploadFile = File(...)):
     """
     Analyze a prior authorization document.
@@ -46,41 +37,27 @@ async def analyze_pa(file: UploadFile = File(...)):
 
         print('long wait begins...')
         # Process the document
-        evidence = extract_evidence(text)
+        evidence = extract_evidence(text, use_groq=True)
         print('evidence extracted...')
-        # print('evidence as json:', evidence)
 
-        # TODO add RAG here for the payer policy criteria.
-        # Example....
-        # STEP 2 — Policy retrieval (RAG)
-        # criteria = get_policy_criteria(
-        #     payer="BCBS",        # later from UI
-        #     cpt_code="62323"     # later extracted or selected
-        # )
 
         score, missing = compute_readiness(evidence)
         print('computed score...')
 
-        # Compliant language for a clinical setting using the evidence found, 
-        # and the actual criteria_chunks.
-        # justification = build_justification(evidence, criteria_chunks)
-        # print('justifying...')
-
         # Create response object
-        response = AnalysisResponse(
+        response = InitialPatientExtraction(
             filename=file.filename,
             score=score,
             requirements=evidence,
             missing_items=missing,
-            # justification_text=justification
         )
         
         # Save to JSON file in the root directory
         # Convert Pydantic model to dict for JSON serialization
-        response_dict = response.model_dump()
-        saved_path = save_analysis_to_json(response_dict, output_dir=".")
+        # response_dict = response.model_dump()
+        # saved_path = save_analysis_to_json(response_dict, output_dir=".")
         
-        print(f'Analysis succeeded and saved to {saved_path}!')
+        # print(f'Analysis succeeded and saved to {saved_path}!')
         
         return response
     

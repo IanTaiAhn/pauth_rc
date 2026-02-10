@@ -1,0 +1,51 @@
+================================================================================
+PRIOR AUTHORIZATION RULE EVALUATION REPORT
+================================================================================
+
+📋 Normalized Patient Data:
+--------------------------------------------------------------------------------
+  symptom_duration_months: 4
+  symptom_duration_weeks: 16
+  pt_attempted: True
+  pt_duration_weeks: 12
+  nsaid_documented: True
+  nsaid_outcome: failed
+  nsaid_failed: True
+  injection_documented: False
+  injection_outcome: None
+  injection_failed: False
+  imaging_documented: True
+  imaging_type: X-ray
+  imaging_body_part: Right Knee
+  imaging_months_ago: 1
+  functional_impairment_documented: True
+  functional_impairment_description: significant functional limitations affecting work and daily activities
+  validation_passed: True
+  hallucinations_detected: 0
+  score: 100
+  missing_items: []
+
+📜 Extracted 1 Rules from Policy:
+--------------------------------------------------------------------------------
+
+  [evidence_quality] Evidence must be validated with no hallucinations
+    → hallucinations_detected eq 0
+    → validation_passed eq True
+
+================================================================================
+🏥 PRIOR AUTHORIZATION EVALUATION RESULTS
+================================================================================
+
+✅ APPROVED
+
+Rules Met: 1/1
+
+--------------------------------------------------------------------------------
+Detailed Results:
+--------------------------------------------------------------------------------
+
+✅ [evidence_quality] Evidence must be validated with no hallucinations
+  ✓ hallucinations_detected eq 0
+     Patient value: 0
+  ✓ validation_passed eq True
+     Patient value: True

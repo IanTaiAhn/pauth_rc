@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-01-27T16:32:19.659972",
+  "analysis": {
+    "filename": "mocked_pass.txt",
+    "score": 100,
+    "requirements": {
+      "symptom_duration_months": 4,
+      "conservative_therapy": {
+        "physical_therapy": {
+          "attempted": true,
+          "duration_weeks": 12
+        },
+        "nsaids": {
+          "documented": true,
+          "outcome": "failed"
+        },
+        "injections": {
+          "documented": false,
+          "outcome": null
+        }
+      },
+      "imaging": {
+        "documented": true,
+        "type": "X-ray",
+        "body_part": "Right Knee",
+        "months_ago": 1
+      },
+      "functional_impairment": {
+        "documented": true,
+        "description": "significant functional limitations affecting work and daily activities"
+      },
+      "evidence_notes": [
+        "Patient has completed 8 weeks (56 days) of conservative management:",
+        "Physical therapy: 2x weekly from 11/20/2024 to 01/10/2025",
+        "Total sessions: 12 sessions completed",
+        "Focus: Quadriceps strengthening, range of motion, modalities",
+        "PT notes indicate patient compliant but persistent symptoms",
+        "Despite 8 weeks of conservative care, patient continues to have significant functional limitations affecting work and daily activities."
+      ],
+      "_metadata": {
+        "hallucinations_detected": 0,
+        "hallucinated_notes": [],
+        "validation_passed": true
+      }
+    },
+    "missing_items": []
+  }
+}

@@ -5,6 +5,8 @@ from pathlib import Path
 import re
 from typing import Optional, Dict, Any
 import logging
+import os
+from groq import Groq
 
 # Set up logging for debugging hallucinations
 logging.basicConfig(level=logging.INFO)
@@ -13,25 +15,35 @@ logger = logging.getLogger(__name__)
 MODEL_PATH = r"C:\Users\n0308g\Git_Repos\pauth_rc\backend\app\rag_pipeline\models\qwen2.5"
 
 class EvidenceExtractor:
-    def __init__(self, model_path: str = MODEL_PATH):
+    def __init__(self, model_path: str = MODEL_PATH, use_groq: bool = False, groq_api_key: Optional[str] = None):
         """Initialize model once - avoid reloading on every call"""
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_path,
-            trust_remote_code=True
-        )
+        self.use_groq = use_groq
         
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            dtype=torch.float16,
-            trust_remote_code=True
-        )
-        
-        # Move to GPU if available
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model.to(self.device)
-        self.model.eval()
-        
-        logger.info(f"Model loaded on {self.device}")
+        if self.use_groq:
+            api_key = groq_api_key or os.environ.get("GROQ_API_KEY")
+            if not api_key:
+                raise ValueError("GROQ_API_KEY must be provided or set in environment")
+            self.groq_client = Groq(api_key=api_key)
+            self.groq_model = "llama-3.3-70b-versatile"
+            logger.info(f"Using Groq API with {self.groq_model}")
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path,
+                trust_remote_code=True
+            )
+            
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                dtype=torch.float16,
+                trust_remote_code=True
+            )
+            
+            # Move to GPU if available
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.model.to(self.device)
+            self.model.eval()
+            
+            logger.info(f"Model loaded on {self.device}")
 
     def _validate_evidence(self, extracted_data: dict, chart_text: str) -> dict:
         """Check if evidence_notes actually exist in chart - FLAG HALLUCINATIONS"""
@@ -70,6 +82,55 @@ class EvidenceExtractor:
             raise ValueError("No JSON object found in model output")
         return match.group(0)
 
+    def _generate_with_groq(self, prompt: str) -> str:
+        """Generate response using Groq API"""
+        try:
+            chat_completion = self.groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You output JSON only."},
+                    {"role": "user", "content": prompt}
+                ],
+                model=self.groq_model,
+                temperature=0.0,
+                max_tokens=800,
+            )
+            return chat_completion.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"Groq API error: {e}")
+            raise
+
+    def _generate_with_local_model(self, prompt: str) -> str:
+        """Generate response using local model"""
+        messages = [
+            {"role": "system", "content": "You output JSON only."},
+            {"role": "user", "content": prompt}
+        ]
+
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+
+        inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=800,
+                temperature=0.0,
+                do_sample=False,
+                repetition_penalty=1.1,
+                pad_token_id=self.tokenizer.eos_token_id
+            )
+
+        raw_output = self.tokenizer.decode(
+            outputs[0][inputs["input_ids"].shape[-1]:],
+            skip_special_tokens=True
+        ).strip()
+
+        return raw_output
+
     def extract_evidence(self, chart_text: str) -> Optional[Dict[str, Any]]:
         """Main extraction function with validation"""
         
@@ -84,7 +145,6 @@ class EvidenceExtractor:
             logger.warning(f"Chart truncated from {len(chart_text)} to {max_chars} chars")
             chart_text = chart_text[:max_chars] + "\n[NOTE TRUNCATED]"
         
-        # this prompt is most fitting for an orthopedics chart...(imaging + failed conservative therapy)
         prompt = f"""You are a medical chart data extractor. Extract ONLY information explicitly written in the chart note below.
 
 CRITICAL RULES:
@@ -97,10 +157,13 @@ CRITICAL RULES:
 EXTRACTION SCHEMA:
 {{
   "symptom_duration_months": null,
+  "affected_body_part": null,
+  "laterality": null,
   "conservative_therapy": {{
     "physical_therapy": {{
       "attempted": false,
-      "duration_weeks": null
+      "duration_weeks": null,
+      "outcome": null
     }},
     "nsaids": {{
       "documented": false,
@@ -108,6 +171,12 @@ EXTRACTION SCHEMA:
     }},
     "injections": {{
       "documented": false,
+      "type": null,
+      "outcome": null
+    }},
+    "other_treatments": {{
+      "documented": false,
+      "description": null,
       "outcome": null
     }}
   }},
@@ -115,9 +184,25 @@ EXTRACTION SCHEMA:
     "documented": false,
     "type": null,
     "body_part": null,
-    "months_ago": null
+    "laterality": null,
+    "months_ago": null,
+    "findings": null
   }},
   "functional_impairment": {{
+    "documented": false,
+    "description": null
+  }},
+  "neurological_symptoms": {{
+    "documented": false,
+    "description": null
+  }},
+  "pain_characteristics": {{
+    "documented": false,
+    "severity": null,
+    "quality": null,
+    "radiation": null
+  }},
+  "red_flags": {{
     "documented": false,
     "description": null
   }},
@@ -126,8 +211,14 @@ EXTRACTION SCHEMA:
 
 FIELD INSTRUCTIONS:
 - symptom_duration_months: Extract only if explicitly stated (e.g., "3 months of pain" = 3)
+- affected_body_part: knee, shoulder, lumbar spine, cervical spine, brain, etc.
+- laterality: "right", "left", "bilateral", or null
 - attempted: true ONLY if chart says therapy was done/tried/completed
-- outcome: Use "failed", "partial", or "successful" ONLY if chart uses these exact terms or clear equivalents ("no relief"="failed", "improved"="partial", "resolved"="successful")
+- outcome: Use "failed", "partial", or "successful" ONLY if chart uses these terms or clear equivalents ("no relief"="failed", "minimal improvement"="partial", "improved"="partial", "resolved"="successful")
+- imaging.type: MRI, CT, X-ray, etc.
+- neurological_symptoms: numbness, tingling, weakness, radiculopathy, etc.
+- pain_characteristics.radiation: where pain radiates to (e.g., "down leg", "into arm")
+- red_flags: fever, weight loss, trauma, bowel/bladder dysfunction, progressive neurological deficits
 - evidence_notes: Quote exact phrases from chart that support your extractions (max 10 words each)
 
 CHART NOTE:
@@ -137,34 +228,11 @@ CHART NOTE:
 
 OUTPUT (valid JSON only):"""
 
-        messages = [
-            {"role": "system", "content": "You output JSON only."},
-            {"role": "user", "content": prompt}
-        ]
-
-        text = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-
-        inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
-
         try:
-            with torch.no_grad():
-                outputs = self.model.generate(
-                    **inputs,
-                    max_new_tokens=600,
-                    temperature=0.0,
-                    do_sample=False,
-                    repetition_penalty=1.1,  # Reduce repetitive hallucinations
-                    pad_token_id=self.tokenizer.eos_token_id
-                )
-
-            raw_output = self.tokenizer.decode(
-                outputs[0][inputs["input_ids"].shape[-1]:],
-                skip_special_tokens=True
-            ).strip()
+            if self.use_groq:
+                raw_output = self._generate_with_groq(prompt)
+            else:
+                raw_output = self._generate_with_local_model(prompt)
 
             # Extract and parse JSON
             cleaned = self._extract_json_object(raw_output)
@@ -186,78 +254,15 @@ OUTPUT (valid JSON only):"""
 # Singleton instance for reuse
 _extractor = None
 
-def get_extractor() -> EvidenceExtractor:
+def get_extractor(use_groq: bool = False, groq_api_key: Optional[str] = None) -> EvidenceExtractor:
     """Get or create extractor instance - avoid reloading model"""
     global _extractor
     if _extractor is None:
-        _extractor = EvidenceExtractor()
+        _extractor = EvidenceExtractor(use_groq=use_groq, groq_api_key=groq_api_key)
     return _extractor
 
 
-def extract_evidence(chart_text: str) -> Optional[Dict[str, Any]]:
+def extract_evidence(chart_text: str, use_groq: bool = False, groq_api_key: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Backward-compatible function wrapper"""
-    extractor = get_extractor()
+    extractor = get_extractor(use_groq=use_groq, groq_api_key=groq_api_key)
     return extractor.extract_evidence(chart_text)
-
-
-# Example usage with validation
-if __name__ == "__main__":
-    test_chart = """
-    Patient reports 4 months of right knee pain.
-    Tried physical therapy for 8 weeks with minimal improvement.
-    NSAIDs provided no relief.
-    MRI of right knee 2 months ago shows meniscal tear.
-    Patient unable to climb stairs or walk more than 10 minutes.
-    """
-    
-    result = extract_evidence(test_chart)
-    
-    if result:
-        print(json.dumps(result, indent=2))
-        
-        # Check validation
-        if not result["_metadata"]["validation_passed"]:
-            print("\n⚠️ HALLUCINATIONS DETECTED:")
-            for note in result["_metadata"]["hallucinated_notes"]:
-                print(f"  - {note}")
-
-                
-# This is what the extracted test json looks like.
-# {
-#   "symptom_duration_months": 4,
-#   "conservative_therapy": {
-#     "physical_therapy": {
-#       "attempted": true,
-#       "duration_weeks": 8
-#     },
-#     "nsaids": {
-#       "documented": true,
-#       "outcome": "no relief"
-#     },
-#     "injections": {
-#       "documented": false,
-#       "outcome": null
-#     }
-#   },
-#   "imaging": {
-#     "documented": true,
-#     "type": "MRI",
-#     "body_part": "right knee",
-#     "months_ago": 2
-#   },
-#   "functional_impairment": {
-#     "documented": true,
-#     "description": "unable to climb stairs or walk more than 10 minutes"
-#   },
-#   "evidence_notes": [
-#     "Patient reports 4 months of right knee pain.",
-#     "Tried physical therapy for 8 weeks with minimal improvement.",
-#     "NSAIDs provided no relief.",
-#     "MRI of right knee 2 months ago shows meniscal tear."
-#   ],
-#   "_metadata": {
-#     "hallucinations_detected": 0,
-#     "hallucinated_notes": [],
-#     "validation_passed": true
-#   }
-# }

@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-01-26T15:58:44.950399",
+  "analysis": {
+    "filename": "ch2_shoulder.txt",
+    "score": 100,
+    "requirements": {
+      "symptom_duration_months": 5,
+      "conservative_therapy": {
+        "physical_therapy": {
+          "attempted": true,
+          "duration_weeks": 10
+        },
+        "nsaids": {
+          "documented": true,
+          "outcome": "failed"
+        },
+        "injections": {
+          "documented": true,
+          "outcome": "partial"
+        }
+      },
+      "imaging": {
+        "documented": true,
+        "type": "MRI",
+        "body_part": "Right Shoulder",
+        "months_ago": 2
+      },
+      "functional_impairment": {
+        "documented": true,
+        "description": "Unable to lift objects overhead, difficulty dressing, cannot sleep on right side."
+      },
+      "evidence_notes": [
+        "MRI Right Shoulder (2 months ago) shows full-thickness supraspinatus tear.",
+        "No improvement with rest."
+      ],
+      "_metadata": {
+        "hallucinations_detected": 0,
+        "hallucinated_notes": [],
+        "validation_passed": true
+      }
+    },
+    "missing_items": []
+  }
+}

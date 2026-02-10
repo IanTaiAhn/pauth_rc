@@ -232,3 +232,143 @@ Policy PDFs → Embeddings → Retrieval(uses specialized query to get relevant 
 
 Something I just thought of is that I only have to build indecies once, as well as the payer policy json.
 The thing that actually has to get created a bunch is the extracted patient notes.
+
+My source of truth that the RAG should be built on for maximum good retreival.
+
+## So Where Should YOU Pull Policy Truth From?
+
+If you want to mirror what reviewers actually use, your RAG sources should be:
+
+### ✅ Primary
+* State Medicaid provider manuals (PDFs)
+* Medicaid PA instruction pages
+* Medicaid imaging policy documents
+* Coverage & reimbursement manuals
+
+### ✅ Secondary
+* Medicaid PA forms (what they ask for = what they care about)
+* Denial reason descriptions
+* Medicaid fee schedules with PA flags
+
+### ⚠️ Avoid as primary truth
+* Blog posts
+* Revenue cycle vendor summaries
+* Clinic “how-to” guides
+* Those reflect interpretation, not enforcement.
+
+Chart → Policy-derived checklist → Gap analysis → Submit once
+
+Lol.
+So we need to iterate again.
+Chunking, retrieval, embedding, reranking...
+This iteration round we target only Utah Medicaid.
+### We must group based off of:
+* Modality-based (MRI / CT / PET)
+* Body-region–based (spine, brain, extremity)
+* Indication-based (trauma, neuro deficit, cancer, pain > 6 weeks)
+* Exception-based (red flags override conservative therapy rules)
+
+My version initially was too naive. We are going to rebuild using actual pdfs from medicaid and get real source information.
+
+## Level 1 — One Medicaid Imaging Policy Index
+### This index contains:
+* Provider manuals
+* Imaging PA instructions
+* Modality rules
+* Conservative treatment requirements
+* Red flag language
+* Documentation expectations
+
+## Level 2 — Chunk tagging (this is critical)
+### Each chunk should be tagged with metadata like:
+{
+  "payer": "Utah Medicaid",
+  "modality": "MRI",
+  "body_region": "spine",
+  "anatomic_area": "lumbar",
+  "clinical_indication": ["pain", "radiculopathy"],
+  "conservative_treatment_required": true,
+  "red_flags": ["neurologic deficit", "trauma"],
+  "source": "Provider Manual Section 3.2"
+}
+
+## Level 3 — CPT mapping layer (logic, not embeddings)
+{
+  "72148": {
+    "modality": "MRI",
+    "body_region": "spine",
+    "anatomic_area": "lumbar",
+    "contrast": "without"
+  }
+}
+
+## Single Medicaid Imaging Index (Recommended)
+## How your RAG pipeline should work (step-by-step)
+### 🧱 Step 1: Source ingestion
+
+### Ingest only documents reviewers would reference:
+* Utah Medicaid provider manuals (PDF)
+* Imaging PA instruction pages
+* PA request forms
+* Coverage & reimbursement criteria pages
+* FAQ pages that describe requirements
+* Normalize → clean → chunk semantically (not by page).
+
+### 🧱 Step 2: Semantic chunking
+Chunk by:
+* Requirement type (conservative therapy, red flags, documentation)
+* Modality
+* Body region
+
+* ❌ Don’t chunk by page
+* ✅ Chunk by policy intent
+
+### 🧱 Step 3: Metadata tagging
+
+### Tag every chunk with:
+* modality
+* body_region
+* anatomic_area
+* condition keywords
+* whether it’s a hard rule vs exception
+* This is what lets you do targeted retrieval later.
+
+### 🧱 Step 4: Patient chart extraction (json may need to be worked on)
+
+### 🧱 Step 5: Policy matching
+Now you:
+* Query Medicaid Imaging Index using patient attributes
+* Retrieve only relevant policy chunks
+* Compare required elements vs extracted chart data
+* Generate a gap report
+
+### Pros
+* Mirrors real reviewer logic
+* Minimal duplication
+* Easy to update
+* Works across CPTs
+* Faster iteration
+
+### Cons
+* Requires good metadata tagging
+* Slightly more logic at query time
+
+I need to change my structure to accept all MRI CPT things.
+
+### Phase 1 (now)
+
+### Support 5 MRI CPT families
+* Knee
+* Shoulder
+* Lumbar spine
+* Cervical spine
+* Brain
+
+* Single Medicaid Imaging Index
+* Metadata + filters
+* One prompt template
+
+### Phase 2 (after first clinic)
+* Add CT
+* Add ultrasound
+* Add contrast/no-contrast logic

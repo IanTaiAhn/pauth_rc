@@ -1,12 +1,12 @@
 import os
-from backend.app.rag_pipeline.ingestion.pdf_loader import load_pdf_text
-from backend.app.rag_pipeline.ingestion.text_loader import load_text_file
+from app.rag_pipeline.ingestion.pdf_loader import load_pdf_text
+from app.rag_pipeline.ingestion.text_loader import load_text_file
 
 # NEW: Import the improved chunker instead of the old one
-from backend.app.rag_pipeline.chunking.improved_chunker import InsurancePolicyChunker
+from app.rag_pipeline.chunking.improved_chunker import InsurancePolicyChunker
 
-from backend.app.rag_pipeline.embeddings.embedder import get_embedder
-from backend.app.rag_pipeline.embeddings.vectorstore import FaissStore
+from app.rag_pipeline.embeddings.embedder import get_embedder
+from app.rag_pipeline.embeddings.vectorstore import FaissStore
 from transformers import AutoTokenizer
 
 from pathlib import Path
@@ -46,84 +46,85 @@ def load_all_documents():
 
     return docs
 
-def build_index():
-    INDEX_DIR.mkdir(exist_ok=True)
+# # no building of index in prod for now.
+# def build_index():
+#     INDEX_DIR.mkdir(exist_ok=True)
 
-    print("Loading embedding model to build index...")
-    embed = get_embedder()
-    print("embed model:", embed)
+#     print("Loading embedding model to build index...")
+#     embed = get_embedder()
+#     print("embed model:", embed)
 
-    # local path
-    # model_path = "../models/qwen2.5"   # your local Qwen2.5 folder
-    model_path = str(MODEL_DIR)
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+#     # local path
+#     # model_path = "../models/qwen2.5"   # your local Qwen2.5 folder
+#     model_path = str(MODEL_DIR)
+#     tokenizer = AutoTokenizer.from_pretrained(model_path)
     
-    # NEW: Initialize the improved chunker with your tokenizer
-    chunker = InsurancePolicyChunker(
-        tokenizer=tokenizer,
-        max_tokens=400,      # Adjust based on your embedding model's context window
-        min_chunk_tokens=100 # Minimum chunk size to avoid tiny fragments
-    )
+#     # NEW: Initialize the improved chunker with your tokenizer
+#     chunker = InsurancePolicyChunker(
+#         tokenizer=tokenizer,
+#         max_tokens=400,      # Adjust based on your embedding model's context window
+#         min_chunk_tokens=100 # Minimum chunk size to avoid tiny fragments
+#     )
     
-    store = None
+#     store = None
 
-    docs = load_all_documents()
-    index_name = docs[0][0].stem
+#     docs = load_all_documents()
+#     index_name = docs[0][0].stem
 
-    print(f"Loaded {len(docs)} documents.")
+#     print(f"Loaded {len(docs)} documents.")
 
-    for doc_name, text in docs:
-        print(f"\nChunking {doc_name}...")
+#     for doc_name, text in docs:
+#         print(f"\nChunking {doc_name}...")
 
-        # NEW: Use the improved chunker's chunk_document method
-        # This returns a list of dicts with rich metadata
-        chunks = chunker.chunk_document(text)
+#         # NEW: Use the improved chunker's chunk_document method
+#         # This returns a list of dicts with rich metadata
+#         chunks = chunker.chunk_document(text)
         
-        # Extract just the text for embedding
-        chunk_texts = [c["text"] for c in chunks]
+#         # Extract just the text for embedding
+#         chunk_texts = [c["text"] for c in chunks]
 
-        print(f"Embedding {len(chunk_texts)} chunks...")
-        print(f"  - {sum(1 for c in chunks if c['is_requirement'])} requirement chunks")
-        print(f"  - {sum(1 for c in chunks if c['is_exception'])} exception chunks")
-        print(f"  - {sum(1 for c in chunks if c['logical_operator'])} chunks with logical operators")
+#         print(f"Embedding {len(chunk_texts)} chunks...")
+#         print(f"  - {sum(1 for c in chunks if c['is_requirement'])} requirement chunks")
+#         print(f"  - {sum(1 for c in chunks if c['is_exception'])} exception chunks")
+#         print(f"  - {sum(1 for c in chunks if c['logical_operator'])} chunks with logical operators")
 
-        vectors = embed.embed(chunk_texts)
-        print("vectors type:", type(vectors))
+#         vectors = embed.embed(chunk_texts)
+#         print("vectors type:", type(vectors))
 
-        if store is None:
-            dim = len(vectors[0])
-            store = FaissStore(dim)
+#         if store is None:
+#             dim = len(vectors[0])
+#             store = FaissStore(dim)
 
-        # NEW: Store ALL the rich metadata from improved chunker
-        # This is critical for retrieval enhancement
-        metadatas = [
-            {
-                # Original metadata
-                "doc_name": str(doc_name),
-                "chunk_id": c["chunk_id"],
-                "text": c["text"],
+#         # NEW: Store ALL the rich metadata from improved chunker
+#         # This is critical for retrieval enhancement
+#         metadatas = [
+#             {
+#                 # Original metadata
+#                 "doc_name": str(doc_name),
+#                 "chunk_id": c["chunk_id"],
+#                 "text": c["text"],
                 
-                # NEW: Rich metadata from improved chunker
-                "rule_type": c["rule_type"],
-                "section_header": c["section_header"],
-                "parent_context": c.get("parent_context"),
-                "logical_operator": c.get("logical_operator"),
-                "is_exception": c["is_exception"],
-                "is_requirement": c["is_requirement"],
-                "is_definition": c["is_definition"],
-                "cpt_codes": c["cpt_codes"],
-                "icd_codes": c["icd_codes"],
-            }
-            for c in chunks
-        ]
+#                 # NEW: Rich metadata from improved chunker
+#                 "rule_type": c["rule_type"],
+#                 "section_header": c["section_header"],
+#                 "parent_context": c.get("parent_context"),
+#                 "logical_operator": c.get("logical_operator"),
+#                 "is_exception": c["is_exception"],
+#                 "is_requirement": c["is_requirement"],
+#                 "is_definition": c["is_definition"],
+#                 "cpt_codes": c["cpt_codes"],
+#                 "icd_codes": c["icd_codes"],
+#             }
+#             for c in chunks
+#         ]
 
-        store.add(vectors, metadatas)
+#         store.add(vectors, metadatas)
 
-    print("\nSaving FAISS store... from build_index into: ", INDEX_DIR)
-    store.save(INDEX_DIR, index_name)
+#     print("\nSaving FAISS store... from build_index into: ", INDEX_DIR)
+#     store.save(INDEX_DIR, index_name)
 
-    print("\nIndex build complete!")
-    print(f"Total vectors stored: {store.index.ntotal}")
+#     print("\nIndex build complete!")
+#     print(f"Total vectors stored: {store.index.ntotal}")
 
 # Global cache
 STORE = None
