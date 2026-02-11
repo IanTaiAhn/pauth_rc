@@ -131,3 +131,13 @@ This does not need marketing polish.
 * Primary care clinics that order MRIs
 * They feel the pain before radiology does.
 * Radiology cares later.
+
+### Claude Code Next Steps
+
+#### Then create GitHub Issues grouped by session, not one per finding:
+- Issue #1 — Auth Layer: CRITICAL-3 (auth) + CRITICAL-2 (CORS) + HIGH-5 (rate limiting). These are all security middleware concerns that touch the same layer of the app (main.py, routers). One cohesive session.
+- Issue #2 — PHI Transmission: CRITICAL-4 (Groq BAA/provider swap) + MED-2 (secrets management). These are coupled — you're likely switching LLM providers and need to handle the API keys differently at the same time.
+- Issue #3 — Audit Logging: CRITICAL-5 alone. This is substantial enough to stand alone — you're building a new middleware layer from scratch.
+- Issue #4 — Storage & Retention: CRITICAL-1 (encryption config) + HIGH-3 (retention policy) + MED-5 (pickle → JSON). These all touch how data is stored and for how long.
+- Issue #5 — Input Hardening: HIGH-4 (file upload path traversal) + MED-1 (error handling/tracebacks) + MED-3 (dependency scanning). Security hardening of the API surface.
+- Issue #6 — Infrastructure & Cleanup: HIGH-1 (hardcoded paths) + HIGH-2 (TLS/proxy docs) + LOW items + CLAUDE.md / documentation.

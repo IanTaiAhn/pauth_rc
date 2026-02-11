@@ -6,7 +6,7 @@ import re
 from typing import Optional, Dict, Any
 import logging
 import os
-from groq import Groq
+# from groq import Groq
 
 # Set up logging for debugging hallucinations
 logging.basicConfig(level=logging.INFO)
