@@ -5,7 +5,10 @@ This module provides endpoints to normalize patient chart JSON and insurance pol
 into standardized formats suitable for rule evaluation.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
+from app.middleware.auth import require_authentication, TokenData
+from app.middleware.rate_limit import limiter
+from typing import Optional
 from app.api_models.schemas import (
     NormalizePatientRequest,
     NormalizePolicyRequest,
@@ -25,9 +28,18 @@ router = APIRouter()
 
 
 @router.post("/normalize/patient", response_model=NormalizedPatientResponse)
-async def normalize_patient(request: NormalizePatientRequest):
+@limiter.limit("200/hour")
+async def normalize_patient(
+    req: Request,
+    request: NormalizePatientRequest,
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
     """
     Normalize patient chart JSON to canonical format.
+
+    **AUTHENTICATION REQUIRED**: This endpoint handles PHI and requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
 
     Takes raw patient evidence JSON (from Groq chart extraction) and converts it to a
     flat dictionary with standardized field names suitable for rule evaluation.
@@ -112,9 +124,18 @@ async def normalize_patient(request: NormalizePatientRequest):
 
 
 @router.post("/normalize/policy", response_model=NormalizedPolicyResponse)
-async def normalize_policy(request: NormalizePolicyRequest):
+@limiter.limit("200/hour")
+async def normalize_policy(
+    req: Request,
+    request: NormalizePolicyRequest,
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
     """
     Normalize insurance policy JSON to rule format.
+
+    **AUTHENTICATION REQUIRED**: This endpoint requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
 
     Takes raw policy criteria JSON (from RAG pipeline) and converts it to a list of
     structured rules with conditions for evaluation.
@@ -218,9 +239,18 @@ async def normalize_policy(request: NormalizePolicyRequest):
 
 
 @router.post("/normalize/both", response_model=NormalizeBothResponse)
-async def normalize_both(request: NormalizeBothRequest):
+@limiter.limit("200/hour")
+async def normalize_both(
+    req: Request,
+    request: NormalizeBothRequest,
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
     """
     Normalize both patient evidence and policy criteria in a single request.
+
+    **AUTHENTICATION REQUIRED**: This endpoint handles PHI and requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
 
     This is a convenience endpoint that normalizes both datasets together, which can
     be useful when preparing data for rule evaluation.

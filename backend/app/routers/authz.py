@@ -1,6 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from app.api_models.schemas import AuthzRequest, AuthzResponse, RuleResult
 from fastapi.responses import StreamingResponse
+from app.middleware.auth import require_authentication, TokenData
+from app.middleware.rate_limit import limiter
+from typing import Optional
 import io
 # from backend.app.normalization.normalize import normalize_patient_evidence, normalize_policy_criteria
 # from backend.app.rules.rule_engine import evaluate_all
@@ -17,9 +20,18 @@ router = APIRouter()
 
 
 @router.post("/compare_json_objects", response_model=AuthzResponse)
-async def evaluate_prior_auth(request: AuthzRequest):
+@limiter.limit("100/hour")
+async def evaluate_prior_auth(
+    req: Request,
+    request: AuthzRequest,
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
     """
     Evaluate prior authorization request against policy criteria.
+
+    **AUTHENTICATION REQUIRED**: This endpoint handles PHI and requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
 
     Process:
     1. Normalize patient evidence to canonical format
@@ -128,9 +140,18 @@ async def evaluate_prior_auth(request: AuthzRequest):
 
 
 @router.post("/compare_json_objects/report")
-async def evaluate_prior_auth_report(request: AuthzRequest):
+@limiter.limit("100/hour")
+async def evaluate_prior_auth_report(
+    req: Request,
+    request: AuthzRequest,
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
     """
     Generate a detailed prior authorization evaluation report.
+
+    **AUTHENTICATION REQUIRED**: This endpoint handles PHI and requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
 
     IMPROVED: Better error handling and validation of normalized data.
     """

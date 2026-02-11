@@ -1,6 +1,9 @@
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
+from app.middleware.auth import require_authentication, TokenData
+from app.middleware.rate_limit import limiter
+from typing import Optional
 
 # from app.rag_pipeline.scripts.build_index_updated import build_index, INDEX_DIR
 from app.rag_pipeline.scripts.extract_policy_rules import extract_policy_rules
@@ -49,8 +52,19 @@ class PolicyRuleResponse(BaseModel):
 # Endpoints
 # ---------------------------------------------------------
 @router.post("/extract_policy_rules", response_model=PolicyRuleResponse)
-def extract_policy_rules_endpoint(request: PolicyRuleRequest):
-    """Extract structured medical necessity rules from payer policy documents."""
+@limiter.limit("200/hour")
+def extract_policy_rules_endpoint(
+    req: Request,
+    request: PolicyRuleRequest,
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
+    """
+    Extract structured medical necessity rules from payer policy documents.
+
+    **AUTHENTICATION REQUIRED**: This endpoint requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
+    """
     
     result = extract_policy_rules(
         payer=request.payer,
@@ -82,8 +96,19 @@ def extract_policy_rules_endpoint(request: PolicyRuleRequest):
 
 
 @router.delete("/delete_index/{index_name}")
-def delete_index(index_name: str):
-    """Delete an existing index by name."""
+@limiter.limit("50/hour")
+def delete_index(
+    index_name: str,
+    req: Request,
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
+    """
+    Delete an existing index by name.
+
+    **AUTHENTICATION REQUIRED**: This endpoint requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
+    """
     faiss_file = INDEX_DIR / f"{index_name}.faiss"
     meta_file = INDEX_DIR / f"{index_name}_meta.pkl"  # if you store metadata
 
@@ -104,8 +129,18 @@ def delete_index(index_name: str):
 
 
 @router.get("/list_indexes")
-def list_indexes():
-    """List all available indexes."""
+@limiter.limit("200/hour")
+def list_indexes(
+    req: Request,
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
+    """
+    List all available indexes.
+
+    **AUTHENTICATION REQUIRED**: This endpoint requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
+    """
     indexes = []
 
     for faiss_file in INDEX_DIR.glob("*.faiss"):

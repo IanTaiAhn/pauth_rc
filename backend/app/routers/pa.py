@@ -1,9 +1,12 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
 from app.services.ingestion import extract_text
 from app.services.evidence import extract_evidence
 from app.services.readiness import compute_readiness
 from app.utils.save_json import save_analysis_to_json
 from app.api_models.schemas import InitialPatientExtraction
+from app.middleware.auth import require_authentication, TokenData
+from app.middleware.rate_limit import limiter
+from typing import Optional
 # from app.services.justification import build_justification
 # THIS OUTPUTS MY PATIENT CHART JSON
 # TODO make this strictly a patient chart extracter. Since this will be working with HIPPA, I probably will need to rework this.
@@ -15,11 +18,20 @@ router = APIRouter()
 # Endpoints
 # ---------------------------------------------------------
 @router.post("/extract_patient_chart", response_model=InitialPatientExtraction)
-async def analyze_pa(file: UploadFile = File(...)):
+@limiter.limit("50/hour")  # Rate limit: 50 requests per hour for this PHI endpoint
+async def analyze_pa(
+    request: Request,
+    file: UploadFile = File(...),
+    auth: tuple[Optional[TokenData], Optional[str]] = Depends(require_authentication)
+):
     """
     Analyze a prior authorization document.
     Accepts PDF, DOCX, or TXT files.
-    
+
+    **AUTHENTICATION REQUIRED**: This endpoint handles PHI and requires either:
+    - Bearer token (JWT) in Authorization header
+    - X-API-Key header with valid API key
+
     Returns:
         - filename: Name of the uploaded file
         - score: Readiness score for the PA
