@@ -208,23 +208,23 @@ async def evaluate_prior_auth(request: AuthzRequest):
     try:
         # Step 1: Normalize patient evidence
         patient_norm = normalize_patient_evidence(request.patient_evidence.data)
-        
+
         # Step 2: Get rules for this payer/CPT
         policy_data = request.policy_criteria.data
         payer = policy_data.get("rules", {}).get("payer", "Unknown")
         cpt_code = policy_data.get("rules", {}).get("cpt_code", "Unknown")
-        
+
         rule_key = f"{payer}_{cpt_code}"
         policy_rules = POLICY_RULES.get(rule_key)
-        
+
         if not policy_rules:
             # Fallback to automatic extraction
             from normalize_custom import normalize_policy_criteria
             policy_rules = normalize_policy_criteria(policy_data)
-        
+
         # Step 3: Evaluate
         evaluation = evaluate_all(patient_norm, policy_rules)
-        
+
         # Step 4: Format response
         results = [
             RuleResult(
@@ -234,17 +234,17 @@ async def evaluate_prior_auth(request: AuthzRequest):
             )
             for r in evaluation["results"]
         ]
-        
+
         return AuthzResponse(
             results=results,
             all_criteria_met=evaluation["all_criteria_met"]
         )
-    
+
     except Exception as e:
         print(f"Error: {str(e)}")
         import traceback
         traceback.print_exc()
-        
+
         raise HTTPException(
             status_code=500,
             detail=f"Evaluation error: {str(e)}"
@@ -273,11 +273,11 @@ In `normalize_custom.py`, add more fields as needed:
 ```python
 def normalize_patient_evidence(evidence: dict) -> dict:
     # ... existing code ...
-    
+
     # Add custom fields
     normalized["patient_age"] = evidence.get("patient_age")
     normalized["bmi"] = evidence.get("bmi")
-    
+
     return normalized
 ```
 
