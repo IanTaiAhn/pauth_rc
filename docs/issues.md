@@ -96,3 +96,27 @@ If approved:
 
 A Download Report button produces a PDF they can attach to the actual PA submission.
 
+What this means for your backend:
+You need one new orchestration endpoint that chains everything:
+POST /api/check_prior_auth
+  body: { file: <chart>, payer: "utah_medicaid", cpt: "73721" }
+  
+  internally:
+    1. ingest(file)
+    2. extract_patient_chart()
+    3. load policy index for (payer, cpt)   ← you pick the index, not the user
+    4. extract_policy_rules()
+    5. normalize_patient()
+    6. normalize_policy()
+    7. compare() → report
+    
+  returns: { verdict, score, criteria_checklist, gaps, report_pdf_url }
+The frontend calls one endpoint. Everything else is hidden. The payer + CPT combination determines which policy index gets loaded — the user never knows FAISS exists.
+
+The longer-term additions that compound the value:
+Once this single-flow version exists, the next two features that make it genuinely sticky for a clinic are:
+
+Patient history — the clinic can look up past PA checks for a patient, see what was approved/denied, track patterns. This is also your audit log in a user-friendly form.
+Pre-submission checklist export — a one-page PDF formatted specifically for PA submission that the front desk can attach to the insurance portal submission. Not a technical report — a clinical summary in the format payers expect to see.
+
+Neither of these requires new backend logic. They're just persistence and rendering on top of what you've already built.
