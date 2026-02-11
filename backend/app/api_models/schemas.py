@@ -30,6 +30,30 @@ class InitialPatientExtraction(BaseModel):
     requirements: dict
     missing_items: list[str]
 
+
+class MultiChartPatientExtraction(BaseModel):
+    """Response model for multi-chart patient evidence extraction."""
+    filenames: List[str] = Field(
+        ...,
+        description="List of uploaded filenames"
+    )
+    score: float | int = Field(
+        ...,
+        description="PA readiness score (0-100)"
+    )
+    requirements: Dict[str, Any] = Field(
+        ...,
+        description="Merged evidence from all charts"
+    )
+    missing_items: List[str] = Field(
+        ...,
+        description="List of missing required items"
+    )
+    source_metadata: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Metadata about which files contributed which data"
+    )
+
 # ===== Normalization Schemas =====
 
 class NormalizePatientRequest(BaseModel):

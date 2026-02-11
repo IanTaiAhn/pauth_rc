@@ -3,7 +3,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from pathlib import Path
 import re
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 import logging
 import os
 from groq import Groq
@@ -250,6 +250,290 @@ OUTPUT (valid JSON only):"""
             logger.error(f"Extraction error: {e}")
             return None
 
+    def extract_evidence_multi(
+        self,
+        chart_texts: List[Tuple[str, Optional[str]]]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Extract and merge evidence from multiple patient charts for the same patient.
+
+        Args:
+            chart_texts: List of tuples (chart_text, source_identifier)
+                        where source_identifier can be filename, timestamp, etc.
+
+        Returns:
+            Merged evidence dictionary with source tracking metadata
+
+        Merge Strategy:
+            - Conservative therapy: ANY documented attempt = documented
+            - Duration values: Use MAXIMUM across all charts
+            - Evidence notes: Accumulate ALL notes from all charts
+            - Conflicting values: Most recent (last in list) wins
+            - Metadata: Track which source contributed which data
+        """
+        if not chart_texts:
+            logger.error("No chart texts provided")
+            return None
+
+        all_extractions = []
+        sources = []
+
+        # Extract from each chart independently
+        for idx, (chart_text, source_id) in enumerate(chart_texts):
+            source_name = source_id or f"chart_{idx}"
+            logger.info(f"Extracting from {source_name}")
+
+            extracted = self.extract_evidence(chart_text)
+            if extracted:
+                all_extractions.append(extracted)
+                sources.append(source_name)
+            else:
+                logger.warning(f"Failed to extract from {source_name}")
+
+        if not all_extractions:
+            logger.error("All extractions failed")
+            return None
+
+        # If only one successful extraction, return it with source info
+        if len(all_extractions) == 1:
+            all_extractions[0]["_multi_source_metadata"] = {
+                "total_charts": len(chart_texts),
+                "successful_extractions": 1,
+                "sources": sources
+            }
+            return all_extractions[0]
+
+        # Merge multiple extractions
+        merged = self._merge_extractions(all_extractions, sources)
+        return merged
+
+    def _merge_extractions(
+        self,
+        extractions: List[Dict[str, Any]],
+        sources: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Merge multiple evidence extractions into a single unified structure.
+
+        Merge rules:
+        1. Scalar values (duration, body_part, laterality): Last non-null wins
+        2. Boolean 'documented'/'attempted' flags: True if ANY is True
+        3. Nested therapy objects: Merge with priority to documented attempts
+        4. Evidence notes: Concatenate all unique notes
+        5. Metadata: Track sources and merge hallucination counts
+        """
+        merged = {
+            "symptom_duration_months": None,
+            "affected_body_part": None,
+            "laterality": None,
+            "conservative_therapy": {
+                "physical_therapy": {
+                    "attempted": False,
+                    "duration_weeks": None,
+                    "outcome": None
+                },
+                "nsaids": {
+                    "documented": False,
+                    "outcome": None
+                },
+                "injections": {
+                    "documented": False,
+                    "type": None,
+                    "outcome": None
+                },
+                "other_treatments": {
+                    "documented": False,
+                    "description": None,
+                    "outcome": None
+                }
+            },
+            "imaging": {
+                "documented": False,
+                "type": None,
+                "body_part": None,
+                "laterality": None,
+                "months_ago": None,
+                "findings": None
+            },
+            "functional_impairment": {
+                "documented": False,
+                "description": None
+            },
+            "neurological_symptoms": {
+                "documented": False,
+                "description": None
+            },
+            "pain_characteristics": {
+                "documented": False,
+                "severity": None,
+                "quality": None,
+                "radiation": None
+            },
+            "red_flags": {
+                "documented": False,
+                "description": None
+            },
+            "evidence_notes": []
+        }
+
+        all_evidence_notes = []
+        total_hallucinations = 0
+        all_hallucinated_notes = []
+        source_contributions = {}
+
+        for idx, extraction in enumerate(extractions):
+            source = sources[idx]
+            source_contributions[source] = []
+
+            # Merge scalar fields (max for durations, last non-null for others)
+            if extraction.get("symptom_duration_months"):
+                if merged["symptom_duration_months"] is None:
+                    merged["symptom_duration_months"] = extraction["symptom_duration_months"]
+                    source_contributions[source].append("symptom_duration_months")
+                else:
+                    # Use maximum duration
+                    if extraction["symptom_duration_months"] > merged["symptom_duration_months"]:
+                        merged["symptom_duration_months"] = extraction["symptom_duration_months"]
+                        source_contributions[source].append("symptom_duration_months (max)")
+
+            # Last non-null wins for body part and laterality
+            if extraction.get("affected_body_part"):
+                merged["affected_body_part"] = extraction["affected_body_part"]
+                source_contributions[source].append("affected_body_part")
+
+            if extraction.get("laterality"):
+                merged["laterality"] = extraction["laterality"]
+                source_contributions[source].append("laterality")
+
+            # Merge conservative therapy (ANY documented = True, max duration)
+            ct = extraction.get("conservative_therapy", {})
+
+            # Physical therapy
+            pt = ct.get("physical_therapy", {})
+            if pt.get("attempted"):
+                merged["conservative_therapy"]["physical_therapy"]["attempted"] = True
+                source_contributions[source].append("PT attempted")
+                if pt.get("duration_weeks"):
+                    if merged["conservative_therapy"]["physical_therapy"]["duration_weeks"] is None:
+                        merged["conservative_therapy"]["physical_therapy"]["duration_weeks"] = pt["duration_weeks"]
+                    else:
+                        merged["conservative_therapy"]["physical_therapy"]["duration_weeks"] = max(
+                            merged["conservative_therapy"]["physical_therapy"]["duration_weeks"],
+                            pt["duration_weeks"]
+                        )
+                if pt.get("outcome"):
+                    merged["conservative_therapy"]["physical_therapy"]["outcome"] = pt["outcome"]
+
+            # NSAIDs
+            nsaids = ct.get("nsaids", {})
+            if nsaids.get("documented"):
+                merged["conservative_therapy"]["nsaids"]["documented"] = True
+                source_contributions[source].append("NSAIDs documented")
+                if nsaids.get("outcome"):
+                    merged["conservative_therapy"]["nsaids"]["outcome"] = nsaids["outcome"]
+
+            # Injections
+            inj = ct.get("injections", {})
+            if inj.get("documented"):
+                merged["conservative_therapy"]["injections"]["documented"] = True
+                source_contributions[source].append("Injections documented")
+                if inj.get("type"):
+                    merged["conservative_therapy"]["injections"]["type"] = inj["type"]
+                if inj.get("outcome"):
+                    merged["conservative_therapy"]["injections"]["outcome"] = inj["outcome"]
+
+            # Other treatments
+            other = ct.get("other_treatments", {})
+            if other.get("documented"):
+                merged["conservative_therapy"]["other_treatments"]["documented"] = True
+                source_contributions[source].append("Other treatments documented")
+                if other.get("description"):
+                    merged["conservative_therapy"]["other_treatments"]["description"] = other["description"]
+                if other.get("outcome"):
+                    merged["conservative_therapy"]["other_treatments"]["outcome"] = other["outcome"]
+
+            # Merge imaging (ANY documented = True)
+            img = extraction.get("imaging", {})
+            if img.get("documented"):
+                merged["imaging"]["documented"] = True
+                source_contributions[source].append("Imaging documented")
+                for field in ["type", "body_part", "laterality", "findings"]:
+                    if img.get(field):
+                        merged["imaging"][field] = img[field]
+                # Use most recent imaging (minimum months_ago)
+                if img.get("months_ago") is not None:
+                    if merged["imaging"]["months_ago"] is None:
+                        merged["imaging"]["months_ago"] = img["months_ago"]
+                    else:
+                        merged["imaging"]["months_ago"] = min(
+                            merged["imaging"]["months_ago"],
+                            img["months_ago"]
+                        )
+
+            # Merge functional impairment
+            fi = extraction.get("functional_impairment", {})
+            if fi.get("documented"):
+                merged["functional_impairment"]["documented"] = True
+                source_contributions[source].append("Functional impairment documented")
+                if fi.get("description"):
+                    merged["functional_impairment"]["description"] = fi["description"]
+
+            # Merge neurological symptoms
+            neuro = extraction.get("neurological_symptoms", {})
+            if neuro.get("documented"):
+                merged["neurological_symptoms"]["documented"] = True
+                source_contributions[source].append("Neurological symptoms documented")
+                if neuro.get("description"):
+                    merged["neurological_symptoms"]["description"] = neuro["description"]
+
+            # Merge pain characteristics
+            pain = extraction.get("pain_characteristics", {})
+            if pain.get("documented"):
+                merged["pain_characteristics"]["documented"] = True
+                source_contributions[source].append("Pain characteristics documented")
+                for field in ["severity", "quality", "radiation"]:
+                    if pain.get(field):
+                        merged["pain_characteristics"][field] = pain[field]
+
+            # Merge red flags
+            rf = extraction.get("red_flags", {})
+            if rf.get("documented"):
+                merged["red_flags"]["documented"] = True
+                source_contributions[source].append("Red flags documented")
+                if rf.get("description"):
+                    merged["red_flags"]["description"] = rf["description"]
+
+            # Accumulate evidence notes
+            notes = extraction.get("evidence_notes", [])
+            all_evidence_notes.extend(notes)
+
+            # Accumulate hallucination metadata
+            metadata = extraction.get("_metadata", {})
+            total_hallucinations += metadata.get("hallucinations_detected", 0)
+            all_hallucinated_notes.extend(metadata.get("hallucinated_notes", []))
+
+        # Deduplicate evidence notes while preserving order
+        seen = set()
+        unique_notes = []
+        for note in all_evidence_notes:
+            if note.lower() not in seen:
+                seen.add(note.lower())
+                unique_notes.append(note)
+
+        merged["evidence_notes"] = unique_notes
+
+        # Add comprehensive metadata
+        merged["_multi_source_metadata"] = {
+            "total_charts": len(extractions),
+            "sources": sources,
+            "source_contributions": source_contributions,
+            "total_hallucinations": total_hallucinations,
+            "hallucinated_notes": all_hallucinated_notes,
+            "validation_passed": total_hallucinations == 0
+        }
+
+        return merged
+
 
 # Singleton instance for reuse
 _extractor = None
@@ -266,3 +550,23 @@ def extract_evidence(chart_text: str, use_groq: bool = False, groq_api_key: Opti
     """Backward-compatible function wrapper"""
     extractor = get_extractor(use_groq=use_groq, groq_api_key=groq_api_key)
     return extractor.extract_evidence(chart_text)
+
+
+def extract_evidence_multi(
+    chart_texts: List[Tuple[str, Optional[str]]],
+    use_groq: bool = False,
+    groq_api_key: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Extract and merge evidence from multiple patient charts.
+
+    Args:
+        chart_texts: List of (chart_text, source_identifier) tuples
+        use_groq: Whether to use Groq API or local model
+        groq_api_key: Optional Groq API key
+
+    Returns:
+        Merged evidence dictionary with source tracking metadata
+    """
+    extractor = get_extractor(use_groq=use_groq, groq_api_key=groq_api_key)
+    return extractor.extract_evidence_multi(chart_texts)
