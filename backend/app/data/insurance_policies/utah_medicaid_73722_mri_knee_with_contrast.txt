@@ -1,0 +1,184 @@
+================================================================================
+UTAH MEDICAID PROGRAM
+DEPARTMENT OF HEALTH AND HUMAN SERVICES — DIVISION OF MEDICAID AND HEALTH FINANCING
+PRIOR AUTHORIZATION CLINICAL CRITERIA
+
+IMAGING SERVICES — MAGNETIC RESONANCE IMAGING
+LOWER EXTREMITY — KNEE WITH CONTRAST
+
+CPT Code: 73722
+Description: Magnetic Resonance Imaging, Any Joint of Lower Extremity;
+             With Contrast Material(s)
+Policy Reference: DMHF-IMG-MRI-002
+Last Review Date: October 1, 2024
+Effective Date: January 1, 2025
+Supersedes: DMHF-IMG-MRI-002 (version dated January 1, 2024)
+================================================================================
+
+AUTHORITY
+This policy is issued pursuant to Utah Code Ann. § 26B-3-109 and the Utah
+Medicaid State Plan. Coverage determinations are made in accordance with
+42 C.F.R. § 440.230 and 42 C.F.R. § 440.240.
+
+================================================================================
+SECTION 1: PRIOR AUTHORIZATION REQUIREMENT
+================================================================================
+
+PRIOR AUTHORIZATION REQUIRED: YES
+
+CPT 73722 (MRI knee with contrast) requires prior authorization.
+Contrast-enhanced MRI is an ADDITIONAL clinical threshold above standard
+non-contrast MRI (CPT 73721). PA requests for 73722 must satisfy the criteria
+in this policy. If non-contrast MRI would be clinically sufficient, 73721
+should be requested instead.
+
+Authorizations are valid for 60 calendar days from the date of approval.
+
+================================================================================
+SECTION 2: COVERAGE CRITERIA
+================================================================================
+
+MRI of the knee with intravenous contrast (CPT 73722) is covered when ALL of
+the following criteria are met:
+
+2.1 STANDARD CRITERIA (From CPT 73721 Policy — All Must Be Met)
+
+All criteria from Policy DMHF-IMG-MRI-001 (CPT 73721) must first be satisfied:
+
+  - Eligible diagnosis (see Section 2.1 of 73721 policy)
+  - Clinical findings requirement (see Section 2.2 of 73721 policy)
+  - Prior imaging within 60 days (see Section 2.3 of 73721 policy)
+  - Conservative treatment completed (see Section 2.4 of 73721 policy),
+    OR applicable exception documented (see Section 3 below)
+
+2.2 ADDITIONAL CLINICAL INDICATIONS SPECIFIC TO CONTRAST-ENHANCED MRI
+
+In addition to meeting standard criteria, at least ONE of the following
+contrast-specific indications must be documented:
+
+Category A — Infection / Inflammatory Conditions:
+  (a) Suspected septic arthritis — fever, leukocytosis, synovial fluid
+      analysis consistent with infection. Contrast is required to evaluate
+      synovial enhancement, abscess formation, and periarticular involvement.
+  (b) Suspected inflammatory arthropathy (e.g., rheumatoid arthritis,
+      psoriatic arthritis, reactive arthritis) with active synovitis requiring
+      characterization for treatment planning
+  (c) Suspected pigmented villonodular synovitis (PVNS) or synovial
+      chondromatosis (ICD-10: M12.2xx, D48.0)
+
+Category B — Neoplastic Conditions:
+  (d) Suspected primary bone tumor or soft tissue neoplasm of the knee or
+      periarticular region — contrast is required for lesion characterization,
+      vascularity assessment, and surgical planning
+  (e) Suspected metastatic disease to the knee or distal femur/proximal tibia
+  (f) Known malignancy — staging or treatment response evaluation
+
+Category C — Vascular / Osteonecrosis:
+  (g) Suspected avascular necrosis (osteonecrosis) of the femoral condyle
+      or tibial plateau (ICD-10: M87.35x, M87.36x) — contrast enhances
+      assessment of viable vs. necrotic bone
+  (h) Suspected complex regional pain syndrome (CRPS) affecting the knee
+      region requiring vascular characterization
+
+Category D — Post-Operative Complications:
+  (i) Evaluation of suspected post-operative complication where contrast
+      is specifically required: wound infection with joint involvement,
+      hardware infection, synovial fistula, or abscess
+  (j) Assessment of post-operative healing and tissue viability when
+      non-contrast MRI results are equivocal
+
+2.3 CONTRAST SAFETY DOCUMENTATION
+
+Prior to administration of gadolinium-based contrast agents (GBCAs), the
+following must be documented:
+
+  - Creatinine / eGFR within 6 months of imaging (required if member has
+    known or suspected renal disease, diabetes, hypertension, or age ≥ 60)
+  - eGFR ≥ 30 mL/min/1.73m² required for macrocyclic GBCA administration
+  - For eGFR 30-44: use of macrocyclic GBCA required (not linear agents)
+  - For eGFR < 30 or dialysis: contrast is generally contraindicated;
+    document clinical necessity and nephrologist consultation
+
+  Contraindications to contrast:
+  - Known allergy to gadolinium-based contrast — requires allergy pre-medication
+    protocol documentation
+  - Prior severe allergic reaction to GBCA — attending physician review required
+  - Pregnancy — contrast use in pregnancy requires documented risk/benefit
+    discussion and consent
+
+================================================================================
+SECTION 3: EXCEPTIONS TO CONSERVATIVE TREATMENT REQUIREMENT
+================================================================================
+
+The same exception criteria as CPT 73721 Policy (Section 3) apply to 73722.
+For contrast-specific indications in Category A (infection/inflammatory),
+the conservative treatment requirement is automatically waived given the
+acute or urgent nature of these presentations.
+
+Emergency/urgent authorization process: same as 73721 policy (call PA hotline).
+
+================================================================================
+SECTION 4: EXCLUSIONS — NOT COVERED
+================================================================================
+
+CPT 73722 is NOT covered when:
+
+  (a) Non-contrast MRI (CPT 73721) would be clinically sufficient for the
+      documented indication — contrast must have a specific clinical rationale
+  (b) All exclusion criteria from CPT 73721 policy (Section 4) apply
+  (c) Contrast is requested solely for patient or provider preference without
+      a clinical indication for contrast enhancement
+  (d) eGFR < 30 without documented nephrologist consultation and risk/benefit
+      assessment
+  (e) Patient declines contrast administration — non-contrast MRI (73721)
+      should be considered if clinically appropriate
+
+================================================================================
+SECTION 5: DOCUMENTATION REQUIREMENTS FOR PA SUBMISSION
+================================================================================
+
+REQUIRED (in addition to standard 73721 documentation):
+  [ ] All documentation required for CPT 73721 (see Section 5, Policy 73721)
+  [ ] Specific clinical indication for contrast enhancement (from Section 2.2)
+  [ ] For infection/inflammatory: laboratory results (CBC, CRP, ESR, culture
+      results, synovial fluid analysis if available)
+  [ ] For neoplasia: biopsy results, prior imaging, oncology notes as available
+  [ ] For post-operative: prior operative report, post-op clinical notes
+  [ ] Renal function documentation (creatinine/eGFR) when indicated per
+      Section 2.3 criteria
+  [ ] Contrast allergy documentation and pre-medication protocol if applicable
+
+================================================================================
+SECTION 6: AUTHORIZATION AND SUBMISSION
+================================================================================
+
+(Same as CPT 73721 Policy, Section 6)
+
+  Electronic:  medicaid.utah.gov/pa-portal
+  Fax:         1-801-555-0100
+  Phone:       1-800-662-9651 (M-F 8am-5pm MT)
+  Urgent:      1-800-662-9651 — expedited review
+
+Authorization Validity: 60 calendar days from approval
+
+================================================================================
+SECTION 7: RELATED PROCEDURE CODES
+================================================================================
+
+  73721 — MRI knee, without contrast (policy DMHF-IMG-MRI-001)
+  73722 — MRI knee, with contrast (THIS POLICY)
+  73723 — MRI knee, without contrast followed by with contrast
+           (see policy DMHF-IMG-MRI-003)
+
+Note: CPT 73722 (with contrast only) is less commonly used than 73723
+(without and with contrast). If both pre- and post-contrast sequences
+are needed, request 73723 per its separate policy.
+
+================================================================================
+CONTACT INFORMATION
+================================================================================
+
+Utah Medicaid Prior Authorization
+Phone: 1-800-662-9651 | Fax: 1-801-555-0100
+Web: medicaid.utah.gov
+Provider Manual: medicaid.utah.gov/provider-manual (Section 4.3)

@@ -1,0 +1,124 @@
+ORTHOPEDIC CLINIC NOTE — ESTABLISHED PATIENT
+# SYNTHETIC TEST DATA ONLY — NOT REAL PHI
+
+Patient Name: Dorothy Fairbanks
+DOB: 03/09/1952 (Age: 72)
+MRN: ORH-2024-4418
+Date of Visit: January 20, 2025
+Provider: Dr. Michael Brennan, MD — Orthopedic Surgery
+
+INSURANCE INFORMATION:
+Primary Insurance: Medicare Part B
+Secondary Insurance: Utah Medicaid (Medicare Crossover / Dual Eligible)
+Medicare ID: 1EG4-TE5-MK72
+Medicaid ID: UT-MCD-112983744
+
+CHIEF COMPLAINT:
+Bilateral knee pain, right greater than left, x 7 months
+
+HISTORY OF PRESENT ILLNESS:
+72-year-old female with bilateral knee pain presenting for evaluation of right
+knee pain primarily. Right knee pain began approximately 7 months ago, insidious
+onset. She reports medial knee pain rated 6/10 with ambulation, difficulty with
+stairs and rising from chairs. Pain awakens her from sleep 2-3 nights per week.
+Intermittent locking sensation right knee. She uses a cane for ambulation and
+has significantly reduced her activity level.
+
+She lives independently but reports difficulty with housekeeping activities.
+Has caregiver support 3 days/week for meals and transportation.
+
+PAST MEDICAL HISTORY:
+  Hypertension (controlled, lisinopril 10mg)
+  Type 2 Diabetes (A1c 7.2%, metformin + glipizide)
+  Osteopenia (DEXA 2023, spine T-score -1.8)
+  Chronic kidney disease Stage 2 (GFR 68)
+  No prior knee surgeries
+
+MEDICATIONS: See medication reconciliation form (attached)
+
+PHYSICAL EXAMINATION:
+Vitals: BP 144/88, HR 74, Temp 98.4°F
+Height: 5'3" (160 cm)
+Weight: 167 lbs (75.7 kg)
+BMI: 29.6
+
+Gait: Antalgic gait right > left, using single-point cane
+Right Knee:
+  Inspection: Moderate effusion, mild varus deformity noted
+  Palpation: Medial joint line tenderness ++, medial femoral condyle tenderness +
+  ROM: Flexion 0-105 degrees (limited by pain)
+  McMurray's: Positive medial rotation
+  Varus stress: Mild instability consistent with medial compartment loss
+  Neurovascular: Intact, mild pitting edema bilateral ankles
+
+Left Knee: Mild medial joint line tenderness, no effusion, ROM 0-125 degrees
+
+DIAGNOSTIC IMAGING:
+  X-ray Right Knee (standing AP, lateral, Rosenberg) - 01/20/2025:
+  Moderate to severe medial compartment joint space narrowing (Grade 3 of 4).
+  Significant osteophyte formation medial and lateral compartments. Varus
+  alignment on standing views. Subchondral sclerosis and cyst formation medial
+  plateau. Lateral and patellofemoral compartments relatively preserved.
+
+ASSESSMENT:
+  1. Medial compartment osteoarthritis, right knee, severe (ICD-10: M17.11)
+  2. Suspected medial meniscal tear vs. degenerative meniscal changes (ICD-10: M23.201)
+  3. Bilateral knee osteoarthritis, left knee moderate (ICD-10: M17.12)
+
+CONSERVATIVE TREATMENT COMPLETED:
+Duration: 7 months (June 2024 - January 2025)
+
+  Physical therapy: 2x weekly x 8 weeks (16 sessions)
+    - Home exercise program maintained
+    - Aquatic PT x 4 weeks (per renal and DM precautions)
+    - Outcome: Modest functional improvement initially, regression over past
+      2 months. Persistent pain and mechanical symptoms.
+
+  NSAIDs: Contraindicated due to CKD Stage 2 and GI history
+    - Acetaminophen 1000mg TID used as alternative (documented)
+    - Topical diclofenac gel x 8 weeks — partial relief
+
+  Corticosteroid injection: 2 injections (08/2024 and 11/2024)
+    - Both provided temporary relief x 4-6 weeks each
+    - Caution with further steroid use given diabetes
+
+  Bracing: Unloader brace fitted and used x 3 months
+  Activity modification: Cane use, reduced ambulation, chair exercises
+
+SURGICAL CANDIDACY AND FUNCTIONAL IMPACT ASSESSMENT:
+(Required per Medicaid policy for members age 65+)
+
+  Functional impact: Patient reports significant functional limitations:
+  - Unable to climb stairs without handrail and assistance
+  - Cannot ambulate >1 block without stopping for pain
+  - Requires cane for all ambulation
+  - Sleep disturbance 2-3 nights/week from knee pain
+  - Loss of independence in household tasks
+
+  Surgical candidacy assessment:
+  - Patient has been counseled on surgical options including total knee
+    arthroplasty (TKA) and possible partial knee arthroplasty
+  - Medical optimization discussed: diabetes and hypertension well-controlled,
+    acceptable surgical risk per anesthesia pre-op evaluation (ASA Class II-III)
+  - Patient IS a surgical candidate and is interested in proceeding if
+    MRI confirms surgical indication
+  - Renal function stable, no contraindication to general or spinal anesthesia
+  - Patient understands risks and benefits and wishes to pursue surgical
+    evaluation after MRI
+
+PLAN:
+MRI Right Knee without contrast (CPT: 73721) requested to:
+  1. Characterize meniscal tear pattern and severity to determine surgical
+     approach (TKA vs. partial arthroplasty vs. arthroscopic intervention)
+  2. Evaluate articular cartilage and subchondral bone in all three compartments
+  3. Assess ligamentous integrity prior to surgical planning
+
+Patient is age 72, has failed 7 months of multimodal conservative care, has
+significant functional limitations, and is a surgical candidate — MRI is
+medically necessary for pre-operative surgical planning.
+
+___________________________________
+Dr. Michael Brennan, MD
+Orthopedic Surgery
+License #: UT-MD-41177
+NPI: 5566778899

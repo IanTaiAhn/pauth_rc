@@ -1,0 +1,82 @@
+OCCUPATIONAL MEDICINE / ORTHOPEDIC CONSULTATION
+# SYNTHETIC TEST DATA ONLY — NOT REAL PHI
+
+Patient Name: Randy Schaefer
+DOB: 04/17/1978 (Age: 46)
+MRN: OCC-2025-0894
+Date of Visit: January 29, 2025
+Provider: Dr. Kevin Walsh, MD — Occupational & Orthopedic Medicine
+
+INSURANCE INFORMATION:
+Primary Insurance: Utah Medicaid (Adult)
+Member ID: UT-MCD-554109983
+Billing Note: WORKER'S COMPENSATION CLAIM — Utah Labor Commission
+WC Claim #: WC-2025-UT-00441
+WC Carrier: State Insurance Fund of Utah
+Employer: Wasatch Roofing & Construction LLC
+
+CHIEF COMPLAINT:
+Right knee pain following workplace fall x 6 weeks
+
+HISTORY OF PRESENT ILLNESS:
+46-year-old male roofer presenting for orthopedic evaluation of right knee pain
+following a workplace fall 6 weeks ago. He slipped from scaffolding, fell
+approximately 4 feet, and landed on his right knee. He was evaluated at
+an urgent care facility the same day (X-ray negative for fracture).
+
+Pain is 7/10 with weight-bearing. He has been on modified duty since the
+injury. Swelling has been persistent. Mechanical symptoms of clicking and
+occasional giving-way described.
+
+PAST MEDICAL HISTORY:
+  Hypertension (controlled)
+  No prior knee injuries
+
+PHYSICAL EXAMINATION:
+Right Knee:
+  Moderate effusion
+  Medial and lateral joint line tenderness
+  McMurray positive medial side
+  Lachman negative, stable
+  ROM: 0-120 degrees limited by pain
+
+IMAGING:
+  X-ray Right Knee (01/29/2025):
+  No fracture. Mild degenerative changes. Effusion noted.
+
+  Prior imaging: Urgent care X-ray 12/17/2024 — negative for fracture (report
+  obtained).
+
+CONSERVATIVE TREATMENT COMPLETED:
+  Physical therapy: 6 weeks (2x/week, 12 sessions) — WC authorized PT
+    - Outcome: Incomplete resolution, persistent effusion and mechanical symptoms
+  NSAIDs: Meloxicam 15mg daily x 4 weeks — partial relief
+  Activity modification: Modified duty, no kneeling or ladder climbing
+
+ASSESSMENT:
+  Suspected medial meniscal tear, right knee (ICD-10: M23.201)
+  Right knee effusion (ICD-10: M25.461)
+  Worker's compensation occupational injury — right knee
+
+PAYOR DETERMINATION NOTE:
+This patient's knee injury is the subject of an active Utah Workers' Compensation
+claim (WC-2025-UT-00441). All treatment directly related to this injury falls
+under the jurisdiction of the WC carrier (State Insurance Fund of Utah) and
+is subject to WC billing and authorization.
+
+MRI Right Knee (CPT 73721) requested for evaluation of suspected meniscal tear.
+
+Note for billing and PA team: Utah Medicaid EXCLUDES worker's compensation
+cases from standard PA approval pathway per policy. If WC carrier denies MRI
+authorization, or if injury is determined not compensable, Medicaid eligibility
+for this procedure should be reassessed under standard medical necessity criteria.
+
+Orthopedic evaluation has been completed. Clinical criteria for MRI are met
+based on examination and failed conservative care. PA submission should route
+through WC carrier first.
+
+___________________________________
+Dr. Kevin Walsh, MD
+Occupational & Orthopedic Medicine
+License #: UT-MD-29910
+NPI: 4455667788

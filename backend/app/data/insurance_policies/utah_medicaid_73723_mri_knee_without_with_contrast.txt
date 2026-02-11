@@ -1,0 +1,223 @@
+================================================================================
+UTAH MEDICAID PROGRAM
+DEPARTMENT OF HEALTH AND HUMAN SERVICES — DIVISION OF MEDICAID AND HEALTH FINANCING
+PRIOR AUTHORIZATION CLINICAL CRITERIA
+
+IMAGING SERVICES — MAGNETIC RESONANCE IMAGING
+LOWER EXTREMITY — KNEE WITHOUT CONTRAST FOLLOWED BY WITH CONTRAST
+
+CPT Code: 73723
+Description: Magnetic Resonance Imaging, Any Joint of Lower Extremity;
+             Without Contrast Material(s) Followed by With Contrast Material(s)
+Policy Reference: DMHF-IMG-MRI-003
+Last Review Date: October 1, 2024
+Effective Date: January 1, 2025
+Supersedes: DMHF-IMG-MRI-003 (version dated January 1, 2024)
+================================================================================
+
+AUTHORITY
+This policy is issued pursuant to Utah Code Ann. § 26B-3-109 and the Utah
+Medicaid State Plan. Coverage determinations made per 42 C.F.R. § 440.230
+and 42 C.F.R. § 440.240.
+
+================================================================================
+SECTION 1: PRIOR AUTHORIZATION REQUIREMENT
+================================================================================
+
+PRIOR AUTHORIZATION REQUIRED: YES
+
+CPT 73723 (MRI knee without and with contrast) requires prior authorization.
+This code represents the most comprehensive knee MRI protocol and is reserved
+for complex clinical presentations where both pre-contrast and post-contrast
+sequences are required. Requests must document clinical necessity for both
+the non-contrast and contrast components.
+
+IMPORTANT NOTE ON CODE SELECTION:
+  - If non-contrast imaging alone is sufficient: use CPT 73721
+  - If contrast-only is clinically indicated: use CPT 73722
+  - CPT 73723 is appropriate only when the COMBINATION of pre-contrast
+    and post-contrast sequences is clinically required and provides
+    diagnostic information not available from either alone
+
+Authorizations are valid for 60 calendar days from the date of approval.
+
+================================================================================
+SECTION 2: COVERAGE CRITERIA
+================================================================================
+
+MRI of the knee without and with contrast (CPT 73723) is covered when ALL
+of the following criteria are met:
+
+2.1 STANDARD CRITERIA (All Must Be Met)
+
+All criteria from Policy DMHF-IMG-MRI-001 (CPT 73721) must first be satisfied:
+  - Eligible diagnosis
+  - Clinical findings requirement
+  - Prior imaging within 60 days
+  - Conservative treatment completed OR applicable exception documented
+
+AND all contrast safety documentation from Policy DMHF-IMG-MRI-002 (CPT 73722)
+Section 2.3 must be satisfied (eGFR documentation, allergy screening).
+
+2.2 CLINICAL INDICATIONS REQUIRING COMBINED WITHOUT/WITH CONTRAST PROTOCOL
+
+At least ONE of the following must be documented as the reason the combined
+protocol is required:
+
+Category A — Tumor/Neoplasm Characterization (Most Common Indication):
+  (a) Known or suspected primary bone tumor (e.g., osteosarcoma, chondrosarcoma,
+      giant cell tumor) — pre-contrast sequences establish baseline signal
+      characteristics; post-contrast shows enhancement patterns critical for
+      grading, staging, and surgical planning
+  (b) Known or suspected soft tissue sarcoma or benign soft tissue neoplasm
+      (e.g., lipoma vs. liposarcoma differentiation requires pre- and
+      post-contrast sequences)
+  (c) Metastatic disease surveillance or treatment response assessment when
+      protocol specifies combined sequences per oncology plan
+
+Category B — Complex Infection with Abscess Assessment:
+  (d) Suspected or confirmed septic arthritis with clinical concern for
+      periarticular abscess or osteomyelitis — pre-contrast sequences
+      identify fluid collections and edema patterns; post-contrast confirms
+      rim-enhancing abscess vs. simple effusion and extent of synovial
+      involvement
+  (e) Suspected osteomyelitis of the distal femur or proximal tibia —
+      combined protocol provides superior assessment of bone marrow
+      involvement, cortical breach, and soft tissue extension
+
+Category C — Post-Operative Complex Evaluation:
+  (f) Evaluation of post-operative complications where distinguishing scar
+      tissue (non-enhancing) from recurrent tumor, infection, or active
+      synovitis (enhancing) is required
+  (g) Assessment of graft integrity following ligament reconstruction (e.g.,
+      ACL reconstruction) where vascular ingrowth and graft maturation
+      assessment requires contrast enhancement patterns
+
+Category D — Vascular/Avascular Necrosis:
+  (h) Avascular necrosis with subchondral collapse or suspected viability
+      assessment — pre-contrast identifies marrow edema; post-contrast
+      differentiates viable from necrotic tissue for surgical planning
+      (core decompression vs. arthroplasty decision)
+
+Category E — Complex Synovial Disease:
+  (i) PVNS (pigmented villonodular synovitis) or synovial chondromatosis
+      when pre-contrast susceptibility sequences and post-contrast
+      enhancement patterns are both required for diagnosis confirmation
+      and surgical planning
+  (j) Inflammatory arthritis with synovial pannus assessment — combined
+      protocol required when pre- and post-contrast sequences are both
+      specified in the rheumatology or orthopedic management protocol
+
+2.3 RADIOLOGY PROTOCOL JUSTIFICATION
+
+For CPT 73723, the ordering provider OR a consulting radiologist must document:
+
+  (a) Clinical indication for combined protocol (not just contrast alone)
+  (b) Why non-contrast sequences alone (73721) would be insufficient
+  (c) Why the combination of pre- and post-contrast sequences is required
+      for clinical decision-making
+
+  Acceptable documentation: A written statement in the order or clinical
+  notes; or a radiology protocol recommendation from a board-certified
+  radiologist specifying 73723.
+
+================================================================================
+SECTION 3: EXCEPTIONS TO CONSERVATIVE TREATMENT REQUIREMENT
+================================================================================
+
+Same exception criteria as CPT 73721 Policy (Section 3). For tumor and
+infection indications under Category A and Category B, the conservative
+care requirement is automatically waived given the clinical urgency.
+
+Emergency authorization: Call PA hotline 1-800-662-9651 for same-day review.
+
+================================================================================
+SECTION 4: EXCLUSIONS — NOT COVERED
+================================================================================
+
+CPT 73723 is NOT covered when:
+
+  (a) The combined protocol is not clinically necessary — if 73721 or 73722
+      alone would provide adequate diagnostic information, the lower-complexity
+      code should be used
+  (b) All exclusion criteria from CPT 73721 policy (Section 4) apply
+  (c) eGFR < 30 without nephrologist consultation (same as 73722 policy)
+  (d) Contrast is clinically contraindicated and alternative imaging
+      approach has not been explored
+  (e) Request is based solely on protocol preference without specific
+      clinical indication for the combined sequence
+
+================================================================================
+SECTION 5: DOCUMENTATION REQUIREMENTS FOR PA SUBMISSION
+================================================================================
+
+REQUIRED:
+  [ ] All documentation required for CPT 73721 (standard criteria)
+  [ ] All contrast safety documentation required for CPT 73722
+  [ ] Specific clinical indication from Section 2.2 documented
+  [ ] Clinical justification for combined (without AND with) protocol — why
+      non-contrast or contrast alone is insufficient
+  [ ] For tumor indications:
+        Oncology notes, biopsy results, prior imaging, surgical planning notes
+  [ ] For infection with abscess concern:
+        Complete labs (CBC with diff, ESR, CRP, blood cultures, synovial
+        fluid results), infectious disease consult if available
+  [ ] For post-operative complex evaluation:
+        Operative report from index surgery, post-operative clinical course
+  [ ] For AVN:
+        Prior X-rays or bone scan if available, clinical symptoms and
+        functional status, orthopedic surgical planning notes
+  [ ] Renal function documentation (creatinine/eGFR) per Section 2.3
+  [ ] Contrast allergy screening documentation
+
+================================================================================
+SECTION 6: AUTHORIZATION AND SUBMISSION
+================================================================================
+
+  Electronic:  medicaid.utah.gov/pa-portal
+  Fax:         1-801-555-0100
+  Phone:       1-800-662-9651 (M-F 8am-5pm MT)
+  Urgent:      1-800-662-9651 — expedited 72-hour review
+  Emergency:   Same-day phone authorization for urgent/emergent cases
+
+Authorization Validity: 60 calendar days from approval
+
+Appeals:
+  Denials may be appealed per Utah Medicaid Fair Hearing procedures.
+  Utah Admin. Code R414-301 et seq.
+  Request form available at: medicaid.utah.gov/appeals
+
+================================================================================
+SECTION 7: BILLING AND CODING NOTES
+================================================================================
+
+  73723 includes both the non-contrast and contrast-enhanced sequences as a
+  single procedure. Do NOT bill 73721 + 73722 together — use 73723 when
+  both pre- and post-contrast sequences are performed in the same session.
+
+  Modifier usage:
+  - LT/RT modifiers required for laterality (left knee / right knee)
+  - Bilateral knee MRI in same session: bill with modifier 50 (bilateral)
+    — requires documentation of bilateral clinical indication and separate
+    PA approval for bilateral imaging
+
+================================================================================
+SECTION 8: RELATED PROCEDURE CODES
+================================================================================
+
+  73721 — MRI knee, without contrast (policy DMHF-IMG-MRI-001)
+  73722 — MRI knee, with contrast (policy DMHF-IMG-MRI-002)
+  73723 — MRI knee, without then with contrast (THIS POLICY)
+
+================================================================================
+CONTACT INFORMATION
+================================================================================
+
+Utah Medicaid Prior Authorization
+Division of Medicaid and Health Financing
+195 North 1950 West, Salt Lake City, UT 84116
+
+Phone: 1-800-662-9651 | Fax: 1-801-555-0100
+Web: medicaid.utah.gov
+Provider Manual: medicaid.utah.gov/provider-manual (Section 4.3 — Imaging)
+PA Portal: medicaid.utah.gov/pa-portal

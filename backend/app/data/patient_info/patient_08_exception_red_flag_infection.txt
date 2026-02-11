@@ -1,0 +1,101 @@
+EMERGENCY DEPARTMENT REPORT — URGENT
+# SYNTHETIC TEST DATA ONLY — NOT REAL PHI
+
+FACILITY: Valley View Regional Medical Center — Emergency Department
+Provo, UT 84604
+
+Patient Name: Robert Asante
+DOB: 08/19/1965 (Age: 59)
+MRN: VVRMC-ED-2025-0881
+Encounter Date: January 31, 2025 | 09:15
+Attending: Dr. Samantha Pierce, MD — Emergency Medicine
+
+INSURANCE: Utah Medicaid Adult
+Member ID: UT-MCD-889034127
+
+TRIAGE COMPLAINT:
+Right knee swelling, warmth, fever — "can't walk"
+
+HISTORY OF PRESENT ILLNESS:
+59-year-old male with Type 2 diabetes (A1c 9.8% — poorly controlled) presenting
+with 3-day history of rapidly progressive right knee pain, swelling, and warmth.
+Fever to 102.4°F at home. Unable to bear weight. No recent trauma. No recent
+joint aspiration or injection.
+
+Denies recent skin break or wound near knee but notes he cut his foot on
+garden debris 2 weeks ago — wound "seemed to heal."
+
+History of gout but reports this presentation is distinctly different from
+prior gout flares — more severe, associated with fever.
+
+PAST MEDICAL HISTORY:
+  Type 2 Diabetes (poorly controlled)
+  Gout (managed with allopurinol — recently non-compliant)
+  Hypertension
+  Peripheral vascular disease
+
+PHYSICAL EXAMINATION:
+Vitals: BP 148/92, HR 112, Temp 102.6°F (38.9°C), RR 18, O2 Sat 97%
+
+Right Knee:
+  Inspection: Marked effusion, overlying erythema, significant swelling
+  Temperature: Markedly warm compared to left knee
+  ROM: Severely limited by pain — patient refuses to move knee
+  Palpation: Diffuse tenderness, no distinct joint line localization
+  Weight-bearing: Refuses — cannot bear weight
+
+LABORATORY:
+  WBC: 18,400 (elevated, left shift)
+  ESR: 88 mm/hr (elevated)
+  CRP: 14.2 mg/L (markedly elevated)
+  Uric acid: 9.8 mg/dL (elevated)
+  Blood glucose: 318 mg/dL (poor control)
+  Blood cultures: Pending x 2 sets
+
+  Joint Aspiration — Right Knee (performed at bedside):
+  Aspirate appearance: Turbid, yellow-green
+  Volume: 35 mL aspirated
+  WBC synovial: 68,400 (markedly elevated — highly suspicious for septic arthritis)
+  % PMN: 94%
+  Crystals: Rare monosodium urate crystals (gout cannot be excluded, but
+  does NOT exclude concurrent bacterial infection)
+  Gram stain: Pending
+  Culture: Pending
+
+IMAGING:
+  X-ray Right Knee (01/31/2025):
+  Significant soft tissue swelling and effusion. No fracture. No obvious
+  gas in joint space. Pre-existing mild OA changes.
+
+IMPRESSION:
+  1. Suspected septic arthritis, right knee (ICD-10: M00.062) — URGENT
+  2. Cannot exclude concurrent gout/pseudogout
+  3. Poorly controlled diabetes — significant infection risk factor
+
+RED FLAG EXCEPTION — MEDICAL NECESSITY:
+This patient meets the RED FLAG EXCEPTION for immediate advanced imaging under
+Utah Medicaid Imaging Policy. Conservative care requirement is waived.
+
+  [X] Suspected joint infection — fever, elevated WBC/CRP/ESR,
+      turbid aspirate with 68,400 WBC
+  [X] Red flag symptoms present
+  [X] Emergency presentation with inability to bear weight
+
+MRI Right Knee with contrast (CPT: 73722) ordered to:
+  1. Evaluate extent of infection — joint vs. periarticular soft tissue
+  2. Rule out osteomyelitis
+  3. Assess for abscess formation requiring surgical drainage
+  4. Guide surgical vs. medical management decision (washout urgency)
+
+PLAN:
+  - IV antibiotics initiated (Vancomycin + Ceftriaxone) pending cultures
+  - Orthopedic surgery emergently consulted for possible surgical washout
+  - MRI with contrast ordered STAT
+  - Admission to medicine service under infectious disease co-management
+  - Endocrinology consulted for diabetes management during hospitalization
+
+___________________________________
+Dr. Samantha Pierce, MD
+Emergency Medicine
+License #: UT-MD-60118
+NPI: 6677889900

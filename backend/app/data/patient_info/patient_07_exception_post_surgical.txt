@@ -1,0 +1,87 @@
+ORTHOPEDIC FOLLOW-UP NOTE — POST-OPERATIVE
+# SYNTHETIC TEST DATA ONLY — NOT REAL PHI
+
+Patient Name: Jasmine Tran
+DOB: 06/30/1988 (Age: 36)
+MRN: ORH-2024-9930
+Date of Visit: January 24, 2025
+Provider: Dr. Angela Torres, MD — Orthopedic Surgery
+Visit Type: Post-Operative Follow-Up (Week 14)
+
+INSURANCE INFORMATION:
+Primary Insurance: Utah Medicaid Adult
+Member ID: UT-MCD-330872215
+
+PROCEDURE HISTORY:
+  Surgery Date: October 15, 2024
+  Procedure: Right knee arthroscopy with partial medial meniscectomy
+  CPT: 29881
+  Facility: Mountain West Surgical Center
+  Surgeon: Dr. Angela Torres, MD
+  Operative findings: Bucket-handle medial meniscal tear confirmed.
+  Partial meniscectomy performed. Articular cartilage Grade 2 changes noted
+  medial femoral condyle at time of surgery.
+
+CHIEF COMPLAINT:
+New onset lateral knee pain and renewed effusion at 14 weeks post-op
+
+HISTORY OF PRESENT ILLNESS:
+Ms. Tran is presenting at 14 weeks following right knee arthroscopy with partial
+medial meniscectomy. Initial post-operative course was uncomplicated — she
+completed post-op PT protocol weeks 1-10 without issue and had returned to
+light work duties at week 8.
+
+Over the past 3 weeks she has developed NEW lateral-sided knee pain and renewed
+effusion that was not present at her 8-week post-op visit. Pain is 6/10 with
+activity, 3/10 at rest. She reports a new sensation of "instability" on uneven
+ground. These symptoms are distinctly different from her original medial pain
+and represent a CHANGE IN CLINICAL STATUS from her most recent evaluation.
+
+PHYSICAL EXAMINATION:
+Right Knee (14 weeks post-op):
+  Surgical incisions: Well-healed portal sites, no signs of infection
+  Effusion: Moderate — NEW (was absent at 8-week visit)
+  Medial joint line: Minimal tenderness (expected post-meniscectomy changes)
+  Lateral joint line tenderness: ++ NEW
+  McMurray lateral: Positive NEW
+  Lachman: Negative
+  Fibular head: Non-tender (rules out proximal fibula pathology)
+  ROM: 0-130 degrees (improved from pre-op 0-110)
+
+IMAGING:
+  X-ray Right Knee (01/24/2025):
+  No hardware. Appropriate post-meniscectomy changes medial compartment.
+  Lateral compartment: No significant change from pre-operative films.
+
+ASSESSMENT:
+  1. Status post right knee arthroscopy with partial medial meniscectomy
+     (ICD-10: Z96.651)
+  2. New lateral knee pain and effusion — CHANGE IN CLINICAL STATUS
+  3. Rule out lateral meniscal tear, new onset (ICD-10: M23.201)
+  4. Rule out chondral injury lateral compartment
+
+MEDICAL NECESSITY / POST-OPERATIVE EXCEPTION:
+This patient meets the POST-OPERATIVE EXCEPTION for MRI without conservative
+care requirement per Utah Medicaid Imaging Policy:
+
+  [X] Post-operative evaluation within 6 months of knee surgery
+  Surgical date: October 15, 2024 — MRI requested January 24, 2025
+  Time since surgery: 14 weeks (well within 6-month exception window)
+
+  Additionally: CHANGE IN CLINICAL STATUS documented
+  - New lateral-sided symptoms not present at 8-week follow-up
+  - New effusion (absent post-operatively until now)
+  - New positive McMurray lateral side
+  - Failed prior intervention (partial meniscectomy was performed for medial
+    pathology; new lateral symptoms represent a new clinical problem)
+
+MRI Right Knee without contrast (CPT: 73721) requested to evaluate for:
+  - Lateral meniscal tear (new pathology)
+  - Articular cartilage injury lateral compartment
+  - Any post-operative complication (cyst, hardware reaction — none expected)
+
+___________________________________
+Dr. Angela Torres, MD
+Orthopedic Surgery
+License #: UT-MD-44892
+NPI: 1234567890

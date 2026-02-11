@@ -1,0 +1,107 @@
+PATIENT CHART NOTE - ORTHOPEDIC CONSULTATION
+# SYNTHETIC TEST DATA ONLY — NOT REAL PHI
+
+Patient Name: Carlos Mendez
+DOB: 07/14/1971 (Age: 53)
+MRN: ORH-2024-7741
+Date of Visit: January 28, 2025
+Provider: Dr. Angela Torres, MD - Orthopedic Surgery
+
+INSURANCE INFORMATION:
+Primary Insurance: Utah Medicaid (CHIP/Adult)
+Member ID: UT-MCD-448821903
+Group #: N/A - State Plan
+
+CHIEF COMPLAINT:
+Left knee pain and swelling x 5 months
+
+HISTORY OF PRESENT ILLNESS:
+Mr. Mendez is a 53-year-old male presenting with progressive left knee pain that
+began approximately 5 months ago after a fall from a ladder at his construction job.
+He reports pain rated 8/10 with weight-bearing activities, kneeling, and climbing.
+He describes a mechanical "catching" sensation with ambulation and intermittent
+locking of the knee. Significant effusion developed within weeks of injury and has
+not resolved. He has been unable to return to work.
+
+PAST MEDICAL HISTORY:
+  Type 2 Diabetes (well-controlled on metformin)
+  Hypertension
+  No prior knee surgeries or injuries
+
+SOCIAL HISTORY:
+  Construction laborer (on work restrictions)
+  Non-smoker
+  Married, 3 children
+
+PHYSICAL EXAMINATION:
+Vitals: BP 138/86, HR 78, Temp 98.4°F
+Height: 5'9" (175.3 cm)
+Weight: 198 lbs (89.8 kg)
+BMI: 29.2
+
+Left Knee Examination:
+  Inspection: Moderate to large effusion, no erythema
+  Palpation: Medial joint line tenderness +++, lateral joint line tenderness +
+  ROM: Flexion 0-110 degrees (limited by pain and effusion)
+  McMurray's test: Positive medial rotation (clunk palpable)
+  Thessaly test: Positive at 20 degrees medial compartment loading
+  Lachman test: Negative (firm endpoint)
+  Varus/valgus stress: Stable at 0 and 30 degrees
+  Joint line tenderness: Medial > lateral
+
+DIAGNOSTIC IMAGING:
+  X-ray Left Knee (3 views) - 01/28/2025:
+  Findings: Moderate medial compartment joint space narrowing. Grade 2 medial
+  osteoarthritis changes. Small subchondral sclerosis. No acute fracture.
+  No loose bodies identified. Moderate effusion.
+
+ASSESSMENT:
+  1. Suspected medial meniscal tear, left knee (ICD-10: M23.202)
+  2. Medial compartment osteoarthritis, left knee (ICD-10: M17.12)
+  3. Knee effusion (ICD-10: M25.462)
+
+CONSERVATIVE TREATMENT COMPLETED:
+Patient has completed 8 weeks of conservative management (11/20/2024 - 01/16/2025):
+
+  Physical therapy: 3x weekly x 8 weeks (24 sessions total)
+    - Facility: Mountain View Physical Therapy, Salt Lake City UT
+    - Focus: Quad/hamstring strengthening, gait training, aquatic therapy
+    - PT notes: "Patient fully compliant. Persistent effusion and mechanical
+      symptoms despite structured therapy. Functional gains limited by pain."
+    - Final PT assessment: Therapy failed to resolve symptoms
+
+  NSAIDs: Naproxen 500mg BID x 8 weeks
+    - Outcome: Partial relief of pain, effusion unchanged
+    - No GI complications
+
+  Corticosteroid injection: Single injection 12/10/2024
+    - Methylprednisolone 80mg/mL with lidocaine, left knee
+    - Outcome: Temporary relief x 3 weeks, symptoms returned
+
+  Activity modification: Full work restriction from construction duties
+  Ice therapy and compression wrapping daily
+
+Despite 8 weeks of multimodal conservative care including PT, NSAIDs, and
+corticosteroid injection, patient continues to have significant functional
+limitations preventing return to work and affecting all weight-bearing activities.
+Mechanical symptoms (catching, locking) persist and are consistent with displaced
+meniscal fragment.
+
+PLAN:
+MRI Left Knee without contrast (CPT: 73721) is medically necessary to:
+  1. Characterize meniscal tear pattern (horizontal, radial, complex) to guide
+     surgical vs. continued conservative management decision
+  2. Evaluate articular cartilage status given radiographic OA changes
+  3. Assess for associated ligamentous injury
+
+Procedure is medically necessary to guide treatment planning. Patient has failed
+adequate conservative care and has mechanical symptoms requiring further evaluation.
+
+Patient counseled on MRI findings and surgical options discussion to follow.
+Written consent obtained. Questions answered.
+
+___________________________________
+Dr. Angela Torres, MD
+Orthopedic Surgery
+License #: UT-MD-44892
+NPI: 1234567890

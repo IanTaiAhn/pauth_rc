@@ -2,7 +2,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-# from app.rag_pipeline.scripts.build_index_updated import build_index, INDEX_DIR
+from app.rag_pipeline.scripts.build_index_updated import build_index, INDEX_DIR
 from app.rag_pipeline.scripts.extract_policy_rules import extract_policy_rules
 from app.utils.save_json import save_analysis_to_json
 from app.rag_pipeline.scripts.build_index_updated import  INDEX_DIR
@@ -65,20 +65,20 @@ def extract_policy_rules_endpoint(request: PolicyRuleRequest):
     return PolicyRuleResponse(**result)
 
 
-# @router.post("/build_index", response_model=BuildIndexResponse)
-# def api_build_index(req: BuildIndexRequest):
-#     """Build a new RAG index."""
-#     try:
-#         # If your build_index() function needs the index name,
-#         # modify it to accept a parameter. For now, we assume
-#         # it builds into INDEX_DIR based on index_name.
-#         build_index()
-#         return BuildIndexResponse(
-#             message="Index built successfully",
-#             index_name=req.index_name
-#         )
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+@router.post("/build_index", response_model=BuildIndexResponse)
+def api_build_index(req: BuildIndexRequest):
+    """Build a new RAG index."""
+    try:
+        # If your build_index() function needs the index name,
+        # modify it to accept a parameter. For now, we assume
+        # it builds into INDEX_DIR based on index_name.
+        build_index()
+        return BuildIndexResponse(
+            message="Index built successfully",
+            index_name=req.index_name
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/delete_index/{index_name}")

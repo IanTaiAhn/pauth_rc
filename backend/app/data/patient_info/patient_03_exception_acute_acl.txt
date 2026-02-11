@@ -1,0 +1,92 @@
+EMERGENCY DEPARTMENT REPORT
+# SYNTHETIC TEST DATA ONLY — NOT REAL PHI
+
+FACILITY: Intermountain Medical Center — Emergency Department
+Salt Lake City, UT 84107
+
+Patient Name: Marcus Webb
+DOB: 02/22/2001 (Age: 23)
+MRN: ED-2025-11447
+Encounter Date: January 25, 2025 | 14:42
+Attending: Dr. Patricia Nguyen, MD — Emergency Medicine
+Consulting: Dr. James Okonkwo, MD — Orthopedic Surgery (On-call)
+
+INSURANCE: Utah Medicaid Adult Expansion
+Member ID: UT-MCD-771038852
+
+CHIEF COMPLAINT:
+Left knee injury, football practice — unable to bear weight
+
+HISTORY OF PRESENT ILLNESS:
+23-year-old male collegiate football player brought via ambulance following a
+non-contact cutting injury during afternoon practice. Reports planting left foot
+and pivoting with immediate sharp pop and severe pain. Knee buckled. Unable to
+bear weight since injury (~2 hours ago). Significant hemarthrosis developing.
+No prior knee injuries. No loss of consciousness.
+
+PHYSICAL EXAMINATION:
+Vitals: BP 142/90, HR 104 (pain), Temp 98.2°F, O2 Sat 99%
+Alert and oriented. In significant pain.
+
+Left Knee:
+  Tense hemarthrosis — marked effusion, tense
+  Anterior drawer sign: Positive +++
+  Lachman test: Grade 3+ laxity, no firm endpoint
+  Pivot shift: Positive (examined under sedation)
+  McMurray: Unable to adequately perform due to pain and effusion
+  Unable to bear weight — non-weight-bearing
+  Neurovascular: Intact distally
+
+IMAGING:
+  X-ray Left Knee (4 views) — Performed 01/25/2025 15:10:
+  Report: No acute fracture. Possible avulsion at lateral tibial plateau
+  (Segond fracture pattern) — highly associated with ACL disruption.
+  Large joint effusion. No dislocation.
+
+IMPRESSION:
+  1. Complete ACL rupture, left knee, highly probable (ICD-10: S83.512A)
+  2. Acute hemarthrosis, left knee
+  3. Rule out associated meniscal tear and collateral ligament injury
+
+EMERGENCY MANAGEMENT:
+  - Aspiration of hemarthrosis performed (20mL bloody aspirate)
+  - Long leg splint applied, non-weight-bearing
+  - Crutches provided
+  - Ketorolac 30mg IV x 1, Oxycodone 5mg PO x 2 for pain
+  - Orthopedic follow-up arranged: 01/27/2025
+
+MEDICAL NECESSITY / EXCEPTION DOCUMENTATION:
+This patient meets EXCEPTION criteria for MRI without completion of conservative
+care requirement per Utah Medicaid Imaging Policy, Section 3:
+
+  Exception criteria met:
+  [X] Acute traumatic injury with inability to bear weight
+  [X] Suspected complete ligament rupture (ACL) — Lachman 3+, positive pivot shift
+  [X] Positive Segond fracture sign on X-ray (pathognomonic for ACL tear)
+  [X] Hemarthrosis requiring aspiration
+
+  Conservative care waiver is clinically appropriate. Immediate MRI is required
+  to: (1) confirm complete vs. partial ACL tear, (2) assess for meniscal injury
+  (high co-occurrence rate with ACL tears), (3) guide surgical planning and
+  timing of ACL reconstruction.
+
+  Ordering: MRI Left Knee without contrast (CPT: 73721) — URGENT/STAT
+
+___________________________________
+Dr. Patricia Nguyen, MD
+Emergency Medicine
+NPI: 1122334455
+
+___________________________________
+Dr. James Okonkwo, MD
+Orthopedic Surgery (Consulting)
+NPI: 2233445566
+
+--- ORTHOPEDIC FOLLOW-UP NOTE ---
+Date: January 27, 2025
+
+Examination confirms Grade 3 Lachman, positive anterior drawer, positive pivot
+shift. Hemarthrosis improved. Still non-weight-bearing. Clinical diagnosis of
+complete ACL rupture confirmed. MRI ordered for surgical planning.
+
+Patient meets acute trauma exception. PA submitted under exception pathway.
