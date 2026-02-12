@@ -31,10 +31,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Map (payer, cpt) to FAISS index names
+# NOTE: Using single combined index per payer for related CPT codes
+# This allows the RAG pipeline to retrieve relevant rules across all CPT codes
+# and use metadata filtering to prioritize the specific CPT code
 INDEX_MAP = {
+    # Utah Medicaid - all knee MRI CPT codes use the same combined index
     ("utah_medicaid", "73721"): "utah_medicaid_73721",
-    ("utah_medicaid", "73722"): "utah_medicaid_73722",
-    ("utah_medicaid", "73723"): "utah_medicaid_73723",
+    ("utah_medicaid", "73722"): "utah_medicaid_73721",
+    ("utah_medicaid", "73723"): "utah_medicaid_73721",
+    # Aetna - separate indexes per CPT (if created separately)
     ("aetna", "73721"): "aetna_73721",
     ("aetna", "73722"): "aetna_73722",
     ("aetna", "73723"): "aetna_73723",
