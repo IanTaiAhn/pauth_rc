@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 
 
 class PatientEvidence(BaseModel):
@@ -157,4 +157,48 @@ class NormalizeBothResponse(BaseModel):
     metadata: Dict[str, Any] = Field(
         default_factory=dict,
         description="Metadata about both normalization processes"
+    )
+
+
+# ===== Orchestration Schemas =====
+
+class CriterionResult(BaseModel):
+    """Individual criterion evaluation result."""
+    criterion: str = Field(..., description="Criterion description")
+    required: str = Field(..., description="What is required by the policy")
+    found: str = Field(..., description="What was found in the patient chart")
+    status: Literal["PASS", "FAIL"] = Field(..., description="Whether the criterion was met")
+
+
+class OrchestrationResponse(BaseModel):
+    """Response schema for single-call PA check orchestration endpoint."""
+    verdict: Literal["LIKELY_TO_APPROVE", "LIKELY_TO_DENY", "NEEDS_REVIEW"] = Field(
+        ...,
+        description="Overall PA verdict based on rule evaluation"
+    )
+    readiness_score: int = Field(
+        ...,
+        description="Readiness score (0-100)",
+        ge=0,
+        le=100
+    )
+    patient_name: str = Field(..., description="Patient name extracted from chart")
+    payer: str = Field(..., description="Payer display name (e.g., 'Utah Medicaid')")
+    cpt: str = Field(..., description="CPT code")
+    procedure_label: str = Field(..., description="Human-readable procedure name")
+    criteria: List[CriterionResult] = Field(
+        ...,
+        description="List of evaluated criteria with pass/fail status"
+    )
+    gaps: List[str] = Field(
+        default_factory=list,
+        description="List of unmet criteria descriptions (actionable gaps)"
+    )
+    next_steps: str = Field(
+        ...,
+        description="Plain-English guidance on what to do next"
+    )
+    exception_applied: Optional[str] = Field(
+        None,
+        description="Exception pathway applied, if any (e.g., 'ACUTE_TRAUMA', 'POST_OPERATIVE')"
     )

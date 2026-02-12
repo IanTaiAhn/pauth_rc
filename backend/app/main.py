@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import rag, documents, pa, authz, normalization
+from app.routers import rag, documents, pa, authz, normalization, orchestration
 
 app = FastAPI(title="P-Auth RC")
 
@@ -22,6 +22,7 @@ app.include_router(documents.router, prefix="/api", tags=["Documents"])
 app.include_router(pa.router, prefix="/api", tags=["Prior Authorization"])
 app.include_router(authz.router, prefix="/api", tags=["Evaluate"])
 app.include_router(normalization.router, prefix="/api", tags=["Normalization"])
+app.include_router(orchestration.router, prefix="/api", tags=["Orchestration"])
 
 
 @app.get("/")
