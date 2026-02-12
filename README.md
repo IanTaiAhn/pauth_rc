@@ -57,7 +57,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 ### Environment Variables
-
+OPTIONAL atm
 Create a `.env` file in the `backend` directory with the following variables:
 
 ```
