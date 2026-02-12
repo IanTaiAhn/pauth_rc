@@ -19,5 +19,5 @@ backend/app/rag_pipeline/models/qwen2.5
 venv/
 
 # uv
-uv.lock
+# uv.lock
 .python-version.local
