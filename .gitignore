@@ -14,3 +14,4 @@ backend/app/rag_pipeline/models/bge_large_en_v1.5
 backend/app/rag_pipeline/models/qwen2.5
 
 
+.venv
