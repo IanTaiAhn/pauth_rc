@@ -10,7 +10,9 @@ Consolidates the entire PA pipeline into one API call:
 6. Return structured response with verdict, score, criteria, and gaps
 """
 
+import json
 import logging
+from pathlib import Path
 from typing import Literal
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
@@ -29,6 +31,33 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Diagnostic output directory
+DIAGNOSTIC_DIR = Path("orchestration_diagnostics")
+DIAGNOSTIC_DIR.mkdir(exist_ok=True)
+
+
+def save_diagnostic_json(filename: str, data: dict, step_name: str):
+    """
+    Save intermediate JSON data for debugging.
+
+    Args:
+        filename: Base filename (e.g., patient chart filename)
+        data: Dictionary to save
+        step_name: Pipeline step identifier (e.g., "01_raw_patient", "02_normalized_patient")
+    """
+    try:
+        # Sanitize filename
+        safe_filename = filename.replace(" ", "_").replace("/", "_").replace("\\", "_")
+        output_path = DIAGNOSTIC_DIR / f"{step_name}_{safe_filename}.json"
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"Diagnostic JSON saved: {output_path}")
+    except Exception as e:
+        logger.warning(f"Failed to save diagnostic JSON for {step_name}: {e}")
+
 
 # Map (payer, cpt) to FAISS index names
 # NOTE: Using single combined index per payer for related CPT codes
@@ -201,6 +230,8 @@ async def check_prior_auth(
         try:
             patient_json = extract_evidence(text, use_groq=True)
             logger.info("Patient evidence extracted via LLM")
+            # DIAGNOSTIC: Save raw patient extraction
+            save_diagnostic_json(file.filename, patient_json, "01_raw_patient")
         except Exception as e:
             logger.error(f"Patient chart extraction failed: {e}")
             raise HTTPException(
@@ -224,6 +255,8 @@ async def check_prior_auth(
                     detail="Failed to retrieve policy rules for this payer and CPT code."
                 )
             logger.info(f"Policy rules extracted via RAG for {index_name}")
+            # DIAGNOSTIC: Save raw policy extraction
+            save_diagnostic_json(file.filename, policy_result, "02_raw_policy")
         except HTTPException:
             raise
         except Exception as e:
@@ -237,6 +270,8 @@ async def check_prior_auth(
         try:
             normalized_patient = normalize_patient_evidence(patient_json)
             logger.info("Patient evidence normalized")
+            # DIAGNOSTIC: Save normalized patient data
+            save_diagnostic_json(file.filename, normalized_patient, "03_normalized_patient")
         except Exception as e:
             logger.error(f"Patient normalization failed: {e}")
             raise HTTPException(
@@ -248,6 +283,8 @@ async def check_prior_auth(
         try:
             normalized_policy = normalize_policy_criteria(policy_json)
             logger.info(f"Policy rules normalized: {len(normalized_policy)} rules")
+            # DIAGNOSTIC: Save normalized policy rules
+            save_diagnostic_json(file.filename, {"rules": normalized_policy}, "04_normalized_policy")
         except Exception as e:
             logger.error(f"Policy normalization failed: {e}")
             raise HTTPException(
@@ -259,6 +296,8 @@ async def check_prior_auth(
         try:
             evaluation = evaluate_all(normalized_patient, normalized_policy)
             logger.info(f"Rule evaluation complete: {evaluation['rules_met']}/{evaluation['total_rules']} met")
+            # DIAGNOSTIC: Save evaluation results
+            save_diagnostic_json(file.filename, evaluation, "05_evaluation")
         except Exception as e:
             logger.error(f"Rule evaluation failed: {e}")
             raise HTTPException(
@@ -324,6 +363,8 @@ async def check_prior_auth(
             )
 
             logger.info(f"PA check complete: verdict={verdict}, score={readiness_score}")
+            # DIAGNOSTIC: Save final response
+            save_diagnostic_json(file.filename, response.model_dump(), "06_final_response")
             return response
 
         except Exception as e:
