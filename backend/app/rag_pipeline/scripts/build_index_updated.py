@@ -48,6 +48,23 @@ def load_all_documents():
 
 # no building of index in prod for now.
 def build_index():
+    """
+    Build a FAISS index from all documents in FRONTEND_DATA_DIR.
+
+    INDEX NAMING STRATEGY:
+    - The index is named after the first file in the directory (docs[0][0].stem)
+    - For COMBINED indexes (recommended): Place related policy files together
+      Example: utah_medicaid_73721_*.txt, utah_medicaid_73722_*.txt, utah_medicaid_73723_*.txt
+      → Creates index: "utah_medicaid_73721" containing all 3 CPT codes
+      → RAG retrieval uses metadata filtering to prioritize the specific CPT code
+
+    - For SEPARATE indexes: Run build_index() once per CPT code with only one file in the directory
+      Example: Only utah_medicaid_73721_*.txt → Creates "utah_medicaid_73721"
+      Then move it out, add utah_medicaid_73722_*.txt → Creates "utah_medicaid_73722"
+      → More indexes to manage, but cleaner separation
+
+    IMPORTANT: Update orchestration.py INDEX_MAP to match your indexing strategy!
+    """
     INDEX_DIR.mkdir(exist_ok=True)
 
     print("Loading embedding model to build index...")
@@ -58,20 +75,23 @@ def build_index():
     # model_path = "../models/qwen2.5"   # your local Qwen2.5 folder
     model_path = str(MODEL_DIR)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
-    
+
     # NEW: Initialize the improved chunker with your tokenizer
     chunker = InsurancePolicyChunker(
         tokenizer=tokenizer,
         max_tokens=400,      # Adjust based on your embedding model's context window
         min_chunk_tokens=100 # Minimum chunk size to avoid tiny fragments
     )
-    
+
     store = None
 
     docs = load_all_documents()
+    # Index name derived from first document's stem
+    # For combined indexes, this will be the "base" name (e.g., utah_medicaid_73721)
     index_name = docs[0][0].stem
 
     print(f"Loaded {len(docs)} documents.")
+    print(f"Index will be named: {index_name}")
 
     for doc_name, text in docs:
         print(f"\nChunking {doc_name}...")
