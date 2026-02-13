@@ -164,11 +164,15 @@ def extract_patient_name(patient_json: dict) -> str:
 
     Tries multiple paths with fallback to "Unknown Patient".
     """
-    # Try direct name field
+    # Try the patient_name field (added to extraction schema)
+    if "patient_name" in patient_json and patient_json["patient_name"]:
+        return patient_json["patient_name"]
+
+    # Try legacy direct name field (for backwards compatibility)
     if "name" in patient_json:
         return patient_json["name"]
 
-    # Try nested in requirements
+    # Try nested in requirements (for backwards compatibility)
     if "requirements" in patient_json:
         reqs = patient_json["requirements"]
         if isinstance(reqs, dict) and "name" in reqs:
