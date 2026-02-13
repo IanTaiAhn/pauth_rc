@@ -165,9 +165,9 @@ def normalize_policy_criteria(criteria: dict) -> list:
     """
     Normalize YOUR specific insurance policy JSON format.
 
-    Handles TWO formats:
+    Handles THREE formats:
 
-    Format 1 - Groq output (needs parsing):
+    Format 1 - Full policy result with wrapper (from RAG pipeline):
     {
       "rules": {
         "payer": "Aetna",
@@ -182,7 +182,18 @@ def normalize_policy_criteria(criteria: dict) -> list:
       "raw_output": "..."
     }
 
-    Format 2 - Pre-normalized (ready to use):
+    Format 2 - Direct policy object (from orchestration router):
+    {
+      "payer": "Aetna",
+      "cpt_code": "73721",
+      "coverage_criteria": {
+        "clinical_indications": [...],
+        "prerequisites": [...],
+        "documentation_requirements": [...]
+      }
+    }
+
+    Format 3 - Pre-normalized (ready to use):
     {
       "rules": [
         {
@@ -197,7 +208,7 @@ def normalize_policy_criteria(criteria: dict) -> list:
 
     Output: List of rules in standardized condition format
 
-    IMPROVED: Detects format and handles both Groq output and pre-normalized data.
+    IMPROVED: Detects format and handles Groq output, direct policy object, and pre-normalized data.
     """
     import re
     import logging
@@ -207,25 +218,40 @@ def normalize_policy_criteria(criteria: dict) -> list:
 
     rules_list = []
 
-    rules = criteria.get("rules", {})
-    logger.info(f"rules type: {type(rules)}, is list: {isinstance(rules, list)}")
-
-    # DETECTION: Check if rules is already a list (Format 2: pre-normalized)
-    if isinstance(rules, list):
-        logger.info(f"Rules already normalized, returning {len(rules)} rules")
+    # DETECTION: Check if this is pre-normalized (Format 3)
+    # Pre-normalized data has "rules" as a list, not a dict
+    if "rules" in criteria and isinstance(criteria["rules"], list):
+        logger.info(f"Rules already normalized (Format 3), returning {len(criteria['rules'])} rules")
         # Rules are already in the correct format - just validate and return
-        for rule in rules:
+        for rule in criteria["rules"]:
             if isinstance(rule, dict) and "id" in rule and "conditions" in rule:
                 rules_list.append(rule)
         return rules_list
 
-    # Otherwise, it's Format 1 (Groq output) - parse it
-    coverage = rules.get("coverage_criteria", {})
+    # DETECTION: Check if this is Format 1 (wrapper) or Format 2 (direct)
+    # Format 1 has "rules" as a dict containing the policy object
+    # Format 2 directly IS the policy object (has "coverage_criteria" at top level)
+    if "coverage_criteria" in criteria:
+        # Format 2 - Direct policy object (from orchestration router)
+        policy_obj = criteria
+        logger.info("Detected Format 2: Direct policy object")
+    elif "rules" in criteria and isinstance(criteria["rules"], dict):
+        # Format 1 - Wrapper structure (from RAG pipeline)
+        policy_obj = criteria["rules"]
+        logger.info("Detected Format 1: Wrapper structure")
+    else:
+        logger.warning(f"Unknown policy format. Keys: {list(criteria.keys())}")
+        # Try to extract from rules key anyway
+        policy_obj = criteria.get("rules", {})
+
+    # Extract coverage criteria from the policy object
+    coverage = policy_obj.get("coverage_criteria", {})
     logger.info(f"coverage_criteria keys: {list(coverage.keys()) if coverage else 'None'}")
 
     # Extract all text sources for intelligent parsing
     prerequisites = coverage.get("prerequisites", [])
     doc_requirements = coverage.get("documentation_requirements", [])
+    # Context is only available in Format 1 (wrapper), not Format 2 (direct)
     context = criteria.get("context", [])
 
     logger.info(f"prerequisites: {prerequisites}")
