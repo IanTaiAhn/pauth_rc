@@ -200,9 +200,9 @@ class DiagnosticArtifacts(BaseModel):
 
 class OrchestrationResponse(BaseModel):
     """Response schema for single-call PA check orchestration endpoint."""
-    verdict: Literal["LIKELY_TO_APPROVE", "LIKELY_TO_DENY", "NEEDS_REVIEW"] = Field(
+    verdict: Literal["LIKELY_TO_APPROVE", "LIKELY_TO_DENY", "NEEDS_REVIEW", "EXCLUDED"] = Field(
         ...,
-        description="Overall PA verdict based on rule evaluation"
+        description="Overall PA verdict based on rule evaluation. EXCLUDED indicates case is not eligible (e.g., workers' compensation)"
     )
     readiness_score: int = Field(
         ...,
