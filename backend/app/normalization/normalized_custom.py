@@ -430,9 +430,9 @@ def normalize_policy_criteria(criteria: dict) -> list:
                 "logic": "all",
                 "conditions": [
                     {
-                        "field": "validation_passed",
-                        "operator": "eq",
-                        "value": True
+                        "field": "clinical_notes_days_ago",
+                        "operator": "lte",
+                        "value": 30
                     }
                 ]
             })
@@ -616,7 +616,8 @@ def validate_normalized_patient(patient_norm: dict) -> tuple[bool, list]:
         "imaging_documented",
         "clinical_indication",
         "validation_passed",
-        "hallucinations_detected"
+        "hallucinations_detected",
+        "clinical_notes_days_ago"
     ]
 
     missing = []
