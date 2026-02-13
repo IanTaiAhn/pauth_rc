@@ -142,6 +142,22 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     normalized["functional_impairment_documented"] = functional.get("documented", False)
     normalized["functional_impairment_description"] = functional.get("description")
 
+    # Clinical notes recency - calculate days ago from note date
+    clinical_notes_date = data_source.get("clinical_notes_date")
+    if clinical_notes_date:
+        try:
+            from datetime import datetime
+            note_date = datetime.strptime(clinical_notes_date, "%Y-%m-%d")
+            today = datetime.now()
+            days_ago = (today - note_date).days
+            normalized["clinical_notes_days_ago"] = days_ago
+        except (ValueError, TypeError):
+            # If date parsing fails, set to null (fail-safe)
+            normalized["clinical_notes_days_ago"] = None
+    else:
+        # No date provided - set to null (fail-safe)
+        normalized["clinical_notes_days_ago"] = None
+
     # Metadata - ensure defaults
     metadata = data_source.get("_metadata", {})
     normalized["validation_passed"] = metadata.get("validation_passed", False)
@@ -400,9 +416,9 @@ def normalize_policy_criteria(criteria: dict) -> list:
                 "logic": "all",
                 "conditions": [
                     {
-                        "field": "validation_passed",
-                        "operator": "eq",
-                        "value": True
+                        "field": "clinical_notes_days_ago",
+                        "operator": "lte",
+                        "value": 30
                     }
                 ]
             })
@@ -540,7 +556,8 @@ def validate_normalized_patient(patient_norm: dict) -> tuple[bool, list]:
         "nsaid_documented",
         "imaging_documented",
         "validation_passed",
-        "hallucinations_detected"
+        "hallucinations_detected",
+        "clinical_notes_days_ago"
     ]
 
     missing = []
