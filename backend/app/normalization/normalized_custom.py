@@ -137,22 +137,76 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     if imaging_days_ago is not None and normalized["imaging_months_ago"] is None:
         normalized["imaging_months_ago"] = imaging_days_ago / 30
 
+    # AUDIT FIX: Compute imaging_months_ago from clinical_notes_date minus imaging date
+    # when the LLM doesn't provide a relative count
+    if normalized["imaging_months_ago"] is None and imaging.get("documented"):
+        # Try to extract dates and compute
+        from datetime import datetime
+
+        clinical_date_str = data_source.get("clinical_notes_date")
+        imaging_date_str = None
+
+        # Check if there's a date in the imaging section
+        # The imaging findings might contain date info like "X-ray Right Knee (01/30/2025)"
+        imaging_findings = imaging.get("findings", "")
+        if imaging_findings:
+            import re
+            # Try to find a date pattern MM/DD/YYYY
+            date_match = re.search(r'(\d{1,2})/(\d{1,2})/(\d{4})', str(imaging_findings))
+            if date_match:
+                imaging_date_str = f"{date_match.group(3)}-{date_match.group(1).zfill(2)}-{date_match.group(2).zfill(2)}"
+
+        # If we have both dates, compute the difference
+        if clinical_date_str and imaging_date_str:
+            try:
+                clinical_date = datetime.strptime(clinical_date_str, "%Y-%m-%d")
+                imaging_date = datetime.strptime(imaging_date_str, "%Y-%m-%d")
+                days_diff = (clinical_date - imaging_date).days
+                normalized["imaging_months_ago"] = max(0, days_diff / 30)
+            except (ValueError, TypeError) as e:
+                # Date parsing failed, leave as None
+                pass
+
     # Functional impairment
     functional = data_source.get("functional_impairment", {})
     normalized["functional_impairment_documented"] = functional.get("documented", False)
     normalized["functional_impairment_description"] = functional.get("description")
 
-    # Clinical indication - extract from evidence_notes
-    # Look for clinical diagnoses or physical exam findings that map to payer indications
-    # Common patterns: "meniscal tear", "ligament rupture", "mechanical symptoms", etc.
+    # Clinical indication - extract from multiple sources
+    # AUDIT FIX: Scan imaging.findings, pain_characteristics.quality, red_flags.description,
+    # and the raw assessment in addition to evidence_notes
     evidence_notes = data_source.get("evidence_notes", [])
     clinical_indication = None
 
-    # Search through evidence notes for clinical indications
-    # This is a simple keyword-based extraction; more sophisticated NLP could be added later
-    evidence_text = " ".join(evidence_notes).lower() if isinstance(evidence_notes, list) else ""
+    # Gather text from multiple sources
+    imaging = data_source.get("imaging", {})
+    pain_chars = data_source.get("pain_characteristics", {})
+    red_flags = data_source.get("red_flags", {})
+
+    # Build comprehensive search text
+    text_sources = []
+
+    # Evidence notes
+    if isinstance(evidence_notes, list):
+        text_sources.extend(evidence_notes)
+
+    # Imaging findings
+    if imaging.get("findings"):
+        text_sources.append(str(imaging["findings"]))
+
+    # Pain characteristics quality
+    if pain_chars.get("quality"):
+        text_sources.append(str(pain_chars["quality"]))
+
+    # Red flags description
+    if red_flags.get("description"):
+        text_sources.append(str(red_flags["description"]))
+
+    # Combine all text sources
+    evidence_text = " ".join(text_sources).lower()
 
     # Map common clinical findings to standardized indications
+    # AUDIT FIX: Added "mechanical symptoms" and "instability" to approved list
     indication_keywords = {
         "meniscal tear": ["meniscal tear", "meniscus tear", "torn meniscus"],
         "mechanical symptoms": ["mechanical", "catching", "locking", "clicking", "popping"],
@@ -574,21 +628,25 @@ def normalize_policy_criteria(criteria: dict) -> list:
             elif "infection" in indication_lower or "tumor" in indication_lower or "fracture" in indication_lower or "red flag" in indication_lower:
                 normalized_indications.append("red flag")
 
+        # AUDIT FIX: Deduplicate the approved indication list
         # Only add the rule if we have normalized indications
         if normalized_indications:
+            # Deduplicate while preserving order
+            deduplicated_indications = list(dict.fromkeys(normalized_indications))
+
             rules_list.append({
                 "id": "clinical_indication_requirement",
-                "description": f"Patient must have a valid clinical indication: {', '.join(set(normalized_indications))}",
+                "description": f"Patient must have a valid clinical indication: {', '.join(deduplicated_indications)}",
                 "logic": "all",
                 "conditions": [
                     {
                         "field": "clinical_indication",
                         "operator": "in",
-                        "value": normalized_indications
+                        "value": deduplicated_indications
                     }
                 ]
             })
-            logger.info(f"Added clinical_indication_requirement rule with {len(normalized_indications)} allowed indications")
+            logger.info(f"Added clinical_indication_requirement rule with {len(deduplicated_indications)} allowed indications")
 
     # Log warning if no clinical rules were generated
     if len(rules_list) == 0:
@@ -602,8 +660,52 @@ def normalize_policy_criteria(criteria: dict) -> list:
         logger.info(f"Generated {len(rules_list)} clinical rules before evidence_quality rule")
 
     # =========================================================================
-    # RULE 6: Evidence Quality Check (ALWAYS INCLUDE)
+    # RULE 6: Special Population Rules (AUDIT FIX)
     # =========================================================================
+    # AUDIT FIX: Add special population rules to normalize_policy_criteria
+    # At minimum flag under-18 pediatric evaluation and 65+ surgical candidacy requirements
+
+    # Check for pediatric population mentions
+    if any(keyword in all_text_lower for keyword in ["pediatric", "under 18", "age 18", "children", "adolescent"]):
+        processed_criteria.add("pediatric_evaluation")
+        logger.info("Detected pediatric population requirement in policy")
+        # Note: This is a flag rule - we need to add fields to patient schema to evaluate this properly
+        # For now, we log that this requirement exists but don't create an evaluable rule
+        # because there's no patient_age field in the normalized schema yet
+        logger.warning(
+            "SPECIAL POPULATION: Pediatric evaluation requirement detected but patient_age field "
+            "not yet implemented in patient schema. This criterion cannot be evaluated."
+        )
+
+    # Check for elderly/surgical candidacy mentions
+    if any(keyword in all_text_lower for keyword in ["age 65", "surgical candidacy", "surgical candidate", "over 65"]):
+        processed_criteria.add("surgical_candidacy")
+        logger.info("Detected surgical candidacy requirement in policy")
+        # Same as above - need patient_age and surgical_candidacy fields
+        logger.warning(
+            "SPECIAL POPULATION: Surgical candidacy requirement detected but patient_age and "
+            "surgical_candidacy_assessed fields not yet implemented. This criterion cannot be evaluated."
+        )
+
+    # =========================================================================
+    # RULE 7: Repeat Imaging 12-Month Rule (AUDIT FIX)
+    # =========================================================================
+    # AUDIT FIX: Add repeat imaging 12-month rule - extract from quantity_limits in the policy
+    quantity_limits = coverage.get("quantity_limits", "")
+    if quantity_limits and ("12 month" in str(quantity_limits).lower() or "repeat imaging" in str(quantity_limits).lower()):
+        processed_criteria.add("repeat_imaging_justification")
+        logger.info("Detected repeat imaging 12-month rule in policy")
+        # Note: Need to add prior_imaging_date and repeat_imaging_justification fields to patient schema
+        logger.warning(
+            "REPEAT IMAGING: 12-month repeat imaging rule detected but prior_imaging_date and "
+            "repeat_imaging_justification fields not yet implemented. This criterion cannot be evaluated."
+        )
+
+    # =========================================================================
+    # RULE 8: Evidence Quality Check (ALWAYS INCLUDE)
+    # =========================================================================
+    # AUDIT FIX: This rule is weighted at 0 for scoring purposes in readiness.py
+    # since it is an internal check, not a payer criterion
     rules_list.append({
         "id": "evidence_quality",
         "description": "Evidence must be validated with no hallucinations",

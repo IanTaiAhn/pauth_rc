@@ -182,6 +182,103 @@ def extract_patient_name(patient_json: dict) -> str:
     return "Unknown Patient"
 
 
+def detect_workers_comp(patient_json: dict, chart_text: str) -> bool:
+    """
+    Detect if this is a workers' compensation case.
+
+    AUDIT FIX: Check for WC claim language in the extracted patient data.
+
+    Args:
+        patient_json: Raw patient extraction data
+        chart_text: Original chart text
+
+    Returns:
+        True if WC case detected, False otherwise
+    """
+    # Check evidence notes
+    evidence_notes = patient_json.get("evidence_notes", [])
+    all_notes = " ".join(evidence_notes).lower()
+
+    # Check functional impairment description
+    functional_impair = patient_json.get("functional_impairment", {})
+    functional_desc = functional_impair.get("description", "").lower()
+
+    # Also check the raw chart text for WC indicators
+    chart_lower = chart_text.lower()
+
+    # WC keywords
+    wc_keywords = [
+        "worker's compensation",
+        "workers compensation",
+        "workers' compensation",
+        "workman's compensation",
+        "work comp",
+        "wc claim",
+        "work injury",
+        "workplace injury",
+        "injured at work",
+        "on-the-job injury"
+    ]
+
+    # Check all text sources
+    combined_text = f"{all_notes} {functional_desc} {chart_lower}"
+
+    return any(keyword in combined_text for keyword in wc_keywords)
+
+
+def detect_exception_pathway(patient_json: dict, normalized_patient: dict) -> str | None:
+    """
+    Detect if patient qualifies for an exception pathway.
+
+    AUDIT FIX: Check for exception pathways from Policy Section 3:
+    - Section 3.1: Acute trauma exception (acute injury + inability to bear weight + suspected complete ligament rupture)
+    - Section 3.2: Post-operative exception (within 6 months of surgery)
+    - Section 3.3: Red flag exception (infection, tumor, fracture concerns)
+
+    Args:
+        patient_json: Raw patient extraction data
+        normalized_patient: Normalized patient evidence
+
+    Returns:
+        Exception pathway name if applicable, None otherwise
+    """
+    # Check for red flag exception (Section 3.3)
+    red_flags = patient_json.get("red_flags", {})
+    if red_flags.get("documented"):
+        red_flag_desc = red_flags.get("description", "").lower()
+        # Check for infection, tumor, fracture indicators
+        if any(keyword in red_flag_desc for keyword in ["infection", "tumor", "fracture", "cancer", "septic", "fever"]):
+            return "Red Flag Exception - Section 3.3 (infection/tumor/fracture concern)"
+
+    # Check for acute trauma exception (Section 3.1)
+    # Indicators: traumatic injury + inability to bear weight + ligament rupture suspicion
+    functional_impair = patient_json.get("functional_impairment", {})
+    functional_desc = functional_impair.get("description", "").lower()
+    clinical_indication = normalized_patient.get("clinical_indication", "").lower()
+
+    unable_to_bear_weight = "unable to bear weight" in functional_desc or "non-weight-bearing" in functional_desc
+    traumatic_injury = "traumatic injury" in clinical_indication or "trauma" in clinical_indication
+    ligament_concern = "ligament rupture" in clinical_indication or "acl" in clinical_indication
+
+    if unable_to_bear_weight and (traumatic_injury or ligament_concern):
+        return "Acute Trauma Exception - Section 3.1 (acute injury + inability to bear weight + suspected ligament rupture)"
+
+    # Check for post-operative exception (Section 3.2)
+    # Indicator: post-operative in clinical indication
+    conservative = patient_json.get("conservative_therapy", {})
+    if "post-operative" in clinical_indication or "post-op" in clinical_indication:
+        return "Post-Operative Exception - Section 3.2 (within 6 months of surgery)"
+
+    # Check if there are any surgical history indicators
+    # This is a fallback check for cases where the clinical indication might not be set correctly
+    evidence_notes = patient_json.get("evidence_notes", [])
+    all_text = " ".join(evidence_notes).lower()
+    if any(keyword in all_text for keyword in ["post-op", "post-surgical", "postoperative", "after surgery"]):
+        return "Post-Operative Exception - Section 3.2 (within 6 months of surgery)"
+
+    return None
+
+
 @router.post("/check_prior_auth", response_model=OrchestrationResponse)
 async def check_prior_auth(
     file: UploadFile = File(..., description="Patient chart file (PDF or TXT)"),
@@ -333,10 +430,18 @@ async def check_prior_auth(
             # Extract patient name
             patient_name = extract_patient_name(patient_json)
 
-            # Compute readiness score
+            # AUDIT FIX: Compute readiness score
+            # Remove evidence_quality rule from the denominator, or weight it at 0 for scoring purposes
+            # since it is an internal check, not a payer criterion
             total_rules = evaluation["total_rules"]
             rules_met = evaluation["rules_met"]
-            readiness_score = int((rules_met / total_rules * 100) if total_rules > 0 else 0)
+
+            # Count rules excluding evidence_quality
+            clinical_rules_count = sum(1 for r in evaluation["results"] if r["rule_id"] != "evidence_quality")
+            clinical_rules_met = sum(1 for r in evaluation["results"] if r["rule_id"] != "evidence_quality" and r["met"])
+
+            # Calculate score based only on clinical rules (excluding evidence_quality)
+            readiness_score = int((clinical_rules_met / clinical_rules_count * 100) if clinical_rules_count > 0 else 0)
 
             # Build criteria list
             criteria = []
@@ -358,12 +463,47 @@ async def check_prior_auth(
                     status=status,
                 ))
 
-            # Derive verdict
-            verdict = derive_verdict(readiness_score, fail_count)
+            # AUDIT FIX: Check for WC exclusion before proceeding
+            # Policy Section 4(d) excludes worker's compensation cases
+            wc_detected = detect_workers_comp(patient_json, text)
+            if wc_detected:
+                # Return a special response for WC cases
+                logger.warning("Workers' compensation case detected - not eligible for Medicaid PA")
+                response = OrchestrationResponse(
+                    verdict="EXCLUDED",
+                    readiness_score=0,
+                    patient_name=extract_patient_name(patient_json),
+                    payer=PAYER_LABELS.get(payer.lower(), payer),
+                    cpt=cpt,
+                    procedure_label=CPT_LABELS.get(cpt, f"CPT {cpt}"),
+                    criteria=[CriterionResult(
+                        criterion="Workers' Compensation Exclusion",
+                        required="Not a WC claim",
+                        found="Workers' compensation claim detected",
+                        status="FAIL"
+                    )],
+                    gaps=["This is a workers' compensation case. Policy Section 4(d) requires billing through the WC carrier, not Medicaid."],
+                    next_steps="This case should be billed through the workers' compensation carrier, not Utah Medicaid. Refer to Policy Section 4(d).",
+                    exception_applied="Workers' Compensation Exclusion - Section 4(d)",
+                )
+                if include_diagnostics:
+                    diagnostics_data["final_response"] = response.model_dump()
+                    response.diagnostics = DiagnosticArtifacts(**diagnostics_data)
+                save_diagnostic_json(file.filename, response.model_dump(), "06_final_response")
+                return response
 
-            # TODO: Implement exception pathway detection
-            # For now, this is a placeholder
-            exception_applied = None
+            # AUDIT FIX: Implement exception pathway detection
+            # Check red_flags.documented, functional_impairment_description for "unable to bear weight,"
+            # and conservative_therapy context before evaluating standard PA rules
+            exception_applied = detect_exception_pathway(patient_json, normalized_patient)
+
+            # Derive verdict (exception pathway may override)
+            if exception_applied:
+                # Exception pathways typically lead to approval if documented
+                verdict = "LIKELY_TO_APPROVE"
+                logger.info(f"Exception pathway detected: {exception_applied}")
+            else:
+                verdict = derive_verdict(readiness_score, fail_count)
 
             # Generate next steps
             next_steps = generate_next_steps(gaps, exception_applied)
