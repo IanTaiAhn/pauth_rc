@@ -9,9 +9,9 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     """
     Normalize YOUR specific patient chart JSON format.
 
-    Handles TWO formats:
+    Handles THREE formats:
 
-    Format 1 - Groq output (needs parsing):
+    Format 1 - Groq output with wrapper (legacy):
     {
       "filename": "...",
       "score": 100,
@@ -24,7 +24,16 @@ def normalize_patient_evidence(evidence: dict) -> dict:
       "missing_items": [...]
     }
 
-    Format 2 - Pre-normalized (ready to use):
+    Format 2 - Groq output flat structure (current):
+    {
+      "symptom_duration_months": 4,
+      "conservative_therapy": {...},
+      "imaging": {...},
+      "_metadata": {...},
+      ...
+    }
+
+    Format 3 - Pre-normalized (ready to use):
     {
       "normalized_data": {
         "symptom_duration_months": 4,
@@ -36,22 +45,27 @@ def normalize_patient_evidence(evidence: dict) -> dict:
 
     Handles edge cases and ensures all fields have proper defaults.
 
-    IMPROVED: Detects format and handles both Groq output and pre-normalized data.
+    IMPROVED: Detects format and handles flat structure, wrapper structure, and pre-normalized data.
     """
     normalized = {}
 
-    # DETECTION: Check if this is pre-normalized data (Format 2)
+    # DETECTION: Check if this is pre-normalized data (Format 3)
     if "normalized_data" in evidence:
         # Already normalized - just extract and return
         return evidence["normalized_data"]
 
-    # Otherwise, it's Format 1 (Groq output) - parse it
-    # Extract the requirements section (directly at top level in Groq output)
-    requirements = evidence.get("requirements", {})
+    # DETECTION: Check if this is flat structure (Format 2) or wrapper structure (Format 1)
+    # Flat structure has clinical fields at top level, wrapper has them in "requirements"
+    if "requirements" in evidence:
+        # Format 1 - wrapper structure (legacy)
+        data_source = evidence.get("requirements", {})
+    else:
+        # Format 2 - flat structure (current)
+        data_source = evidence
 
     # Symptom duration - handle both months and weeks
-    symptom_months = requirements.get("symptom_duration_months")
-    symptom_weeks = requirements.get("symptom_duration_weeks")
+    symptom_months = data_source.get("symptom_duration_months")
+    symptom_weeks = data_source.get("symptom_duration_weeks")
 
     if symptom_months is not None:
         normalized["symptom_duration_months"] = symptom_months
@@ -64,7 +78,7 @@ def normalize_patient_evidence(evidence: dict) -> dict:
         normalized["symptom_duration_weeks"] = None
 
     # Conservative therapy
-    conservative = requirements.get("conservative_therapy", {})
+    conservative = data_source.get("conservative_therapy", {})
 
     # Physical therapy - handle multiple possible field names
     pt = conservative.get("physical_therapy", {})
@@ -97,7 +111,7 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     normalized["injection_failed"] = outcome in ["failed", "no relief", "unsuccessful", "ineffective"]
 
     # Imaging - normalize type field
-    imaging = requirements.get("imaging", {})
+    imaging = data_source.get("imaging", {})
     normalized["imaging_documented"] = imaging.get("documented", False)
 
     # Normalize imaging type (handle case variations)
@@ -124,17 +138,17 @@ def normalize_patient_evidence(evidence: dict) -> dict:
         normalized["imaging_months_ago"] = imaging_days_ago / 30
 
     # Functional impairment
-    functional = requirements.get("functional_impairment", {})
+    functional = data_source.get("functional_impairment", {})
     normalized["functional_impairment_documented"] = functional.get("documented", False)
     normalized["functional_impairment_description"] = functional.get("description")
 
     # Metadata - ensure defaults
-    metadata = requirements.get("_metadata", {})
+    metadata = data_source.get("_metadata", {})
     normalized["validation_passed"] = metadata.get("validation_passed", False)
     normalized["hallucinations_detected"] = metadata.get("hallucinations_detected", 0)
 
     # Evidence notes
-    normalized["evidence_notes"] = requirements.get("evidence_notes", [])
+    normalized["evidence_notes"] = data_source.get("evidence_notes", [])
 
     # Top level data from Groq output
     normalized["score"] = evidence.get("score")
@@ -186,13 +200,19 @@ def normalize_policy_criteria(criteria: dict) -> list:
     IMPROVED: Detects format and handles both Groq output and pre-normalized data.
     """
     import re
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"normalize_policy_criteria called with keys: {list(criteria.keys())}")
 
     rules_list = []
 
     rules = criteria.get("rules", {})
+    logger.info(f"rules type: {type(rules)}, is list: {isinstance(rules, list)}")
 
     # DETECTION: Check if rules is already a list (Format 2: pre-normalized)
     if isinstance(rules, list):
+        logger.info(f"Rules already normalized, returning {len(rules)} rules")
         # Rules are already in the correct format - just validate and return
         for rule in rules:
             if isinstance(rule, dict) and "id" in rule and "conditions" in rule:
@@ -201,11 +221,16 @@ def normalize_policy_criteria(criteria: dict) -> list:
 
     # Otherwise, it's Format 1 (Groq output) - parse it
     coverage = rules.get("coverage_criteria", {})
+    logger.info(f"coverage_criteria keys: {list(coverage.keys()) if coverage else 'None'}")
 
     # Extract all text sources for intelligent parsing
     prerequisites = coverage.get("prerequisites", [])
     doc_requirements = coverage.get("documentation_requirements", [])
     context = criteria.get("context", [])
+
+    logger.info(f"prerequisites: {prerequisites}")
+    logger.info(f"doc_requirements count: {len(doc_requirements)}")
+    logger.info(f"context type: {type(context)}, count: {len(context) if isinstance(context, list) else 'N/A'}")
 
     # Combine all text for pattern matching
     all_text = " ".join(
@@ -360,6 +385,18 @@ def normalize_policy_criteria(criteria: dict) -> list:
     # =========================================================================
     # RULE 5: Evidence Quality Check (ALWAYS INCLUDE)
     # =========================================================================
+
+    # Log warning if no clinical rules were generated
+    if len(rules_list) == 0:
+        logger.warning(
+            f"No clinical rules generated from policy. "
+            f"Prerequisites: {prerequisites}, "
+            f"Doc requirements count: {len(doc_requirements)}, "
+            f"Context entries: {len(context) if isinstance(context, list) else 0}"
+        )
+    else:
+        logger.info(f"Generated {len(rules_list)} clinical rules before evidence_quality rule")
+
     rules_list.append({
         "id": "evidence_quality",
         "description": "Evidence must be validated with no hallucinations",
@@ -378,6 +415,7 @@ def normalize_policy_criteria(criteria: dict) -> list:
         ]
     })
 
+    logger.info(f"Returning {len(rules_list)} total rules (including evidence_quality)")
     return rules_list
 
 
