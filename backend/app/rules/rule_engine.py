@@ -93,7 +93,7 @@ def compare_values(patient_value: Any, operator: str, threshold: Any) -> bool:
 def evaluate_condition(patient_data: dict, condition: dict) -> bool:
     """
     Evaluate a single condition against patient data.
-    
+
     Condition format:
     {
         "field": "symptom_duration_weeks",
@@ -104,12 +104,12 @@ def evaluate_condition(patient_data: dict, condition: dict) -> bool:
     field = condition.get("field")
     operator = condition.get("operator")
     threshold = condition.get("value")
-    
+
     if not all([field, operator]):
         return False
-    
+
     patient_value = get_nested_value(patient_data, field)
-    
+
     try:
         return compare_values(patient_value, operator, threshold)
     except Exception as e:
@@ -117,10 +117,58 @@ def evaluate_condition(patient_data: dict, condition: dict) -> bool:
         return False
 
 
+def _format_patient_values(patient_values: List[Any], patient_data: dict) -> str:
+    """
+    Format patient values into a human-readable summary string.
+
+    Handles different value types intelligently:
+    - Strings: Join with commas
+    - Numbers: Format appropriately (e.g., "6 weeks", "2 months")
+    - Lists: Flatten and join
+    - Booleans: Convert to Yes/No
+
+    Args:
+        patient_values: List of raw patient values from conditions
+        patient_data: Full patient data dict for context
+
+    Returns:
+        Human-readable summary string
+    """
+    if not patient_values:
+        return "Not found in chart"
+
+    formatted_parts = []
+
+    for value in patient_values:
+        if value is None:
+            continue
+        elif isinstance(value, bool):
+            formatted_parts.append("Yes" if value else "No")
+        elif isinstance(value, (int, float)):
+            # Try to add contextual units if possible
+            # For now, just convert to string
+            formatted_parts.append(str(value))
+        elif isinstance(value, list):
+            # Flatten lists and join
+            list_items = [str(item) for item in value if item is not None]
+            if list_items:
+                formatted_parts.append(", ".join(list_items))
+        elif isinstance(value, str):
+            formatted_parts.append(value)
+        else:
+            formatted_parts.append(str(value))
+
+    if not formatted_parts:
+        return "Not found in chart"
+
+    # Join all parts with semicolons for clarity
+    return "; ".join(formatted_parts)
+
+
 def evaluate_rule(patient_data: dict, rule: dict) -> dict:
     """
     Evaluate a complete rule with multiple conditions.
-    
+
     Rule format:
     {
         "id": "rule_1",
@@ -133,44 +181,61 @@ def evaluate_rule(patient_data: dict, rule: dict) -> dict:
     description = rule.get("description", "No description")
     logic = rule.get("logic", "all")
     conditions = rule.get("conditions", [])
-    
+
     if not conditions:
         return {
             "rule_id": rule_id,
             "description": description,
             "met": False,
-            "details": "No conditions specified"
+            "details": "No conditions specified",
+            "patient_value": "Not found in chart"
         }
-    
+
     results = [evaluate_condition(patient_data, cond) for cond in conditions]
-    
+
     if logic == "all":
         met = all(results)
     elif logic == "any":
         met = any(results)
     else:
         met = False
-    
+
     # Provide detailed feedback
     condition_details = []
+    patient_values = []
     for i, (condition, result) in enumerate(zip(conditions, results)):
         field = condition.get("field")
         operator = condition.get("operator")
         threshold = condition.get("value")
         patient_value = get_nested_value(patient_data, field)
-        
+
         condition_details.append({
             "condition": f"{field} {operator} {threshold}",
             "patient_value": patient_value,
             "met": result
         })
-    
+
+        # Collect patient values for summarization
+        if patient_value is not None:
+            patient_values.append(patient_value)
+
+    # Generate a summarized patient_value string
+    if not patient_values:
+        summarized_patient_value = "Not found in chart"
+    elif met:
+        # For passing rules, concatenate the matched values into a readable string
+        summarized_patient_value = _format_patient_values(patient_values, patient_data)
+    else:
+        # For failing rules, indicate what was found (if anything)
+        summarized_patient_value = _format_patient_values(patient_values, patient_data) if patient_values else "Not found in chart"
+
     return {
         "rule_id": rule_id,
         "description": description,
         "met": met,
         "logic": logic,
-        "condition_details": condition_details
+        "condition_details": condition_details,
+        "patient_value": summarized_patient_value
     }
 
 
