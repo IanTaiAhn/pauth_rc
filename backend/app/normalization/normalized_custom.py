@@ -142,6 +142,36 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     normalized["functional_impairment_documented"] = functional.get("documented", False)
     normalized["functional_impairment_description"] = functional.get("description")
 
+    # Clinical indication - extract from evidence_notes
+    # Look for clinical diagnoses or physical exam findings that map to payer indications
+    # Common patterns: "meniscal tear", "ligament rupture", "mechanical symptoms", etc.
+    evidence_notes = data_source.get("evidence_notes", [])
+    clinical_indication = None
+
+    # Search through evidence notes for clinical indications
+    # This is a simple keyword-based extraction; more sophisticated NLP could be added later
+    evidence_text = " ".join(evidence_notes).lower() if isinstance(evidence_notes, list) else ""
+
+    # Map common clinical findings to standardized indications
+    indication_keywords = {
+        "meniscal tear": ["meniscal tear", "meniscus tear", "torn meniscus"],
+        "mechanical symptoms": ["mechanical", "catching", "locking", "clicking", "popping"],
+        "ligament rupture": ["acl", "pcl", "mcl", "lcl", "ligament", "cruciate", "collateral"],
+        "instability": ["instability", "giving way", "unstable"],
+        "traumatic injury": ["trauma", "traumatic", "acute injury", "fall", "accident"],
+        "positive mcmurray": ["mcmurray", "thessaly", "apley"],
+        "post-operative": ["post-op", "post-surgical", "post surgery", "postoperative"],
+        "red flag": ["infection", "tumor", "fracture", "cancer", "septic"]
+    }
+
+    # Find the first matching indication
+    for indication, keywords in indication_keywords.items():
+        if any(keyword in evidence_text for keyword in keywords):
+            clinical_indication = indication
+            break
+
+    normalized["clinical_indication"] = clinical_indication
+
     # Metadata - ensure defaults
     metadata = data_source.get("_metadata", {})
     normalized["validation_passed"] = metadata.get("validation_passed", False)
@@ -409,7 +439,52 @@ def normalize_policy_criteria(criteria: dict) -> list:
             break
 
     # =========================================================================
-    # RULE 5: Evidence Quality Check (ALWAYS INCLUDE)
+    # RULE 5: Clinical Indication Requirement (CRITICAL GATING CRITERION)
+    # =========================================================================
+    # This checks if the patient has a valid clinical indication from the payer's list
+    clinical_indications = coverage.get("clinical_indications", [])
+
+    if clinical_indications:
+        # Normalize the indications list for case-insensitive matching
+        normalized_indications = []
+        for indication in clinical_indications:
+            indication_lower = indication.lower()
+            # Map payer's indication text to our standardized keywords
+            if "meniscal tear" in indication_lower or "meniscus" in indication_lower:
+                normalized_indications.append("meniscal tear")
+            elif "mechanical" in indication_lower:
+                normalized_indications.append("mechanical symptoms")
+            elif "ligament" in indication_lower or "acl" in indication_lower or "pcl" in indication_lower:
+                normalized_indications.append("ligament rupture")
+            elif "instability" in indication_lower:
+                normalized_indications.append("instability")
+            elif "traumatic" in indication_lower or "trauma" in indication_lower:
+                normalized_indications.append("traumatic injury")
+            elif "mcmurray" in indication_lower:
+                normalized_indications.append("positive mcmurray")
+            elif "post-operative" in indication_lower or "surgery" in indication_lower:
+                normalized_indications.append("post-operative")
+            elif "infection" in indication_lower or "tumor" in indication_lower or "fracture" in indication_lower or "red flag" in indication_lower:
+                normalized_indications.append("red flag")
+
+        # Only add the rule if we have normalized indications
+        if normalized_indications:
+            rules_list.append({
+                "id": "clinical_indication_requirement",
+                "description": f"Patient must have a valid clinical indication: {', '.join(set(normalized_indications))}",
+                "logic": "all",
+                "conditions": [
+                    {
+                        "field": "clinical_indication",
+                        "operator": "in",
+                        "value": normalized_indications
+                    }
+                ]
+            })
+            logger.info(f"Added clinical_indication_requirement rule with {len(normalized_indications)} allowed indications")
+
+    # =========================================================================
+    # RULE 6: Evidence Quality Check (ALWAYS INCLUDE)
     # =========================================================================
 
     # Log warning if no clinical rules were generated
@@ -539,6 +614,7 @@ def validate_normalized_patient(patient_norm: dict) -> tuple[bool, list]:
         "pt_attempted",
         "nsaid_documented",
         "imaging_documented",
+        "clinical_indication",
         "validation_passed",
         "hallucinations_detected"
     ]
@@ -608,6 +684,13 @@ def get_normalization_summary(patient_norm: dict) -> str:
         Formatted string summary
     """
     lines = ["=== Patient Evidence Summary ==="]
+
+    # Clinical indication
+    clinical_indication = patient_norm.get("clinical_indication")
+    if clinical_indication:
+        lines.append(f"Clinical Indication: {clinical_indication}")
+    else:
+        lines.append("Clinical Indication: ✗ None identified")
 
     # Symptoms
     if patient_norm.get("symptom_duration_months"):
