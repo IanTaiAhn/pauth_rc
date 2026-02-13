@@ -141,3 +141,18 @@ This does not need marketing polish.
 - Issue #4 — Storage & Retention: CRITICAL-1 (encryption config) + HIGH-3 (retention policy) + MED-5 (pickle → JSON). These all touch how data is stored and for how long.
 - Issue #5 — Input Hardening: HIGH-4 (file upload path traversal) + MED-1 (error handling/tracebacks) + MED-3 (dependency scanning). Security hardening of the API surface.
 - Issue #6 — Infrastructure & Cleanup: HIGH-1 (hardcoded paths) + HIGH-2 (TLS/proxy docs) + LOW items + CLAUDE.md / documentation.
+
+
+### Independent Imaging Clincs
+#### SLC
+- TaylorMED MRI
+- MRI Center
+- First Choice Imaging
+- Wasatch Imaging
+
+#### Ogden (Northern Utah)
+- Mountain Medical Imaging Center Ogden
+- Tellica Imgaging Ogden
+- RAYUS Radiology
+- Fusion Imaging
+- Digital Motion Xray
