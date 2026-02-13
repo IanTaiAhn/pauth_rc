@@ -239,6 +239,43 @@ def normalize_policy_criteria(criteria: dict) -> list:
     Output: List of rules in standardized condition format
 
     IMPROVED: Detects format and handles Groq output, direct policy object, and pre-normalized data.
+
+    IMPORTANT: This function only generates rules for fields that exist in the normalized patient
+    schema. Any policy criteria that reference unmapped fields will be skipped with a warning.
+
+    FIELD MAPPING STATUS:
+    =====================
+    Currently mapped criteria (WILL be evaluated):
+    - X-ray/imaging requirements → imaging_documented, imaging_type, imaging_months_ago
+    - Physical therapy → pt_attempted, pt_duration_weeks, pt_sessions
+    - Medication trials → nsaid_documented, nsaid_outcome, nsaid_failed
+    - Injections → injection_documented, injection_outcome, injection_failed
+    - Clinical notes recency → validation_passed (proxy check)
+    - Evidence quality → validation_passed, hallucinations_detected
+
+    Known unmapped criteria (WILL be skipped with warning):
+    - Renal function (creatinine/eGFR) - OUT OF SCOPE for MVP
+      Reason: Only relevant for MRI with contrast (CPT 73722/73723). Current focus is
+      non-contrast knee MRI (73721). Add renal_function fields when expanding to contrast imaging.
+
+    - Conservative treatment completion (holistic check) - PARTIALLY MAPPED
+      Reason: Individual components (PT, NSAIDs) are checked separately. A holistic "completion"
+      rule would require business logic to determine if "at least two of" treatments were completed.
+      This may require a composite rule or separate completion_status field in patient schema.
+
+    - Contraindications - OUT OF SCOPE for MVP
+      Reason: Contraindication screening requires clinical decision logic beyond PA readiness.
+      This is a safety check that should be performed by the ordering clinician, not automated.
+
+    - Allergy documentation (for contrast imaging) - OUT OF SCOPE for MVP
+      Reason: Same as renal function - only relevant for contrast MRI. Add when expanding scope.
+
+    To add a new criterion:
+    1. Add corresponding field(s) to normalize_patient_evidence()
+    2. Update evidence.py extraction logic to capture the data from clinical notes
+    3. Add rule generation logic in this function
+    4. Add field name to processed_criteria set
+    5. Update validate_normalized_patient() if it's a required field
     """
     import re
     import logging
@@ -294,6 +331,10 @@ def normalize_policy_criteria(criteria: dict) -> list:
     )
     all_text_lower = all_text.lower()
 
+    # Track which criteria are being processed vs. skipped
+    processed_criteria = set()
+    skipped_criteria = []
+
     # =========================================================================
     # RULE 1: X-ray/Imaging Requirement
     # =========================================================================
@@ -301,6 +342,7 @@ def normalize_policy_criteria(criteria: dict) -> list:
     for prereq in prerequisites:
         prereq_lower = prereq.lower()
         if "x-ray" in prereq_lower or "xray" in prereq_lower or "imaging" in prereq_lower:
+            processed_criteria.add("imaging_requirement")
             # Extract timeframe with multiple patterns
             imaging_months = 2  # default
 
@@ -369,6 +411,7 @@ def normalize_policy_criteria(criteria: dict) -> list:
                 pt_weeks_required = 6
 
     if pt_mentioned:
+        processed_criteria.add("physical_therapy_requirement")
         conditions = [
             {
                 "field": "pt_attempted",
@@ -404,6 +447,7 @@ def normalize_policy_criteria(criteria: dict) -> list:
             break
 
     if medication_mentioned:
+        processed_criteria.add("medication_trial_requirement")
         rules_list.append({
             "id": "medication_trial_requirement",
             "description": "Medication trial must be documented",
@@ -424,6 +468,7 @@ def normalize_policy_criteria(criteria: dict) -> list:
     for doc_req in doc_requirements:
         doc_lower = doc_req.lower()
         if "30 days" in doc_lower or "within 30 days" in doc_lower:
+            processed_criteria.add("recent_clinical_notes")
             rules_list.append({
                 "id": "recent_clinical_notes",
                 "description": "Clinical notes must be within 30 days",
@@ -439,6 +484,65 @@ def normalize_policy_criteria(criteria: dict) -> list:
             break
 
     # =========================================================================
+    # DETECT AND WARN ABOUT UNPROCESSED CRITERIA
+    # =========================================================================
+    # Check for criteria that may have been skipped due to missing field mappings
+
+    # Renal function criteria (for MRI with contrast)
+    if any(keyword in all_text_lower for keyword in ["renal", "creatinine", "egfr", "kidney"]):
+        if "renal_function" not in processed_criteria:
+            skipped_criteria.append({
+                "criterion": "renal_function",
+                "reason": "No mapping exists in normalized patient schema",
+                "sample_text": next((text for text in prerequisites + doc_requirements if any(k in text.lower() for k in ["renal", "creatinine", "egfr"])), "Found in context")
+            })
+            logger.warning(
+                "SKIPPED CRITERION: Renal function requirements detected in policy but no field mapping exists. "
+                "This criterion will NOT be evaluated in PA readiness check."
+            )
+
+    # Conservative treatment completion (holistic check, not just individual components)
+    if any(phrase in all_text_lower for phrase in ["conservative treatment completed", "completion of conservative", "conservative therapy completed"]):
+        if "conservative_treatment_completion" not in processed_criteria:
+            skipped_criteria.append({
+                "criterion": "conservative_treatment_completion",
+                "reason": "No holistic completion check - only individual PT/NSAID checks exist",
+                "sample_text": next((text for text in prerequisites + doc_requirements if "complet" in text.lower() and "conservative" in text.lower()), "Found in context")
+            })
+            logger.warning(
+                "SKIPPED CRITERION: Conservative treatment completion requirement detected but only individual "
+                "component checks (PT, NSAIDs) are implemented. A holistic 'completion' validation may be needed."
+            )
+
+    # Generic check for other potentially missed criteria in documentation requirements
+    for doc_req in doc_requirements:
+        doc_lower = doc_req.lower()
+        # Check for common but unprocessed requirements
+        if "contraindication" in doc_lower and "contraindication" not in processed_criteria:
+            skipped_criteria.append({
+                "criterion": "contraindication_check",
+                "reason": "No field mapping for contraindications",
+                "sample_text": doc_req[:100]
+            })
+            logger.warning(f"SKIPPED CRITERION: Contraindication requirement detected but not mapped: {doc_req[:80]}...")
+
+        if "allergy" in doc_lower and "allergy" not in processed_criteria:
+            skipped_criteria.append({
+                "criterion": "allergy_documentation",
+                "reason": "No field mapping for allergy documentation",
+                "sample_text": doc_req[:100]
+            })
+            logger.warning(f"SKIPPED CRITERION: Allergy requirement detected but not mapped: {doc_req[:80]}...")
+
+    # Log summary of skipped criteria
+    if skipped_criteria:
+        logger.warning(
+            f"Policy normalization SKIPPED {len(skipped_criteria)} criteria due to missing field mappings: "
+            f"{[c['criterion'] for c in skipped_criteria]}"
+        )
+
+    # =========================================================================
+    # RULE 5: Evidence Quality Check (ALWAYS INCLUDE)
     # RULE 5: Clinical Indication Requirement (CRITICAL GATING CRITERION)
     # =========================================================================
     # This checks if the patient has a valid clinical indication from the payer's list
@@ -517,6 +621,9 @@ def normalize_policy_criteria(criteria: dict) -> list:
     })
 
     logger.info(f"Returning {len(rules_list)} total rules (including evidence_quality)")
+    logger.info(f"Processed criteria: {sorted(processed_criteria)}")
+    if skipped_criteria:
+        logger.info(f"Skipped {len(skipped_criteria)} criteria - see warnings above for details")
     return rules_list
 
 
