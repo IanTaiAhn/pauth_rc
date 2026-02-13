@@ -180,6 +180,10 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     # Evidence notes
     normalized["evidence_notes"] = data_source.get("evidence_notes", [])
 
+    # Clinical notes age - extract from metadata or set default
+    # This represents how recent the clinical documentation is
+    normalized["clinical_notes_days_ago"] = metadata.get("clinical_notes_days_ago", 0)
+
     # Top level data from Groq output
     normalized["score"] = evidence.get("score")
     normalized["missing_items"] = evidence.get("missing_items", [])
@@ -542,7 +546,6 @@ def normalize_policy_criteria(criteria: dict) -> list:
         )
 
     # =========================================================================
-    # RULE 5: Evidence Quality Check (ALWAYS INCLUDE)
     # RULE 5: Clinical Indication Requirement (CRITICAL GATING CRITERION)
     # =========================================================================
     # This checks if the patient has a valid clinical indication from the payer's list
@@ -587,10 +590,6 @@ def normalize_policy_criteria(criteria: dict) -> list:
             })
             logger.info(f"Added clinical_indication_requirement rule with {len(normalized_indications)} allowed indications")
 
-    # =========================================================================
-    # RULE 6: Evidence Quality Check (ALWAYS INCLUDE)
-    # =========================================================================
-
     # Log warning if no clinical rules were generated
     if len(rules_list) == 0:
         logger.warning(
@@ -602,6 +601,9 @@ def normalize_policy_criteria(criteria: dict) -> list:
     else:
         logger.info(f"Generated {len(rules_list)} clinical rules before evidence_quality rule")
 
+    # =========================================================================
+    # RULE 6: Evidence Quality Check (ALWAYS INCLUDE)
+    # =========================================================================
     rules_list.append({
         "id": "evidence_quality",
         "description": "Evidence must be validated with no hallucinations",
