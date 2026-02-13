@@ -170,6 +170,34 @@ class CriterionResult(BaseModel):
     status: Literal["PASS", "FAIL"] = Field(..., description="Whether the criterion was met")
 
 
+class DiagnosticArtifacts(BaseModel):
+    """Diagnostic artifacts from each stage of the PA pipeline."""
+    raw_patient: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Raw patient evidence extracted from LLM"
+    )
+    raw_policy: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Raw policy rules extracted from RAG pipeline"
+    )
+    normalized_patient: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Normalized patient evidence in canonical format"
+    )
+    normalized_policy: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Normalized policy rules"
+    )
+    evaluation: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Rule evaluation results with detailed comparison"
+    )
+    final_response: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Final response structure before serialization"
+    )
+
+
 class OrchestrationResponse(BaseModel):
     """Response schema for single-call PA check orchestration endpoint."""
     verdict: Literal["LIKELY_TO_APPROVE", "LIKELY_TO_DENY", "NEEDS_REVIEW"] = Field(
@@ -201,4 +229,8 @@ class OrchestrationResponse(BaseModel):
     exception_applied: Optional[str] = Field(
         None,
         description="Exception pathway applied, if any (e.g., 'ACUTE_TRAUMA', 'POST_OPERATIVE')"
+    )
+    diagnostics: Optional[DiagnosticArtifacts] = Field(
+        None,
+        description="Diagnostic artifacts from each pipeline stage (only included when include_diagnostics=true)"
     )
