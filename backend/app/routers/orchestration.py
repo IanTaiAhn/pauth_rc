@@ -14,7 +14,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Literal
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query
 
 from app.services.ingestion import extract_text
 from app.services.evidence import extract_evidence
@@ -24,7 +24,7 @@ from app.normalization.normalized_custom import (
     normalize_policy_criteria,
 )
 from app.rules.rule_engine import evaluate_all
-from app.api_models.schemas import OrchestrationResponse, CriterionResult
+from app.api_models.schemas import OrchestrationResponse, CriterionResult, DiagnosticArtifacts
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -183,6 +183,10 @@ async def check_prior_auth(
     file: UploadFile = File(..., description="Patient chart file (PDF or TXT)"),
     payer: str = Form(..., description="Payer identifier (e.g., 'utah_medicaid', 'aetna')"),
     cpt: str = Form(..., description="CPT code (e.g., '73721', '73722', '73723')"),
+    include_diagnostics: bool = Query(
+        default=False,
+        description="Include diagnostic artifacts from each pipeline stage in the response"
+    ),
 ):
     """
     Single-call PA readiness check endpoint.
@@ -195,9 +199,11 @@ async def check_prior_auth(
         file: Patient chart file (PDF or TXT)
         payer: Payer identifier (e.g., "utah_medicaid", "aetna")
         cpt: CPT code string (e.g., "73721", "73722", "73723")
+        include_diagnostics: If True, includes diagnostic artifacts from each pipeline stage
 
     Returns:
-        OrchestrationResponse with verdict, score, criteria, gaps, and next steps
+        OrchestrationResponse with verdict, score, criteria, gaps, and next steps.
+        If include_diagnostics=True, also includes raw and normalized data from each step.
 
     Raises:
         HTTPException 400: Unsupported payer/CPT combination
@@ -206,6 +212,9 @@ async def check_prior_auth(
     """
     try:
         logger.info(f"Starting PA check for payer={payer}, cpt={cpt}, file={file.filename}")
+
+        # Initialize diagnostics collector
+        diagnostics_data = {} if include_diagnostics else None
 
         # Step 1: Ingest file
         try:
@@ -232,6 +241,8 @@ async def check_prior_auth(
             logger.info("Patient evidence extracted via LLM")
             # DIAGNOSTIC: Save raw patient extraction
             save_diagnostic_json(file.filename, patient_json, "01_raw_patient")
+            if include_diagnostics:
+                diagnostics_data["raw_patient"] = patient_json
         except Exception as e:
             logger.error(f"Patient chart extraction failed: {e}")
             raise HTTPException(
@@ -257,6 +268,8 @@ async def check_prior_auth(
             logger.info(f"Policy rules extracted via RAG for {index_name}")
             # DIAGNOSTIC: Save raw policy extraction
             save_diagnostic_json(file.filename, policy_result, "02_raw_policy")
+            if include_diagnostics:
+                diagnostics_data["raw_policy"] = policy_result
         except HTTPException:
             raise
         except Exception as e:
@@ -272,6 +285,8 @@ async def check_prior_auth(
             logger.info("Patient evidence normalized")
             # DIAGNOSTIC: Save normalized patient data
             save_diagnostic_json(file.filename, normalized_patient, "03_normalized_patient")
+            if include_diagnostics:
+                diagnostics_data["normalized_patient"] = normalized_patient
         except Exception as e:
             logger.error(f"Patient normalization failed: {e}")
             raise HTTPException(
@@ -285,6 +300,8 @@ async def check_prior_auth(
             logger.info(f"Policy rules normalized: {len(normalized_policy)} rules")
             # DIAGNOSTIC: Save normalized policy rules
             save_diagnostic_json(file.filename, {"rules": normalized_policy}, "04_normalized_policy")
+            if include_diagnostics:
+                diagnostics_data["normalized_policy"] = {"rules": normalized_policy}
         except Exception as e:
             logger.error(f"Policy normalization failed: {e}")
             raise HTTPException(
@@ -298,6 +315,8 @@ async def check_prior_auth(
             logger.info(f"Rule evaluation complete: {evaluation['rules_met']}/{evaluation['total_rules']} met")
             # DIAGNOSTIC: Save evaluation results
             save_diagnostic_json(file.filename, evaluation, "05_evaluation")
+            if include_diagnostics:
+                diagnostics_data["evaluation"] = evaluation
         except Exception as e:
             logger.error(f"Rule evaluation failed: {e}")
             raise HTTPException(
@@ -349,18 +368,26 @@ async def check_prior_auth(
             payer_label = PAYER_LABELS.get(payer.lower(), payer)
             procedure_label = CPT_LABELS.get(cpt, f"CPT {cpt}")
 
-            response = OrchestrationResponse(
-                verdict=verdict,
-                readiness_score=readiness_score,
-                patient_name=patient_name,
-                payer=payer_label,
-                cpt=cpt,
-                procedure_label=procedure_label,
-                criteria=criteria,
-                gaps=gaps,
-                next_steps=next_steps,
-                exception_applied=exception_applied,
-            )
+            # Build base response
+            response_data = {
+                "verdict": verdict,
+                "readiness_score": readiness_score,
+                "patient_name": patient_name,
+                "payer": payer_label,
+                "cpt": cpt,
+                "procedure_label": procedure_label,
+                "criteria": criteria,
+                "gaps": gaps,
+                "next_steps": next_steps,
+                "exception_applied": exception_applied,
+            }
+
+            # Add diagnostics if requested
+            if include_diagnostics:
+                diagnostics_data["final_response"] = response_data.copy()
+                response_data["diagnostics"] = DiagnosticArtifacts(**diagnostics_data)
+
+            response = OrchestrationResponse(**response_data)
 
             logger.info(f"PA check complete: verdict={verdict}, score={readiness_score}")
             # DIAGNOSTIC: Save final response
