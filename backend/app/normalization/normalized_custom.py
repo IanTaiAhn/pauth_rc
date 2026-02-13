@@ -172,57 +172,84 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     normalized["functional_impairment_documented"] = functional.get("documented", False)
     normalized["functional_impairment_description"] = functional.get("description")
 
-    # Clinical indication - extract from multiple sources
-    # AUDIT FIX: Scan imaging.findings, pain_characteristics.quality, red_flags.description,
-    # and the raw assessment in addition to evidence_notes
+    # Clinical indication - extract from multiple sources with priority order
+    # BUG FIX: Check structured fields in priority order instead of just evidence_notes
+    # Priority: imaging.findings > pain_characteristics.quality > red_flags >
+    #           other_treatments (post-op) > evidence_notes (fallback)
+
     evidence_notes = data_source.get("evidence_notes", [])
     clinical_indication = None
 
-    # Gather text from multiple sources
+    # Gather structured data sources
     imaging = data_source.get("imaging", {})
     pain_chars = data_source.get("pain_characteristics", {})
     red_flags = data_source.get("red_flags", {})
+    conservative = data_source.get("conservative_therapy", {})
+    other_treatments = conservative.get("other_treatments", {})
 
-    # Build comprehensive search text
-    text_sources = []
+    # SOURCE 1: imaging.findings - highest priority for definitive diagnoses
+    imaging_findings = str(imaging.get("findings", "")).lower()
+    if imaging_findings:
+        if any(keyword in imaging_findings for keyword in ["meniscal tear", "meniscus tear", "torn meniscus"]):
+            clinical_indication = "meniscal tear"
+        elif any(keyword in imaging_findings for keyword in ["acl", "pcl", "ligament rupture", "cruciate"]):
+            clinical_indication = "ligament rupture"
+        elif any(keyword in imaging_findings for keyword in ["avulsion", "segond"]):
+            clinical_indication = "red flag"
 
-    # Evidence notes
-    if isinstance(evidence_notes, list):
-        text_sources.extend(evidence_notes)
+    # SOURCE 2: pain_characteristics.quality - physical exam findings
+    if not clinical_indication:
+        pain_quality = str(pain_chars.get("quality", "")).lower()
+        if pain_quality:
+            if any(keyword in pain_quality for keyword in ["mcmurray", "thessaly"]):
+                clinical_indication = "positive mcmurray"
+            elif any(keyword in pain_quality for keyword in ["catching", "locking", "mechanical"]):
+                clinical_indication = "mechanical symptoms"
 
-    # Imaging findings
-    if imaging.get("findings"):
-        text_sources.append(str(imaging["findings"]))
+    # SOURCE 3: red_flags struct - check documented flag
+    if not clinical_indication:
+        if red_flags.get("documented") is True:
+            clinical_indication = "red flag"
 
-    # Pain characteristics quality
-    if pain_chars.get("quality"):
-        text_sources.append(str(pain_chars["quality"]))
+    # SOURCE 4: conservative_therapy context - post-operative
+    if not clinical_indication:
+        other_tx_desc = str(other_treatments.get("description", "")).lower()
+        if any(keyword in other_tx_desc for keyword in ["post-op", "post-surgical", "post surgery", "postoperative"]):
+            clinical_indication = "post-operative"
 
-    # Red flags description
-    if red_flags.get("description"):
-        text_sources.append(str(red_flags["description"]))
+    # SOURCE 5: evidence_notes (fallback) - original comprehensive search
+    if not clinical_indication:
+        text_sources = []
 
-    # Combine all text sources
-    evidence_text = " ".join(text_sources).lower()
+        if isinstance(evidence_notes, list):
+            text_sources.extend(evidence_notes)
 
-    # Map common clinical findings to standardized indications
-    # AUDIT FIX: Added "mechanical symptoms" and "instability" to approved list
-    indication_keywords = {
-        "meniscal tear": ["meniscal tear", "meniscus tear", "torn meniscus"],
-        "mechanical symptoms": ["mechanical", "catching", "locking", "clicking", "popping"],
-        "ligament rupture": ["acl", "pcl", "mcl", "lcl", "ligament", "cruciate", "collateral"],
-        "instability": ["instability", "giving way", "unstable"],
-        "traumatic injury": ["trauma", "traumatic", "acute injury", "fall", "accident"],
-        "positive mcmurray": ["mcmurray", "thessaly", "apley"],
-        "post-operative": ["post-op", "post-surgical", "post surgery", "postoperative"],
-        "red flag": ["infection", "tumor", "fracture", "cancer", "septic"]
-    }
+        if imaging.get("findings"):
+            text_sources.append(str(imaging["findings"]))
 
-    # Find the first matching indication
-    for indication, keywords in indication_keywords.items():
-        if any(keyword in evidence_text for keyword in keywords):
-            clinical_indication = indication
-            break
+        if pain_chars.get("quality"):
+            text_sources.append(str(pain_chars["quality"]))
+
+        if red_flags.get("description"):
+            text_sources.append(str(red_flags["description"]))
+
+        evidence_text = " ".join(text_sources).lower()
+
+        indication_keywords = {
+            "meniscal tear": ["meniscal tear", "meniscus tear", "torn meniscus"],
+            "mechanical symptoms": ["mechanical", "catching", "locking", "clicking", "popping"],
+            "ligament rupture": ["acl", "pcl", "mcl", "lcl", "ligament", "cruciate", "collateral"],
+            "instability": ["instability", "giving way", "unstable"],
+            "traumatic injury": ["trauma", "traumatic", "acute injury", "fall", "accident"],
+            "positive mcmurray": ["mcmurray", "thessaly", "apley"],
+            "post-operative": ["post-op", "post-surgical", "post surgery", "postoperative"],
+            "red flag": ["infection", "tumor", "fracture", "cancer", "septic"]
+        }
+
+        for indication, keywords in indication_keywords.items():
+            if any(keyword in evidence_text for keyword in keywords):
+                clinical_indication = indication
+                break
 
     normalized["clinical_indication"] = clinical_indication
 
@@ -393,35 +420,40 @@ def normalize_policy_criteria(criteria: dict) -> list:
     processed_criteria = set()
     skipped_criteria = []
 
+    # BUG FIX: Filter out contrast-only prerequisites for non-contrast CPT codes
+    # Renal function requirements only apply to MRI with contrast (73722/73723)
+    cpt_code = policy_obj.get("cpt_code", "")
+    CONTRAST_ONLY_KEYWORDS = ["creatinine", "egfr", "renal", "gadolinium", "contrast agent"]
+
     # =========================================================================
     # RULE 1: X-ray/Imaging Requirement
     # =========================================================================
     # Look for X-ray requirements in prerequisites
     for prereq in prerequisites:
+        # BUG FIX: Skip contrast-only prerequisites for non-contrast CPT codes
+        if cpt_code == "73721" and any(kw in prereq.lower() for kw in CONTRAST_ONLY_KEYWORDS):
+            logger.info(f"Skipping contrast-only prerequisite for non-contrast CPT {cpt_code}: {prereq}")
+            continue
+
         prereq_lower = prereq.lower()
         if "x-ray" in prereq_lower or "xray" in prereq_lower or "imaging" in prereq_lower:
             processed_criteria.add("imaging_requirement")
-            # Extract timeframe with multiple patterns
-            imaging_months = 2  # default
+            # BUG FIX: Default to 60 days (2 months) per Policy Section 2.3
+            # Only override if prereq text itself contains a different timeframe
+            imaging_months = 2  # Policy Section 2.3 default: 60 calendar days
 
-            # Check for days
+            # Search prereq text only (not all_text_lower) to avoid picking up
+            # the 30-day clinical notes requirement
             days_match = re.search(r'(\d+)\s*days?', prereq_lower)
             if days_match:
-                days = int(days_match.group(1))
-                imaging_months = days / 30  # Convert to months
+                imaging_months = int(days_match.group(1)) / 30
 
-            # Check for months
             months_match = re.search(r'(\d+)\s*months?', prereq_lower)
             if months_match:
                 imaging_months = int(months_match.group(1))
 
-            # Check context for more specific timeframes
-            if "60 days" in all_text_lower or "within 60 days" in all_text_lower:
-                imaging_months = 2
-            elif "90 days" in all_text_lower:
-                imaging_months = 3
-            elif "30 days" in all_text_lower:
-                imaging_months = 1
+            # Do NOT scan all_text_lower for fallback - that's what caused the regression
+            # The 30-day requirement in Policy Section 5 is for clinical notes, not imaging
 
             rules_list.append({
                 "id": "xray_requirement",
@@ -455,6 +487,10 @@ def normalize_policy_criteria(criteria: dict) -> list:
     pt_weeks_required = None
 
     for text_source in prerequisites + doc_requirements:
+        # BUG FIX: Skip contrast-only prerequisites
+        if cpt_code == "73721" and any(kw in text_source.lower() for kw in CONTRAST_ONLY_KEYWORDS):
+            continue
+
         text_lower = text_source.lower()
         if "physical therapy" in text_lower or "pt" in text_lower:
             pt_mentioned = True
@@ -499,6 +535,10 @@ def normalize_policy_criteria(criteria: dict) -> list:
     # =========================================================================
     medication_mentioned = False
     for text_source in prerequisites + doc_requirements:
+        # BUG FIX: Skip contrast-only prerequisites
+        if cpt_code == "73721" and any(kw in text_source.lower() for kw in CONTRAST_ONLY_KEYWORDS):
+            continue
+
         text_lower = text_source.lower()
         if any(keyword in text_lower for keyword in ["medication", "nsaid", "analgesic"]):
             medication_mentioned = True
@@ -524,6 +564,10 @@ def normalize_policy_criteria(criteria: dict) -> list:
     # =========================================================================
     # Check for 30-day requirement in documentation requirements
     for doc_req in doc_requirements:
+        # BUG FIX: Skip contrast-only prerequisites
+        if cpt_code == "73721" and any(kw in doc_req.lower() for kw in CONTRAST_ONLY_KEYWORDS):
+            continue
+
         doc_lower = doc_req.lower()
         if "30 days" in doc_lower or "within 30 days" in doc_lower:
             processed_criteria.add("recent_clinical_notes")
@@ -614,6 +658,8 @@ def normalize_policy_criteria(criteria: dict) -> list:
             if "meniscal tear" in indication_lower or "meniscus" in indication_lower:
                 normalized_indications.append("meniscal tear")
             elif "mechanical" in indication_lower:
+                # BUG FIX: Ensure "mechanical symptoms" is added to approved list
+                # Policy Section 2.1 Category A explicitly allows mechanical symptoms
                 normalized_indications.append("mechanical symptoms")
             elif "ligament" in indication_lower or "acl" in indication_lower or "pcl" in indication_lower:
                 normalized_indications.append("ligament rupture")
