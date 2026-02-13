@@ -156,9 +156,11 @@ CRITICAL RULES:
 
 EXTRACTION SCHEMA:
 {{
+  "patient_name": null,
   "symptom_duration_months": null,
   "affected_body_part": null,
   "laterality": null,
+  "clinical_notes_date": null,
   "conservative_therapy": {{
     "physical_therapy": {{
       "attempted": false,
@@ -210,9 +212,11 @@ EXTRACTION SCHEMA:
 }}
 
 FIELD INSTRUCTIONS:
+- patient_name: Extract the full patient name if present in the chart (e.g., "Patient Name: John Doe"). If not present, use null.
 - symptom_duration_months: Extract only if explicitly stated (e.g., "3 months of pain" = 3)
 - affected_body_part: knee, shoulder, lumbar spine, cervical spine, brain, etc.
 - laterality: "right", "left", "bilateral", or null
+- clinical_notes_date: Extract the visit date or date of clinical note in YYYY-MM-DD format (e.g., "Date of Visit: January 15, 2025" = "2025-01-15")
 - attempted: true ONLY if chart says therapy was done/tried/completed
 - outcome: Use "failed", "partial", or "successful" ONLY if chart uses these terms or clear equivalents ("no relief"="failed", "minimal improvement"="partial", "improved"="partial", "resolved"="successful")
 - imaging.type: MRI, CT, X-ray, etc.
