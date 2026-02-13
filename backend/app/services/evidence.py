@@ -156,6 +156,7 @@ CRITICAL RULES:
 
 EXTRACTION SCHEMA:
 {{
+  "patient_name": null,
   "symptom_duration_months": null,
   "affected_body_part": null,
   "laterality": null,
@@ -211,6 +212,7 @@ EXTRACTION SCHEMA:
 }}
 
 FIELD INSTRUCTIONS:
+- patient_name: Extract the full patient name if present in the chart (e.g., "Patient Name: John Doe"). If not present, use null.
 - symptom_duration_months: Extract only if explicitly stated (e.g., "3 months of pain" = 3)
 - affected_body_part: knee, shoulder, lumbar spine, cervical spine, brain, etc.
 - laterality: "right", "left", "bilateral", or null
