@@ -1,6 +1,6 @@
 {
-  "verdict": "LIKELY_TO_DENY",
-  "readiness_score": 40,
+  "verdict": "NEEDS_REVIEW",
+  "readiness_score": 75,
   "patient_name": "Brittany Okafor",
   "payer": "Utah Medicaid",
   "cpt": "73721",
@@ -9,8 +9,8 @@
     {
       "criterion": "Weight-bearing X-rays must be completed within 60 days",
       "required": "Must be documented",
-      "found": "Yes; X-ray",
-      "status": "FAIL"
+      "found": "Yes; X-ray; 0",
+      "status": "PASS"
     },
     {
       "criterion": "Physical therapy must be attempted and documented (minimum 6 weeks)",
@@ -25,10 +25,10 @@
       "status": "PASS"
     },
     {
-      "criterion": "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag",
+      "criterion": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
       "required": "Must be documented",
-      "found": "Not found in chart",
-      "status": "FAIL"
+      "found": "red flag",
+      "status": "PASS"
     },
     {
       "criterion": "Evidence must be validated with no hallucinations",
@@ -38,11 +38,9 @@
     }
   ],
   "gaps": [
-    "Weight-bearing X-rays must be completed within 60 days",
-    "Physical therapy must be attempted and documented (minimum 6 weeks)",
-    "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag"
+    "Physical therapy must be attempted and documented (minimum 6 weeks)"
   ],
-  "next_steps": "Multiple criteria are unmet. Review the gaps list and update the chart before submitting.",
+  "next_steps": "One criterion is unmet. Resolve the item in the gaps list before submitting.",
   "exception_applied": null,
   "diagnostics": {
     "raw_patient": {
@@ -101,8 +99,7 @@
       "evidence_notes": [
         "Right knee pain x 2 weeks",
         "Pain is 5/10 at rest, 7/10 with activity",
-        "Mild effusion noted at today's visit",
-        "Taken ibuprofen 400mg PRN x 5 days"
+        "Mild effusion noted at today's visit"
       ],
       "_metadata": {
         "hallucinations_detected": 0,
@@ -118,14 +115,14 @@
           "clinical_indications": [
             "Meniscal tear",
             "Positive McMurray's test",
-            "Oncology indications",
+            "Tumor indications",
             "Infection with abscess concern",
             "Post-operative complex evaluation",
             "AVN"
           ],
           "prerequisites": [
             "6 weeks physical therapy",
-            "Prior X-rays within 60 days",
+            "Prior imaging within 60 days",
             "Conservative treatment completed"
           ],
           "exclusion_criteria": [
@@ -151,7 +148,6 @@
         },
         "source_references": [
           "general_0",
-          "general_1",
           "general_main",
           "special_populations_main"
         ]
@@ -164,7 +160,7 @@
         "[C:\\Users\\n0308g\\Git_Repos\\pauth_rc\\backend\\uploaded_docs\\utah_medicaid_73721_mri_knee_no_contrast.txt:general_main] PRIOR AUTHORIZATION CLINICAL CRITERIA IMAGING SERVICES — MAGNETIC RESONANCE IMAGING LOWER EXTREMITY — KNEE CPT Code: 73721 Description: Magnetic Resonance Imaging, Any Joint of Lower Extremity; Without Contrast Material(s) Policy Reference: DMHF-IMG-MRI-001 Last Review Date: October 1, 2024 Effectiv...",
         "[C:\\Users\\n0308g\\Git_Repos\\pauth_rc\\backend\\uploaded_docs\\utah_medicaid_73721_mri_knee_no_contrast.txt:special_populations_main] FOR SPECIAL POPULATIONS: [ ] Under 18: Pediatric orthopedic evaluation documentation [ ] Age 65+: Surgical candidacy assessment, functional impact statement SECTION 6: AUTHORIZATION AND SUBMISSION Submission Methods: Electronic:  Utah Medicaid PA Portal — medicaid.utah.gov/pa-portal Fax:         1-8..."
       ],
-      "raw_output": "```json\n{\n  \"payer\": \"Utah Medicaid\",\n  \"cpt_code\": \"73721\",\n  \"coverage_criteria\": {\n    \"clinical_indications\": [\"Meniscal tear\", \"Positive McMurray's test\", \"Oncology indications\", \"Infection with abscess concern\", \"Post-operative complex evaluation\", \"AVN\"],\n    \"prerequisites\": [\"6 weeks physical therapy\", \"Prior X-rays within 60 days\", \"Conservative treatment completed\"],\n    \"exclusion_criteria\": [\"Routine screening without symptoms\"],\n    \"documentation_requirements\": [\"Clinical notes within 30 days\", \"X-ray report\", \"Oncology notes\", \"Biopsy results\", \"Prior imaging\", \"Surgical planning notes\", \"Complete labs (CBC with diff, ESR, CRP, blood cultures, synovial fluid results)\", \"Infectious disease consult if available\", \"Operative report from index surgery\", \"Post-operative clinical course\", \"Renal function documentation (creatinine/eGFR)\"],\n    \"quantity_limits\": {\n      \"authorization_validity\": \"60 calendar days from approval\",\n      \"repeat_imaging\": \"Not specified\"\n    }\n  },\n  \"source_references\": [\"general_0\", \"general_1\", \"general_main\", \"special_populations_main\"]\n}\n```"
+      "raw_output": "```json\n{\n  \"payer\": \"Utah Medicaid\",\n  \"cpt_code\": \"73721\",\n  \"coverage_criteria\": {\n    \"clinical_indications\": [\"Meniscal tear\", \"Positive McMurray's test\", \"Tumor indications\", \"Infection with abscess concern\", \"Post-operative complex evaluation\", \"AVN\"],\n    \"prerequisites\": [\"6 weeks physical therapy\", \"Prior imaging within 60 days\", \"Conservative treatment completed\"],\n    \"exclusion_criteria\": [\"Routine screening without symptoms\"],\n    \"documentation_requirements\": [\"Clinical notes within 30 days\", \"X-ray report\", \"Oncology notes\", \"Biopsy results\", \"Prior imaging\", \"Surgical planning notes\", \"Complete labs (CBC with diff, ESR, CRP, blood cultures, synovial fluid results)\", \"Infectious disease consult if available\", \"Operative report from index surgery\", \"Post-operative clinical course\", \"Renal function documentation (creatinine/eGFR)\"],\n    \"quantity_limits\": {\n      \"authorization_validity\": \"60 calendar days from approval\",\n      \"repeat_imaging\": \"Not specified\"\n    }\n  },\n  \"source_references\": [\"general_0\", \"general_main\", \"special_populations_main\"]\n}\n```"
     },
     "normalized_patient": {
       "symptom_duration_months": null,
@@ -181,17 +177,16 @@
       "imaging_documented": true,
       "imaging_type": "X-ray",
       "imaging_body_part": "Right Knee",
-      "imaging_months_ago": null,
+      "imaging_months_ago": 0,
       "functional_impairment_documented": false,
       "functional_impairment_description": null,
-      "clinical_indication": null,
+      "clinical_indication": "red flag",
       "validation_passed": true,
       "hallucinations_detected": 0,
       "evidence_notes": [
         "Right knee pain x 2 weeks",
         "Pain is 5/10 at rest, 7/10 with activity",
-        "Mild effusion noted at today's visit",
-        "Taken ibuprofen 400mg PRN x 5 days"
+        "Mild effusion noted at today's visit"
       ],
       "clinical_notes_days_ago": 0,
       "score": null,
@@ -254,7 +249,7 @@
         },
         {
           "id": "clinical_indication_requirement",
-          "description": "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag",
+          "description": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
           "logic": "all",
           "conditions": [
             {
@@ -293,7 +288,7 @@
         {
           "rule_id": "xray_requirement",
           "description": "Weight-bearing X-rays must be completed within 60 days",
-          "met": false,
+          "met": true,
           "logic": "all",
           "condition_details": [
             {
@@ -307,12 +302,12 @@
               "met": true
             },
             {
-              "condition": "imaging_months_ago lte 2",
-              "patient_value": null,
-              "met": false
+              "condition": "imaging_months_ago lte 2.0",
+              "patient_value": 0,
+              "met": true
             }
           ],
-          "patient_value": "Yes; X-ray"
+          "patient_value": "Yes; X-ray; 0"
         },
         {
           "rule_id": "physical_therapy_requirement",
@@ -349,17 +344,17 @@
         },
         {
           "rule_id": "clinical_indication_requirement",
-          "description": "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag",
-          "met": false,
+          "description": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
+          "met": true,
           "logic": "all",
           "condition_details": [
             {
               "condition": "clinical_indication in ['meniscal tear', 'positive mcmurray', 'red flag', 'post-operative']",
-              "patient_value": null,
-              "met": false
+              "patient_value": "red flag",
+              "met": true
             }
           ],
-          "patient_value": "Not found in chart"
+          "patient_value": "red flag"
         },
         {
           "rule_id": "evidence_quality",
@@ -383,12 +378,12 @@
       ],
       "all_criteria_met": false,
       "total_rules": 5,
-      "rules_met": 2,
-      "rules_failed": 3
+      "rules_met": 4,
+      "rules_failed": 1
     },
     "final_response": {
-      "verdict": "LIKELY_TO_DENY",
-      "readiness_score": 40,
+      "verdict": "NEEDS_REVIEW",
+      "readiness_score": 75,
       "patient_name": "Brittany Okafor",
       "payer": "Utah Medicaid",
       "cpt": "73721",
@@ -397,8 +392,8 @@
         {
           "criterion": "Weight-bearing X-rays must be completed within 60 days",
           "required": "Must be documented",
-          "found": "Yes; X-ray",
-          "status": "FAIL"
+          "found": "Yes; X-ray; 0",
+          "status": "PASS"
         },
         {
           "criterion": "Physical therapy must be attempted and documented (minimum 6 weeks)",
@@ -413,10 +408,10 @@
           "status": "PASS"
         },
         {
-          "criterion": "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag",
+          "criterion": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
           "required": "Must be documented",
-          "found": "Not found in chart",
-          "status": "FAIL"
+          "found": "red flag",
+          "status": "PASS"
         },
         {
           "criterion": "Evidence must be validated with no hallucinations",
@@ -426,11 +421,9 @@
         }
       ],
       "gaps": [
-        "Weight-bearing X-rays must be completed within 60 days",
-        "Physical therapy must be attempted and documented (minimum 6 weeks)",
-        "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag"
+        "Physical therapy must be attempted and documented (minimum 6 weeks)"
       ],
-      "next_steps": "Multiple criteria are unmet. Review the gaps list and update the chart before submitting.",
+      "next_steps": "One criterion is unmet. Resolve the item in the gaps list before submitting.",
       "exception_applied": null
     }
   }

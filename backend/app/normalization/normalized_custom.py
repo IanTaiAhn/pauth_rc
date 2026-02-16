@@ -142,7 +142,9 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     if normalized["imaging_months_ago"] is None and imaging.get("documented"):
         # Try to extract dates and compute
         from datetime import datetime
+        import logging
 
+        logger = logging.getLogger(__name__)
         clinical_date_str = data_source.get("clinical_notes_date")
         imaging_date_str = None
 
@@ -166,6 +168,17 @@ def normalize_patient_evidence(evidence: dict) -> dict:
             except (ValueError, TypeError) as e:
                 # Date parsing failed, leave as None
                 pass
+
+        # BUGFIX: Default to 0 (same day) if imaging documented but no date found
+        # This handles cases where LLM extracted imaging but didn't calculate months_ago
+        # and the date wasn't found in the findings field
+        if normalized["imaging_months_ago"] is None:
+            logger.warning(
+                f"Imaging documented but months_ago could not be determined. "
+                f"Defaulting to 0 (same day). Imaging type: {imaging.get('type', 'N/A')}, "
+                f"Findings: {imaging.get('findings', 'N/A')[:100]}"
+            )
+            normalized["imaging_months_ago"] = 0
 
     # Functional impairment
     functional = data_source.get("functional_impairment", {})

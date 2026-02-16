@@ -1,7 +1,7 @@
 {
-  "verdict": "NEEDS_REVIEW",
-  "readiness_score": 80,
-  "patient_name": "Dorothy Fairbanks",
+  "verdict": "LIKELY_TO_DENY",
+  "readiness_score": 25,
+  "patient_name": "Tiffany Osei",
   "payer": "Utah Medicaid",
   "cpt": "73721",
   "procedure_label": "MRI Knee Without Contrast",
@@ -9,14 +9,14 @@
     {
       "criterion": "Weight-bearing X-rays must be completed within 60 days",
       "required": "Must be documented",
-      "found": "Yes; X-ray; 0",
-      "status": "PASS"
+      "found": "Yes; MRI; 5",
+      "status": "FAIL"
     },
     {
       "criterion": "Physical therapy must be attempted and documented (minimum 6 weeks)",
       "required": "Must be documented",
-      "found": "Yes; 8",
-      "status": "PASS"
+      "found": "Yes",
+      "status": "FAIL"
     },
     {
       "criterion": "Clinical notes must be within 30 days",
@@ -25,9 +25,9 @@
       "status": "PASS"
     },
     {
-      "criterion": "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag",
+      "criterion": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
       "required": "Must be documented",
-      "found": "Not found in chart",
+      "found": "mechanical symptoms",
       "status": "FAIL"
     },
     {
@@ -38,22 +38,24 @@
     }
   ],
   "gaps": [
-    "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag"
+    "Weight-bearing X-rays must be completed within 60 days",
+    "Physical therapy must be attempted and documented (minimum 6 weeks)",
+    "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative"
   ],
-  "next_steps": "One criterion is unmet. Resolve the item in the gaps list before submitting.",
+  "next_steps": "Multiple criteria are unmet. Review the gaps list and update the chart before submitting.",
   "exception_applied": null,
   "diagnostics": {
     "raw_patient": {
-      "patient_name": "Dorothy Fairbanks",
-      "symptom_duration_months": 7,
+      "patient_name": "Tiffany Osei",
+      "symptom_duration_months": null,
       "affected_body_part": "knee",
-      "laterality": "bilateral",
-      "clinical_notes_date": "2025-01-20",
+      "laterality": "right",
+      "clinical_notes_date": "2025-01-23",
       "conservative_therapy": {
         "physical_therapy": {
           "attempted": true,
-          "duration_weeks": 8,
-          "outcome": "partial"
+          "duration_weeks": null,
+          "outcome": "failed"
         },
         "nsaids": {
           "documented": false,
@@ -62,25 +64,25 @@
         "injections": {
           "documented": true,
           "type": "corticosteroid",
-          "outcome": "partial"
+          "outcome": "failed"
         },
         "other_treatments": {
-          "documented": true,
-          "description": "acetaminophen, topical diclofenac gel, bracing, activity modification",
-          "outcome": "partial"
+          "documented": false,
+          "description": null,
+          "outcome": null
         }
       },
       "imaging": {
         "documented": true,
-        "type": "X-ray",
-        "body_part": "right knee",
+        "type": "MRI",
+        "body_part": "knee",
         "laterality": "right",
-        "months_ago": 0,
-        "findings": "moderate to severe medial compartment joint space narrowing"
+        "months_ago": 5,
+        "findings": "Grade 2 radial tear posterior horn medial meniscus"
       },
       "functional_impairment": {
         "documented": true,
-        "description": "significant functional limitations, unable to climb stairs without handrail and assistance, cannot ambulate >1 block without stopping for pain"
+        "description": "significant functional decline, unable to perform occupational duties"
       },
       "neurological_symptoms": {
         "documented": false,
@@ -88,7 +90,7 @@
       },
       "pain_characteristics": {
         "documented": true,
-        "severity": "6/10",
+        "severity": "8/10",
         "quality": null,
         "radiation": null
       },
@@ -97,11 +99,10 @@
         "description": null
       },
       "evidence_notes": [
-        "bilateral knee pain",
-        "right greater than left",
-        "7 months",
-        "modest functional improvement initially",
-        "regression over past 2 months"
+        "worsening symptoms",
+        "locking episodes",
+        "giving-way episodes",
+        "increased pain"
       ],
       "_metadata": {
         "hallucinations_detected": 0,
@@ -141,8 +142,8 @@
             "Infectious disease consult if available",
             "Operative report from index surgery",
             "Post-operative clinical course",
-            "Orthopedic surgical planning notes",
-            "Renal function documentation (creatinine/eGFR)"
+            "Renal function documentation (creatinine/eGFR)",
+            "Contrast allergy screening documentation"
           ],
           "quantity_limits": {
             "authorization_validity": "60 calendar days from approval",
@@ -164,35 +165,34 @@
         "[C:\\Users\\n0308g\\Git_Repos\\pauth_rc\\backend\\uploaded_docs\\utah_medicaid_73721_mri_knee_no_contrast.txt:general_main] PRIOR AUTHORIZATION CLINICAL CRITERIA IMAGING SERVICES — MAGNETIC RESONANCE IMAGING LOWER EXTREMITY — KNEE CPT Code: 73721 Description: Magnetic Resonance Imaging, Any Joint of Lower Extremity; Without Contrast Material(s) Policy Reference: DMHF-IMG-MRI-001 Last Review Date: October 1, 2024 Effectiv...",
         "[C:\\Users\\n0308g\\Git_Repos\\pauth_rc\\backend\\uploaded_docs\\utah_medicaid_73721_mri_knee_no_contrast.txt:special_populations_main] FOR SPECIAL POPULATIONS: [ ] Under 18: Pediatric orthopedic evaluation documentation [ ] Age 65+: Surgical candidacy assessment, functional impact statement SECTION 6: AUTHORIZATION AND SUBMISSION Submission Methods: Electronic:  Utah Medicaid PA Portal — medicaid.utah.gov/pa-portal Fax:         1-8..."
       ],
-      "raw_output": "```json\n{\n  \"payer\": \"Utah Medicaid\",\n  \"cpt_code\": \"73721\",\n  \"coverage_criteria\": {\n    \"clinical_indications\": [\"Meniscal tear\", \"Positive McMurray's test\", \"Tumor indications\", \"Infection with abscess concern\", \"Post-operative complex evaluation\", \"AVN\"],\n    \"prerequisites\": [\"6 weeks physical therapy\", \"Prior X-rays within 60 days\", \"Conservative treatment completed\"],\n    \"exclusion_criteria\": [\"Routine screening without symptoms\"],\n    \"documentation_requirements\": [\"Clinical notes within 30 days\", \"X-ray report\", \"Oncology notes\", \"Biopsy results\", \"Prior imaging\", \"Surgical planning notes\", \"Complete labs (CBC with diff, ESR, CRP, blood cultures, synovial fluid results)\", \"Infectious disease consult if available\", \"Operative report from index surgery\", \"Post-operative clinical course\", \"Orthopedic surgical planning notes\", \"Renal function documentation (creatinine/eGFR)\"],\n    \"quantity_limits\": {\n      \"authorization_validity\": \"60 calendar days from approval\",\n      \"repeat_imaging\": \"Not specified\"\n    }\n  },\n  \"source_references\": [\"general_0\", \"general_1\", \"general_main\", \"special_populations_main\"]\n}\n```"
+      "raw_output": "```json\n{\n  \"payer\": \"Utah Medicaid\",\n  \"cpt_code\": \"73721\",\n  \"coverage_criteria\": {\n    \"clinical_indications\": [\"Meniscal tear\", \"Positive McMurray's test\", \"Tumor indications\", \"Infection with abscess concern\", \"Post-operative complex evaluation\", \"AVN\"],\n    \"prerequisites\": [\"6 weeks physical therapy\", \"Prior X-rays within 60 days\", \"Conservative treatment completed\"],\n    \"exclusion_criteria\": [\"Routine screening without symptoms\"],\n    \"documentation_requirements\": [\"Clinical notes within 30 days\", \"X-ray report\", \"Oncology notes\", \"Biopsy results\", \"Prior imaging\", \"Surgical planning notes\", \"Complete labs (CBC with diff, ESR, CRP, blood cultures, synovial fluid results)\", \"Infectious disease consult if available\", \"Operative report from index surgery\", \"Post-operative clinical course\", \"Renal function documentation (creatinine/eGFR)\", \"Contrast allergy screening documentation\"],\n    \"quantity_limits\": {\n      \"authorization_validity\": \"60 calendar days from approval\",\n      \"repeat_imaging\": \"Not specified\"\n    }\n  },\n  \"source_references\": [\"general_0\", \"general_1\", \"general_main\", \"special_populations_main\"]\n}\n```"
     },
     "normalized_patient": {
-      "symptom_duration_months": 7,
-      "symptom_duration_weeks": 28,
+      "symptom_duration_months": null,
+      "symptom_duration_weeks": null,
       "pt_attempted": true,
-      "pt_duration_weeks": 8,
+      "pt_duration_weeks": null,
       "pt_sessions": null,
       "nsaid_documented": false,
       "nsaid_outcome": null,
       "nsaid_failed": false,
       "injection_documented": true,
-      "injection_outcome": "partial",
-      "injection_failed": false,
+      "injection_outcome": "failed",
+      "injection_failed": true,
       "imaging_documented": true,
-      "imaging_type": "X-ray",
-      "imaging_body_part": "right knee",
-      "imaging_months_ago": 0,
+      "imaging_type": "MRI",
+      "imaging_body_part": "knee",
+      "imaging_months_ago": 5,
       "functional_impairment_documented": true,
-      "functional_impairment_description": "significant functional limitations, unable to climb stairs without handrail and assistance, cannot ambulate >1 block without stopping for pain",
-      "clinical_indication": null,
+      "functional_impairment_description": "significant functional decline, unable to perform occupational duties",
+      "clinical_indication": "mechanical symptoms",
       "validation_passed": true,
       "hallucinations_detected": 0,
       "evidence_notes": [
-        "bilateral knee pain",
-        "right greater than left",
-        "7 months",
-        "modest functional improvement initially",
-        "regression over past 2 months"
+        "worsening symptoms",
+        "locking episodes",
+        "giving-way episodes",
+        "increased pain"
       ],
       "clinical_notes_days_ago": 0,
       "score": null,
@@ -255,7 +255,7 @@
         },
         {
           "id": "clinical_indication_requirement",
-          "description": "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag",
+          "description": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
           "logic": "all",
           "conditions": [
             {
@@ -264,7 +264,6 @@
               "value": [
                 "meniscal tear",
                 "positive mcmurray",
-                "red flag",
                 "red flag",
                 "post-operative"
               ]
@@ -295,7 +294,7 @@
         {
           "rule_id": "xray_requirement",
           "description": "Weight-bearing X-rays must be completed within 60 days",
-          "met": true,
+          "met": false,
           "logic": "all",
           "condition_details": [
             {
@@ -305,21 +304,21 @@
             },
             {
               "condition": "imaging_type eq X-ray",
-              "patient_value": "X-ray",
-              "met": true
+              "patient_value": "MRI",
+              "met": false
             },
             {
-              "condition": "imaging_months_ago lte 2",
-              "patient_value": 0,
-              "met": true
+              "condition": "imaging_months_ago lte 2.0",
+              "patient_value": 5,
+              "met": false
             }
           ],
-          "patient_value": "Yes; X-ray; 0"
+          "patient_value": "Yes; MRI; 5"
         },
         {
           "rule_id": "physical_therapy_requirement",
           "description": "Physical therapy must be attempted and documented (minimum 6 weeks)",
-          "met": true,
+          "met": false,
           "logic": "all",
           "condition_details": [
             {
@@ -329,11 +328,11 @@
             },
             {
               "condition": "pt_duration_weeks gte 6",
-              "patient_value": 8,
-              "met": true
+              "patient_value": null,
+              "met": false
             }
           ],
-          "patient_value": "Yes; 8"
+          "patient_value": "Yes"
         },
         {
           "rule_id": "recent_clinical_notes",
@@ -351,17 +350,17 @@
         },
         {
           "rule_id": "clinical_indication_requirement",
-          "description": "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag",
+          "description": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
           "met": false,
           "logic": "all",
           "condition_details": [
             {
-              "condition": "clinical_indication in ['meniscal tear', 'positive mcmurray', 'red flag', 'red flag', 'post-operative']",
-              "patient_value": null,
+              "condition": "clinical_indication in ['meniscal tear', 'positive mcmurray', 'red flag', 'post-operative']",
+              "patient_value": "mechanical symptoms",
               "met": false
             }
           ],
-          "patient_value": "Not found in chart"
+          "patient_value": "mechanical symptoms"
         },
         {
           "rule_id": "evidence_quality",
@@ -385,13 +384,13 @@
       ],
       "all_criteria_met": false,
       "total_rules": 5,
-      "rules_met": 4,
-      "rules_failed": 1
+      "rules_met": 2,
+      "rules_failed": 3
     },
     "final_response": {
-      "verdict": "NEEDS_REVIEW",
-      "readiness_score": 80,
-      "patient_name": "Dorothy Fairbanks",
+      "verdict": "LIKELY_TO_DENY",
+      "readiness_score": 25,
+      "patient_name": "Tiffany Osei",
       "payer": "Utah Medicaid",
       "cpt": "73721",
       "procedure_label": "MRI Knee Without Contrast",
@@ -399,14 +398,14 @@
         {
           "criterion": "Weight-bearing X-rays must be completed within 60 days",
           "required": "Must be documented",
-          "found": "Yes; X-ray; 0",
-          "status": "PASS"
+          "found": "Yes; MRI; 5",
+          "status": "FAIL"
         },
         {
           "criterion": "Physical therapy must be attempted and documented (minimum 6 weeks)",
           "required": "Must be documented",
-          "found": "Yes; 8",
-          "status": "PASS"
+          "found": "Yes",
+          "status": "FAIL"
         },
         {
           "criterion": "Clinical notes must be within 30 days",
@@ -415,9 +414,9 @@
           "status": "PASS"
         },
         {
-          "criterion": "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag",
+          "criterion": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
           "required": "Must be documented",
-          "found": "Not found in chart",
+          "found": "mechanical symptoms",
           "status": "FAIL"
         },
         {
@@ -428,9 +427,11 @@
         }
       ],
       "gaps": [
-        "Patient must have a valid clinical indication: positive mcmurray, post-operative, meniscal tear, red flag"
+        "Weight-bearing X-rays must be completed within 60 days",
+        "Physical therapy must be attempted and documented (minimum 6 weeks)",
+        "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative"
       ],
-      "next_steps": "One criterion is unmet. Resolve the item in the gaps list before submitting.",
+      "next_steps": "Multiple criteria are unmet. Review the gaps list and update the chart before submitting.",
       "exception_applied": null
     }
   }

@@ -196,12 +196,12 @@ def detect_workers_comp(patient_json: dict, chart_text: str) -> bool:
         True if WC case detected, False otherwise
     """
     # Check evidence notes
-    evidence_notes = patient_json.get("evidence_notes", [])
+    evidence_notes = patient_json.get("evidence_notes") or []
     all_notes = " ".join(evidence_notes).lower()
 
     # Check functional impairment description
-    functional_impair = patient_json.get("functional_impairment", {})
-    functional_desc = functional_impair.get("description", "").lower()
+    functional_impair = patient_json.get("functional_impairment") or {}
+    functional_desc = (functional_impair.get("description") or "").lower()
 
     # Also check the raw chart text for WC indicators
     chart_lower = chart_text.lower()
@@ -243,18 +243,18 @@ def detect_exception_pathway(patient_json: dict, normalized_patient: dict) -> st
         Exception pathway name if applicable, None otherwise
     """
     # Check for red flag exception (Section 3.3)
-    red_flags = patient_json.get("red_flags", {})
+    red_flags = patient_json.get("red_flags") or {}
     if red_flags.get("documented"):
-        red_flag_desc = red_flags.get("description", "").lower()
+        red_flag_desc = (red_flags.get("description") or "").lower()
         # Check for infection, tumor, fracture indicators
         if any(keyword in red_flag_desc for keyword in ["infection", "tumor", "fracture", "cancer", "septic", "fever"]):
             return "Red Flag Exception - Section 3.3 (infection/tumor/fracture concern)"
 
     # Check for acute trauma exception (Section 3.1)
     # Indicators: traumatic injury + inability to bear weight + ligament rupture suspicion
-    functional_impair = patient_json.get("functional_impairment", {})
-    functional_desc = functional_impair.get("description", "").lower()
-    clinical_indication = normalized_patient.get("clinical_indication", "").lower()
+    functional_impair = patient_json.get("functional_impairment") or {}
+    functional_desc = (functional_impair.get("description") or "").lower()
+    clinical_indication = (normalized_patient.get("clinical_indication") or "").lower()
 
     unable_to_bear_weight = "unable to bear weight" in functional_desc or "non-weight-bearing" in functional_desc
     traumatic_injury = "traumatic injury" in clinical_indication or "trauma" in clinical_indication
@@ -265,13 +265,13 @@ def detect_exception_pathway(patient_json: dict, normalized_patient: dict) -> st
 
     # Check for post-operative exception (Section 3.2)
     # Indicator: post-operative in clinical indication
-    conservative = patient_json.get("conservative_therapy", {})
+    conservative = patient_json.get("conservative_therapy") or {}
     if "post-operative" in clinical_indication or "post-op" in clinical_indication:
         return "Post-Operative Exception - Section 3.2 (within 6 months of surgery)"
 
     # Check if there are any surgical history indicators
     # This is a fallback check for cases where the clinical indication might not be set correctly
-    evidence_notes = patient_json.get("evidence_notes", [])
+    evidence_notes = patient_json.get("evidence_notes") or []
     all_text = " ".join(evidence_notes).lower()
     if any(keyword in all_text for keyword in ["post-op", "post-surgical", "postoperative", "after surgery"]):
         return "Post-Operative Exception - Section 3.2 (within 6 months of surgery)"
