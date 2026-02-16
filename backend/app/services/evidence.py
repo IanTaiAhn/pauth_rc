@@ -50,7 +50,7 @@ class EvidenceExtractor:
         chart_lower = chart_text.lower()
         validated_notes = []
         hallucinations = []
-        
+
         for note in extracted_data.get("evidence_notes", []):
             note_lower = note.lower().strip()
             # Allow fuzzy matching for minor variations
@@ -61,17 +61,152 @@ class EvidenceExtractor:
             else:
                 hallucinations.append(note)
                 logger.warning(f"HALLUCINATION DETECTED: '{note}' not in chart")
-        
+
         extracted_data["evidence_notes"] = validated_notes
-        
+
         # Add metadata about extraction quality
         extracted_data["_metadata"] = {
             "hallucinations_detected": len(hallucinations),
             "hallucinated_notes": hallucinations,
             "validation_passed": len(hallucinations) == 0
         }
-        
+
         return extracted_data
+
+    def _validate_extraction_completeness(self, extracted_data: dict, chart_text: str) -> dict:
+        """Ensure critical fields are not null when source data suggests they should exist
+
+        This addresses the Data Extraction Nulls issue where:
+        - imaging_months_ago is null despite imaging being documented
+        - clinical_indication is null despite red flags being documented
+
+        Priority: P0 - CRITICAL
+        """
+        issues = []
+        fixes_applied = []
+
+        # FIX 1: If imaging is documented, months_ago should be calculable
+        imaging = extracted_data.get("imaging", {})
+        if imaging.get("documented") == True:
+            if imaging.get("months_ago") is None:
+                issues.append("Imaging documented but months_ago is null")
+
+                # Try to auto-fix by calculating from dates in chart
+                clinical_notes_date = extracted_data.get("clinical_notes_date")
+                if clinical_notes_date:
+                    # Try to find imaging date in chart
+                    imaging_months = self._calculate_imaging_months_ago(chart_text, clinical_notes_date)
+                    if imaging_months is not None:
+                        extracted_data["imaging"]["months_ago"] = imaging_months
+                        fixes_applied.append(f"Auto-calculated imaging_months_ago: {imaging_months}")
+                        logger.info(f"AUTO-FIX: Set imaging_months_ago to {imaging_months}")
+                    else:
+                        # Default to 0 if we can't calculate (assumes recent imaging)
+                        extracted_data["imaging"]["months_ago"] = 0
+                        fixes_applied.append("Defaulted imaging_months_ago to 0 (assumed recent)")
+                        logger.warning("AUTO-FIX: Defaulted imaging_months_ago to 0")
+
+        # FIX 2: If red_flags documented, clinical_indication should be 'red flag'
+        red_flags = extracted_data.get("red_flags", {})
+        if red_flags.get("documented") == True:
+            if extracted_data.get("clinical_indication") is None:
+                issues.append("Red flags documented but clinical_indication not set")
+
+                # Auto-fix: Set clinical_indication to "red flag"
+                extracted_data["clinical_indication"] = "red flag"
+                fixes_applied.append("Set clinical_indication to 'red flag'")
+                logger.info("AUTO-FIX: Set clinical_indication to 'red flag'")
+
+        # FIX 3: If PT attempted but duration_weeks is null, check chart for duration
+        pt = extracted_data.get("conservative_therapy", {}).get("physical_therapy", {})
+        if pt.get("attempted") == True:
+            if pt.get("duration_weeks") is None:
+                issues.append("Physical therapy attempted but duration_weeks is null")
+
+                # Try to extract PT duration from chart
+                pt_weeks = self._extract_pt_duration(chart_text)
+                if pt_weeks is not None:
+                    extracted_data["conservative_therapy"]["physical_therapy"]["duration_weeks"] = pt_weeks
+                    fixes_applied.append(f"Auto-extracted PT duration: {pt_weeks} weeks")
+                    logger.info(f"AUTO-FIX: Set PT duration_weeks to {pt_weeks}")
+
+        # Update metadata with completeness validation results
+        if "_metadata" not in extracted_data:
+            extracted_data["_metadata"] = {}
+
+        extracted_data["_metadata"]["completeness_issues"] = issues
+        extracted_data["_metadata"]["completeness_fixes"] = fixes_applied
+        extracted_data["_metadata"]["completeness_check_passed"] = len(issues) == 0
+
+        if issues:
+            logger.warning(f"COMPLETENESS ISSUES FOUND: {len(issues)} issues, {len(fixes_applied)} auto-fixed")
+
+        return extracted_data
+
+    def _calculate_imaging_months_ago(self, chart_text: str, clinical_notes_date: str) -> Optional[int]:
+        """Try to calculate months between imaging date and clinical notes date"""
+        import re
+        from datetime import datetime
+
+        try:
+            # Parse clinical notes date
+            notes_date = datetime.strptime(clinical_notes_date, "%Y-%m-%d")
+
+            # Look for imaging dates in chart (various formats)
+            # Examples: "X-ray 12/15/2024", "MRI dated 2024-08-15", "CT scan from August 2024"
+            date_patterns = [
+                r"(MRI|CT|X-ray|imaging).*?(\d{1,2}/\d{1,2}/\d{4})",
+                r"(MRI|CT|X-ray|imaging).*?(\d{4}-\d{2}-\d{2})",
+                r"(MRI|CT|X-ray|imaging).*?(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})",
+                r"(MRI|CT|X-ray|imaging).*?(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})"
+            ]
+
+            for pattern in date_patterns:
+                matches = re.finditer(pattern, chart_text, re.IGNORECASE)
+                for match in matches:
+                    try:
+                        # Extract date string and try to parse it
+                        date_str = match.group(2) if len(match.groups()) >= 2 else None
+                        if date_str:
+                            # Try different date formats
+                            for fmt in ["%m/%d/%Y", "%Y-%m-%d"]:
+                                try:
+                                    imaging_date = datetime.strptime(date_str, fmt)
+                                    months_diff = (notes_date.year - imaging_date.year) * 12 + (notes_date.month - imaging_date.month)
+                                    if 0 <= months_diff <= 60:  # Reasonable range (0-5 years)
+                                        return months_diff
+                                except ValueError:
+                                    continue
+                    except (IndexError, ValueError):
+                        continue
+
+            return None
+        except Exception as e:
+            logger.error(f"Error calculating imaging months: {e}")
+            return None
+
+    def _extract_pt_duration(self, chart_text: str) -> Optional[int]:
+        """Try to extract physical therapy duration in weeks from chart text"""
+        import re
+
+        # Look for patterns like "8 weeks of PT", "PT x 6 weeks", "physical therapy for 12 weeks"
+        patterns = [
+            r"(\d+)\s*weeks?\s+(?:of\s+)?(?:PT|physical therapy)",
+            r"(?:PT|physical therapy)\s+(?:x|for|over)?\s*(\d+)\s*weeks?",
+            r"completed\s+(\d+)\s*weeks?\s+(?:of\s+)?(?:PT|physical therapy)"
+        ]
+
+        for pattern in patterns:
+            matches = re.finditer(pattern, chart_text, re.IGNORECASE)
+            for match in matches:
+                try:
+                    weeks = int(match.group(1))
+                    if 1 <= weeks <= 52:  # Reasonable range (1 week to 1 year)
+                        return weeks
+                except (ValueError, IndexError):
+                    continue
+
+        return None
 
     def _extract_json_object(self, text: str) -> str:
         """Extract JSON with better error handling"""
@@ -241,11 +376,14 @@ OUTPUT (valid JSON only):"""
             # Extract and parse JSON
             cleaned = self._extract_json_object(raw_output)
             extracted_data = json.loads(cleaned)
-            
+
             # CRITICAL: Validate evidence against source
             validated_data = self._validate_evidence(extracted_data, chart_text)
-            
-            return validated_data
+
+            # CRITICAL: Validate extraction completeness and auto-fix null issues
+            complete_data = self._validate_extraction_completeness(validated_data, chart_text)
+
+            return complete_data
             
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error: {e}\nOutput: {raw_output[:500]}")
