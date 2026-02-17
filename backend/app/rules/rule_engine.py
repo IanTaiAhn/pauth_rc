@@ -239,6 +239,81 @@ def evaluate_rule(patient_data: dict, rule: dict) -> dict:
     }
 
 
+class RepeatImagingRule:
+    """
+    Issue 9 Fix: Check if requesting imaging type already exists for the patient.
+
+    When a patient already has recent imaging of the same modality as the requested
+    CPT code, a warning is raised to prompt clinical review before ordering a new study.
+    This prevents unnecessary $1,500+ imaging orders and missed opportunities to review
+    existing studies for progression.
+
+    Affected patients: 07 (Jasmine Tran), 10 (Tiffany Osei)
+    Priority: P1 - HIGH
+    """
+
+    # CPT codes → imaging modality mapping
+    MRI_CPTS = {"73721", "73722", "73723"}
+    CT_CPTS = {"73700", "73701"}
+
+    # Threshold: less than 6 months old triggers the warning
+    RECENT_MONTHS_THRESHOLD = 6
+
+    def __init__(self):
+        self.id = "repeat_imaging_check"
+        self.description = "Verify new imaging order when recent prior imaging exists"
+
+    def _get_modality_from_cpt(self, cpt: str) -> str:
+        """Map CPT code to imaging modality string."""
+        if cpt in self.MRI_CPTS:
+            return "MRI"
+        elif cpt in self.CT_CPTS:
+            return "CT"
+        return "Unknown"
+
+    def evaluate(self, normalized_patient: dict, requested_cpt: str) -> Optional[dict]:
+        """
+        Evaluate whether a repeat imaging warning should be issued.
+
+        Returns a warning dict if the patient already has recent imaging of the
+        same modality, or None if no conflict is detected.
+
+        Args:
+            normalized_patient: Normalized patient evidence dict
+            requested_cpt: The CPT code being requested (e.g., "73721")
+
+        Returns:
+            Warning dict if repeat imaging detected, None otherwise.
+        """
+        imaging_type = normalized_patient.get("imaging_type")
+        imaging_months_ago = normalized_patient.get("imaging_months_ago")
+
+        # Cannot assess if imaging type or recency is unknown
+        if imaging_type is None or imaging_months_ago is None:
+            return None
+
+        requested_modality = self._get_modality_from_cpt(requested_cpt)
+
+        # Only warn if requesting the same modality that already exists recently
+        if imaging_type.upper() == requested_modality.upper() and imaging_months_ago < self.RECENT_MONTHS_THRESHOLD:
+            imaging_months_ago_display = round(imaging_months_ago, 1)
+            return {
+                "rule_id": self.id,
+                "description": self.description,
+                "warning": (
+                    f"Patient already has a recent {imaging_type} from "
+                    f"{imaging_months_ago_display} month(s) ago. "
+                    f"Review existing imaging before ordering a new study."
+                ),
+                "recommendation": "REVIEW_EXISTING_IMAGING_FIRST",
+                "severity": "WARNING",
+                "imaging_type": imaging_type,
+                "imaging_months_ago": imaging_months_ago_display,
+            }
+
+        return None
+
+
 def evaluate_workers_compensation_exclusion(patient_data: dict) -> Optional[dict]:
     """
     Issue 7 Fix: Check if this is a Workers Compensation case before evaluating
@@ -267,12 +342,23 @@ def evaluate_workers_compensation_exclusion(patient_data: dict) -> Optional[dict
     return None
 
 
-def evaluate_all(patient_data: dict, policy_rules: list) -> dict:
+def evaluate_all(patient_data: dict, policy_rules: list, requested_cpt: str = "") -> dict:
     """
     Evaluate all policy rules against patient data.
 
     Issue 7 Fix: Workers Compensation exclusion is checked first. If the case
     is a WC case, standard PA rules are not evaluated and the result is EXCLUDED.
+
+    Issue 9 Fix: Repeat imaging detection runs after WC exclusion. If the patient
+    already has recent imaging of the same modality as the requested CPT code, a
+    warning is added to the return value. The warning does not block evaluation —
+    standard PA rules are still assessed — but it surfaces for clinician review.
+
+    Args:
+        patient_data: Normalized patient evidence dict
+        policy_rules: List of normalized policy rule dicts
+        requested_cpt: CPT code being requested (e.g., "73721"). Used only for
+                       repeat imaging detection; safe to omit for legacy callers.
 
     Returns detailed report with overall decision.
     """
@@ -286,8 +372,18 @@ def evaluate_all(patient_data: dict, policy_rules: list) -> dict:
             "rules_met": 0,
             "rules_failed": 1,
             "excluded": True,
-            "exclusion_reason": wc_exclusion["exclusion_reason"]
+            "exclusion_reason": wc_exclusion["exclusion_reason"],
+            "warnings": [],
         }
+
+    # Issue 9: Check for repeat imaging before evaluating standard rules.
+    # A warning is collected and returned alongside normal results; it does NOT
+    # short-circuit evaluation because the PA may still be clinically justified.
+    warnings: list[dict] = []
+    if requested_cpt:
+        repeat_imaging_warning = RepeatImagingRule().evaluate(patient_data, requested_cpt)
+        if repeat_imaging_warning is not None:
+            warnings.append(repeat_imaging_warning)
 
     rule_results = []
 
@@ -304,5 +400,6 @@ def evaluate_all(patient_data: dict, policy_rules: list) -> dict:
         "rules_met": sum(1 for r in rule_results if r["met"]),
         "rules_failed": sum(1 for r in rule_results if not r["met"]),
         "excluded": False,
-        "exclusion_reason": None
+        "exclusion_reason": None,
+        "warnings": warnings,
     }
