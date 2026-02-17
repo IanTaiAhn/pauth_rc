@@ -901,6 +901,19 @@ def normalize_policy_criteria(criteria: dict) -> list:
     logger.info(f"Processed criteria: {sorted(processed_criteria)}")
     if skipped_criteria:
         logger.info(f"Skipped {len(skipped_criteria)} criteria - see warnings above for details")
+
+    # ISSUE 5 FIX: Validate PT rule consistency post-normalization.
+    # The LLM may omit the PT duration from policy text, causing normalize_policy_criteria()
+    # to generate a PT rule with only pt_attempted == True and no duration check.
+    # This validation ensures both conditions are always present, making evaluation deterministic.
+    from app.rag_pipeline.scripts.extract_policy_rules import _validate_policy_consistency
+    was_consistent = _validate_policy_consistency(rules_list)
+    if not was_consistent:
+        logger.warning(
+            "PT rule was incomplete after policy normalization — missing duration condition. "
+            "Default duration applied. Check RAG policy extraction for completeness."
+        )
+
     return rules_list
 
 
