@@ -103,6 +103,79 @@ def compute_readiness(evidence: dict) -> tuple[int, list]:
 
     return score, issues
 
+
+def compute_readiness_score_with_exceptions(
+    evaluation_results: dict,
+    exception_applied: str | None
+) -> int:
+    """
+    Compute readiness score accounting for exceptions.
+
+    Issue 6 Fix: Score should reflect actual criteria met, not be artificially
+    deflated or inflated by exceptions. Exceptions affect verdict, not score.
+
+    Rules:
+    - Base score = (rules_met / total_rules) * 100
+    - If Workers' Comp / Exclusion exception: 0 (case is excluded)
+    - All other exceptions: use base score unchanged (exception bypasses rules
+      but doesn't change the numeric readiness percentage)
+    """
+    total_rules = evaluation_results.get("total_rules", 0)
+    rules_met = evaluation_results.get("rules_met", 0)
+
+    if total_rules == 0:
+        return 0
+
+    base_score = int((rules_met / total_rules) * 100)
+
+    if not exception_applied:
+        return base_score
+
+    if "Workers' Compensation" in exception_applied or "Exclusion" in exception_applied:
+        return 0  # Excluded cases score 0 — wrong payer entirely
+
+    # For Red Flag, Acute Trauma, etc.: exception bypasses standard rules but
+    # does not change the score. The score still reflects criteria met.
+    return base_score
+
+
+def determine_verdict(
+    readiness_score: int,
+    exception_applied: str | None,
+    rules_failed: int = 0
+) -> str:
+    """
+    Determine verdict with explicit exception handling.
+
+    Issue 6 Fix: Verdict must be derived from exception type first, then score.
+    This prevents the contradictory state of "25% readiness → LIKELY_TO_APPROVE"
+    being unexplained — instead, the exception is the explicit driver.
+
+    Priority order:
+    1. Exclusions (Workers' Comp) → EXCLUDED
+    2. Red flag / Acute Trauma exceptions → LIKELY_TO_APPROVE (bypass standard rules)
+    3. No exception — standard score thresholds:
+       - 80%+ → LIKELY_TO_APPROVE
+       - 60–79% → NEEDS_REVIEW
+       - <60% → LIKELY_TO_DENY
+    """
+    if exception_applied:
+        if "Workers' Compensation" in exception_applied or "Exclusion" in exception_applied:
+            return "EXCLUDED"
+
+        if "Red Flag" in exception_applied or "Acute Trauma" in exception_applied:
+            # Exception pathway allows approval despite failed standard rules
+            return "LIKELY_TO_APPROVE"
+
+    # Standard scoring — no exception applied
+    if readiness_score >= 80:
+        return "LIKELY_TO_APPROVE"
+    elif readiness_score >= 60:
+        return "NEEDS_REVIEW"
+    else:
+        return "LIKELY_TO_DENY"
+
+
 if __name__ == "__main__":
     evidence = {
         "symptom_duration_months": 4,

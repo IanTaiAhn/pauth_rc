@@ -1,9 +1,82 @@
 import json
+import logging
 import app.rag_pipeline.scripts.build_index_updated as build_index
 from app.rag_pipeline.retrieval.enhanced_reranker import Reranker
 from app.rag_pipeline.retrieval.enhanced_retriever import retrieve_and_format
 from app.rag_pipeline.generation.prompt import build_medical_policy_prompt
 from app.rag_pipeline.generation.generator import generate_with_context
+
+logger = logging.getLogger(__name__)
+
+# Default PT duration requirement per Aetna policy (weeks)
+# Used when PT is mentioned in the policy but no duration is explicitly stated
+DEFAULT_PT_DURATION_WEEKS = 6
+
+
+def _validate_policy_consistency(rules: list) -> bool:
+    """
+    Validate that extracted policy rules are internally consistent.
+
+    Specifically ensures the PT requirement rule always contains BOTH:
+    - pt_attempted == True (was PT performed?)
+    - pt_duration_weeks >= N (for how long?)
+
+    Without both conditions, the rule is ambiguous and will produce
+    inconsistent evaluation results across LLM extraction runs.
+
+    Returns True if consistent, False if corrections were made.
+    Modifies the rules list in-place.
+
+    Priority: P2 - MEDIUM (Issue 5: Inconsistent PT Requirements)
+    Root cause: LLM extraction sometimes omits duration from policy text,
+    causing normalize_policy_criteria() to generate an incomplete PT rule.
+    """
+    pt_rule = next((r for r in rules if r.get("id") == "physical_therapy_requirement"), None)
+
+    if not pt_rule:
+        # PT rule not present — nothing to validate
+        return True
+
+    conditions = pt_rule.get("conditions", [])
+    has_attempted_check = any(c.get("field") == "pt_attempted" for c in conditions)
+    has_duration_check = any(c.get("field") == "pt_duration_weeks" for c in conditions)
+
+    if has_attempted_check and has_duration_check:
+        # Rule is complete — no correction needed
+        return True
+
+    # Rule is incomplete — log and correct
+    if not has_attempted_check:
+        logger.warning(
+            "PT rule missing 'pt_attempted' condition. Adding default check."
+        )
+        conditions.append({
+            "field": "pt_attempted",
+            "operator": "eq",
+            "value": True
+        })
+
+    if not has_duration_check:
+        logger.warning(
+            f"PT rule missing 'pt_duration_weeks' condition. "
+            f"Adding default: >= {DEFAULT_PT_DURATION_WEEKS} weeks. "
+            f"Root cause: Policy extraction did not include PT duration. "
+            f"Using standard Aetna requirement of {DEFAULT_PT_DURATION_WEEKS} weeks."
+        )
+        conditions.append({
+            "field": "pt_duration_weeks",
+            "operator": "gte",
+            "value": DEFAULT_PT_DURATION_WEEKS
+        })
+        # Update description to reflect the corrected rule
+        pt_rule["description"] = (
+            f"Physical therapy must be attempted and documented "
+            f"(minimum {DEFAULT_PT_DURATION_WEEKS} weeks) "
+            f"[duration defaulted — not found in extracted policy text]"
+        )
+
+    pt_rule["conditions"] = conditions
+    return False
 
 
 def extract_policy_rules(payer: str, cpt_code: str, index_name="default"):
