@@ -112,6 +112,42 @@ def _map_clinical_indication(raw_patient: dict) -> Optional[str]:
     return None
 
 
+def _detect_workers_compensation(raw_patient: dict) -> bool:
+    """
+    Detect if this is a workers compensation case.
+
+    Issue 7 Fix: WC exclusion must be consistently detected so the clinic
+    doesn't bill Medicaid/commercial insurance instead of the WC carrier.
+
+    Checks evidence_notes and functional_impairment description for WC keywords.
+    """
+    evidence_notes = raw_patient.get("evidence_notes", [])
+    evidence_text = " ".join(evidence_notes).lower() if evidence_notes else ""
+
+    wc_keywords = [
+        "workplace",
+        "work-related",
+        "workers comp",
+        "workers' comp",
+        "on the job",
+        "job injury",
+        "workplace injury",
+        "workplace fall",
+        "modified duty",
+        "work injury",
+        "injured at work",
+        "occupational injury",
+        "workman's comp",
+    ]
+
+    functional_impairment = raw_patient.get("functional_impairment", {})
+    func_desc = str(functional_impairment.get("description", "")).lower()
+
+    all_text = evidence_text + " " + func_desc
+
+    return any(keyword in all_text for keyword in wc_keywords)
+
+
 def normalize_patient_evidence(evidence: dict) -> dict:
     """
     Normalize YOUR specific patient chart JSON format.
@@ -304,15 +340,27 @@ def normalize_patient_evidence(evidence: dict) -> dict:
     conservative = data_source.get("conservative_therapy", {})
     other_treatments = conservative.get("other_treatments", {})
 
-    # SOURCE 1: imaging.findings - highest priority for definitive diagnoses
-    imaging_findings = str(imaging.get("findings", "")).lower()
-    if imaging_findings:
-        if any(keyword in imaging_findings for keyword in ["meniscal tear", "meniscus tear", "torn meniscus"]):
-            clinical_indication = "meniscal tear"
-        elif any(keyword in imaging_findings for keyword in ["acl", "pcl", "ligament rupture", "cruciate"]):
-            clinical_indication = "ligament rupture"
-        elif any(keyword in imaging_findings for keyword in ["avulsion", "segond"]):
-            clinical_indication = "red flag"
+    # SOURCE 0 (Issue 8 Fix): red_flags struct - HIGHEST PRIORITY
+    # Red flags are medical emergencies (infection, tumor, fracture, severe effusion).
+    # They must trigger the exception pathway regardless of other findings.
+    # Using bool() instead of `is True` to handle truthy values (e.g., 1, "true").
+    if bool(red_flags.get("documented")):
+        clinical_indication = "red flag"
+        logger.info(
+            "Clinical indication set to 'red flag' (highest priority) — "
+            "red_flags.documented is truthy"
+        )
+
+    # SOURCE 1: imaging.findings - highest priority for definitive diagnoses (if no red flag)
+    if not clinical_indication:
+        imaging_findings = str(imaging.get("findings", "")).lower()
+        if imaging_findings:
+            if any(keyword in imaging_findings for keyword in ["meniscal tear", "meniscus tear", "torn meniscus"]):
+                clinical_indication = "meniscal tear"
+            elif any(keyword in imaging_findings for keyword in ["acl", "pcl", "ligament rupture", "cruciate"]):
+                clinical_indication = "ligament rupture"
+            elif any(keyword in imaging_findings for keyword in ["avulsion", "segond"]):
+                clinical_indication = "red flag"
 
     # SOURCE 2: pain_characteristics.quality - physical exam findings
     if not clinical_indication:
@@ -322,11 +370,6 @@ def normalize_patient_evidence(evidence: dict) -> dict:
                 clinical_indication = "positive mcmurray"
             elif any(keyword in pain_quality for keyword in ["catching", "locking", "mechanical"]):
                 clinical_indication = "mechanical symptoms"
-
-    # SOURCE 3: red_flags struct - check documented flag
-    if not clinical_indication:
-        if red_flags.get("documented") is True:
-            clinical_indication = "red flag"
 
     # SOURCE 4: conservative_therapy context - post-operative
     if not clinical_indication:
@@ -399,6 +442,10 @@ def normalize_patient_evidence(evidence: dict) -> dict:
 
     # Add timestamp if present (may not be in Groq output)
     normalized["timestamp"] = evidence.get("timestamp")
+
+    # Issue 7 Fix: Workers Compensation detection
+    # Must be checked before billing/submission so clinic uses correct payer
+    normalized["is_workers_compensation"] = _detect_workers_compensation(data_source)
 
     return normalized
 

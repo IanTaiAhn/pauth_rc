@@ -239,24 +239,70 @@ def evaluate_rule(patient_data: dict, rule: dict) -> dict:
     }
 
 
+def evaluate_workers_compensation_exclusion(patient_data: dict) -> Optional[dict]:
+    """
+    Issue 7 Fix: Check if this is a Workers Compensation case before evaluating
+    standard PA criteria. WC cases must be excluded — billing Medicaid/commercial
+    insurance for a WC injury is a compliance violation.
+
+    Returns an exclusion result dict if the case is excluded, None otherwise.
+    """
+    if patient_data.get("is_workers_compensation"):
+        return {
+            "rule_id": "workers_compensation_exclusion",
+            "description": "Workers Compensation cases are excluded from standard PA evaluation",
+            "met": False,
+            "logic": "all",
+            "condition_details": [
+                {
+                    "condition": "is_workers_compensation eq False",
+                    "patient_value": True,
+                    "met": False
+                }
+            ],
+            "patient_value": "Workers Compensation case detected",
+            "exclusion": True,
+            "exclusion_reason": "Workers' Compensation — bill WC carrier, not standard payer"
+        }
+    return None
+
+
 def evaluate_all(patient_data: dict, policy_rules: list) -> dict:
     """
     Evaluate all policy rules against patient data.
-    
+
+    Issue 7 Fix: Workers Compensation exclusion is checked first. If the case
+    is a WC case, standard PA rules are not evaluated and the result is EXCLUDED.
+
     Returns detailed report with overall decision.
     """
+    # Issue 7: Check WC exclusion before running any standard rules
+    wc_exclusion = evaluate_workers_compensation_exclusion(patient_data)
+    if wc_exclusion is not None:
+        return {
+            "results": [wc_exclusion],
+            "all_criteria_met": False,
+            "total_rules": 1,
+            "rules_met": 0,
+            "rules_failed": 1,
+            "excluded": True,
+            "exclusion_reason": wc_exclusion["exclusion_reason"]
+        }
+
     rule_results = []
-    
+
     for rule in policy_rules:
         result = evaluate_rule(patient_data, rule)
         rule_results.append(result)
-    
+
     all_met = all(r["met"] for r in rule_results)
-    
+
     return {
         "results": rule_results,
         "all_criteria_met": all_met,
         "total_rules": len(rule_results),
         "rules_met": sum(1 for r in rule_results if r["met"]),
-        "rules_failed": sum(1 for r in rule_results if not r["met"])
+        "rules_failed": sum(1 for r in rule_results if not r["met"]),
+        "excluded": False,
+        "exclusion_reason": None
     }
