@@ -132,30 +132,61 @@ def derive_verdict(
         return "NEEDS_REVIEW"
 
 
-def generate_next_steps(gaps: list[str], exception_applied: str | None) -> str:
+def generate_next_steps(
+    gaps: list[str],
+    exception_applied: str | None,
+    repeat_imaging_warnings: list[dict] | None = None,
+) -> str:
     """
     Generate plain-English next steps guidance based on gaps.
+
+    Issue 9 Fix: If repeat imaging warnings are present, prepend an explicit
+    instruction to review existing imaging before ordering a new study.
 
     Args:
         gaps: List of gap descriptions
         exception_applied: Exception pathway name if any
+        repeat_imaging_warnings: List of repeat imaging warning dicts from evaluate_all()
 
     Returns:
         Human-readable next steps string
     """
-    gap_count = len(gaps)
+    parts = []
 
-    if gap_count == 0:
-        base = "All criteria met. This chart is ready for PA submission."
+    # Issue 9 Fix: Surface repeat imaging review instruction first
+    if repeat_imaging_warnings:
+        for w in repeat_imaging_warnings:
+            imaging_type = w.get("imaging_type", "imaging")
+            months_ago = w.get("imaging_months_ago")
+            if months_ago is not None:
+                parts.append(
+                    f"Review the existing {imaging_type} from {months_ago} month(s) ago "
+                    f"before ordering a new study. A new {imaging_type} may not be justified "
+                    f"without documented clinical progression since the prior study."
+                )
+            else:
+                parts.append(
+                    f"Review existing {imaging_type} before ordering a new study."
+                )
+
+    # Standard gap guidance
+    # Count only non-repeat-imaging gaps for the gap count message
+    standard_gaps = [g for g in gaps if not g.startswith("[REVIEW REQUIRED]")]
+    gap_count = len(standard_gaps)
+
+    if gap_count == 0 and not repeat_imaging_warnings:
+        parts.append("All criteria met. This chart is ready for PA submission.")
+    elif gap_count == 0:
+        parts.append("Standard PA criteria are met. Resolve the imaging review item above before submitting.")
     elif gap_count == 1:
-        base = "One criterion is unmet. Resolve the item in the gaps list before submitting."
+        parts.append("One criterion is unmet. Resolve the item in the gaps list before submitting.")
     else:
-        base = "Multiple criteria are unmet. Review the gaps list and update the chart before submitting."
+        parts.append("Multiple criteria are unmet. Review the gaps list and update the chart before submitting.")
 
     if exception_applied:
-        base += f" Note: Exception pathway applied — {exception_applied}."
+        parts.append(f"Note: Exception pathway applied — {exception_applied}.")
 
-    return base
+    return " ".join(parts)
 
 
 def extract_patient_name(patient_json: dict) -> str:
@@ -411,8 +442,9 @@ async def check_prior_auth(
             )
 
         # Step 6: Evaluate rules
+        # Issue 9 Fix: Pass requested CPT code so repeat imaging detection can run.
         try:
-            evaluation = evaluate_all(normalized_patient, normalized_policy)
+            evaluation = evaluate_all(normalized_patient, normalized_policy, requested_cpt=cpt)
             logger.info(f"Rule evaluation complete: {evaluation['rules_met']}/{evaluation['total_rules']} met")
             # DIAGNOSTIC: Save evaluation results
             save_diagnostic_json(file.filename, evaluation, "05_evaluation")
@@ -463,6 +495,15 @@ async def check_prior_auth(
                     status=status,
                 ))
 
+            # Issue 9 Fix: Collect repeat imaging warnings from evaluation and
+            # prepend them to the gaps list so clinicians see them prominently.
+            repeat_imaging_warnings = evaluation.get("warnings", [])
+            for w in repeat_imaging_warnings:
+                warning_msg = w.get("warning", "")
+                if warning_msg:
+                    gaps.insert(0, f"[REVIEW REQUIRED] {warning_msg}")
+                    logger.warning(f"Repeat imaging warning: {warning_msg}")
+
             # AUDIT FIX: Check for WC exclusion before proceeding
             # Policy Section 4(d) excludes worker's compensation cases
             wc_detected = detect_workers_comp(patient_json, text)
@@ -505,8 +546,8 @@ async def check_prior_auth(
             else:
                 verdict = derive_verdict(readiness_score, fail_count)
 
-            # Generate next steps
-            next_steps = generate_next_steps(gaps, exception_applied)
+            # Generate next steps (Issue 9 Fix: pass repeat imaging warnings)
+            next_steps = generate_next_steps(gaps, exception_applied, repeat_imaging_warnings)
 
             # Get display labels
             payer_label = PAYER_LABELS.get(payer.lower(), payer)
