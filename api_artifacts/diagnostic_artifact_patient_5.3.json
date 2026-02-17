@@ -1,0 +1,22 @@
+{
+  "verdict": "EXCLUDED",
+  "readiness_score": 0,
+  "patient_name": "Randy Schaefer",
+  "payer": "Utah Medicaid",
+  "cpt": "73721",
+  "procedure_label": "MRI Knee Without Contrast",
+  "criteria": [
+    {
+      "criterion": "Workers' Compensation Exclusion",
+      "required": "Not a WC claim",
+      "found": "Workers' compensation claim detected",
+      "status": "FAIL"
+    }
+  ],
+  "gaps": [
+    "This is a workers' compensation case. Policy Section 4(d) requires billing through the WC carrier, not Medicaid."
+  ],
+  "next_steps": "This case should be billed through the workers' compensation carrier, not Utah Medicaid. Refer to Policy Section 4(d).",
+  "exception_applied": "Workers' Compensation Exclusion - Section 4(d)",
+  "diagnostics": null
+}
