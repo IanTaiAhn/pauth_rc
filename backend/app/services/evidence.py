@@ -106,16 +106,28 @@ class EvidenceExtractor:
                         fixes_applied.append("Defaulted imaging_months_ago to 0 (assumed recent)")
                         logger.warning("AUTO-FIX: Defaulted imaging_months_ago to 0")
 
-        # FIX 2: If red_flags documented, clinical_indication should be 'red flag'
+        # FIX 2 (Issue 8): If red_flags documented, clinical_indication must be 'red flag'
+        # Red flags are medical emergencies — they always override any other indication.
+        # Use bool() to handle truthy values (True, 1, "true") consistently.
         red_flags = extracted_data.get("red_flags", {})
-        if red_flags.get("documented") == True:
-            if extracted_data.get("clinical_indication") is None:
-                issues.append("Red flags documented but clinical_indication not set")
+        if bool(red_flags.get("documented")):
+            current_indication = extracted_data.get("clinical_indication")
+            if current_indication != "red flag":
+                if current_indication is None:
+                    issues.append("Red flags documented but clinical_indication not set")
+                else:
+                    issues.append(
+                        f"Red flags documented but clinical_indication is '{current_indication}', "
+                        f"not 'red flag'"
+                    )
 
-                # Auto-fix: Set clinical_indication to "red flag"
+                # Auto-fix: Always set clinical_indication to "red flag" when red flags present
                 extracted_data["clinical_indication"] = "red flag"
-                fixes_applied.append("Set clinical_indication to 'red flag'")
-                logger.info("AUTO-FIX: Set clinical_indication to 'red flag'")
+                fixes_applied.append("Set clinical_indication to 'red flag' (red flags take priority)")
+                logger.info(
+                    f"AUTO-FIX: Set clinical_indication to 'red flag' "
+                    f"(was: '{current_indication}')"
+                )
 
         # FIX 3: If PT attempted but duration_weeks is null, check chart for duration
         pt = extracted_data.get("conservative_therapy", {}).get("physical_therapy", {})
