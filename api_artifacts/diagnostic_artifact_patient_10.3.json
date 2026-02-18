@@ -1,0 +1,48 @@
+{
+  "verdict": "LIKELY_TO_DENY",
+  "readiness_score": 50,
+  "patient_name": "Tiffany Osei",
+  "payer": "Utah Medicaid",
+  "cpt": "73721",
+  "procedure_label": "MRI Knee Without Contrast",
+  "criteria": [
+    {
+      "criterion": "Weight-bearing X-rays must be completed within 60 days",
+      "required": "Must be documented",
+      "found": "Yes; MRI; 5",
+      "status": "FAIL"
+    },
+    {
+      "criterion": "Physical therapy must be attempted and documented (minimum 6 weeks) [duration defaulted — not found in extracted policy text]",
+      "required": "Must be documented",
+      "found": "Yes",
+      "status": "FAIL"
+    },
+    {
+      "criterion": "Clinical notes must be within 30 days",
+      "required": "Must be documented",
+      "found": "0",
+      "status": "PASS"
+    },
+    {
+      "criterion": "Patient must have a valid clinical indication: meniscal tear, positive mcmurray, red flag, post-operative",
+      "required": "Must be documented",
+      "found": "meniscal tear",
+      "status": "PASS"
+    },
+    {
+      "criterion": "Evidence must be validated with no hallucinations",
+      "required": "Must be documented",
+      "found": "0; Yes",
+      "status": "PASS"
+    }
+  ],
+  "gaps": [
+    "[REVIEW REQUIRED] Patient already has a recent MRI from 5 month(s) ago. Review existing imaging before ordering a new study.",
+    "Weight-bearing X-rays must be completed within 60 days",
+    "Physical therapy must be attempted and documented (minimum 6 weeks) [duration defaulted — not found in extracted policy text]"
+  ],
+  "next_steps": "Review the existing MRI from 5 month(s) ago before ordering a new study. A new MRI may not be justified without documented clinical progression since the prior study. Multiple criteria are unmet. Review the gaps list and update the chart before submitting.",
+  "exception_applied": null,
+  "diagnostics": null
+}
