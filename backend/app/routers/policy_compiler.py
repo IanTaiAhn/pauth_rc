@@ -9,6 +9,7 @@ as the LLM provider by default.
 """
 
 import io
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
@@ -29,6 +30,8 @@ class CompilePolicyResponse(BaseModel):
     schema_field_count: int
     validation_errors: list[str]
     model: str
+    canonical_rules: list[Any]
+    extraction_schema: dict[str, Any]
 
 
 # ---------------------------------------------------------
@@ -97,11 +100,16 @@ async def compile_policy_endpoint(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
+    canonical_rules = result.get("canonical_rules", [])
+    extraction_schema = result.get("extraction_schema", {})
+
     return CompilePolicyResponse(
         payer=result["_payer"],
         cpt_code=result["_cpt_code"],
-        rule_count=len(result.get("canonical_rules", [])),
-        schema_field_count=len(result.get("extraction_schema", {})),
+        rule_count=len(canonical_rules),
+        schema_field_count=len(extraction_schema),
         validation_errors=result.get("_validation_errors", []),
         model=result.get("_model", ""),
+        canonical_rules=canonical_rules,
+        extraction_schema=extraction_schema,
     )
