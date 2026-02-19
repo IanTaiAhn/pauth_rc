@@ -160,6 +160,22 @@ class NormalizeBothResponse(BaseModel):
     )
 
 
+# ===== Schema-Driven Extraction Schema =====
+
+class SchemaExtractionResponse(BaseModel):
+    """Response schema for the schema-driven patient chart extraction endpoint."""
+    filename: str = Field(..., description="Name of the uploaded chart file")
+    payer: str = Field(..., description="Payer identifier used to load compiled rules")
+    cpt_code: str = Field(..., description="CPT code used to load compiled rules")
+    patient_data: Dict[str, Any] = Field(
+        ...,
+        description=(
+            "Extracted patient field values keyed by schema field name. "
+            "Fields match exactly what the compiled rule set requires."
+        ),
+    )
+
+
 # ===== Orchestration Schemas =====
 
 class CriterionResult(BaseModel):
