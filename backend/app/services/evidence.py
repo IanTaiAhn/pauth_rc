@@ -586,3 +586,25 @@ def extract_evidence(chart_text: str, use_groq: bool = False, groq_api_key: Opti
     """Backward-compatible function wrapper"""
     extractor = get_extractor(use_groq=use_groq, groq_api_key=groq_api_key)
     return extractor.extract_evidence(chart_text)
+
+
+def extract_evidence_schema_driven(
+    chart_text: str,
+    extraction_schema: dict,
+    provider: str = "bedrock",
+) -> dict:
+    """Module-level wrapper for schema-driven PHI extraction.
+
+    HIPAA NOTE: chart_text contains PHI. Only BAA-covered providers are
+    permitted. Groq must never be used in production here — use Bedrock.
+
+    Args:
+        chart_text: Patient chart text (contains PHI).
+        extraction_schema: Dict mapping field names to descriptions.
+        provider: LLM provider. Must be "bedrock" in production.
+
+    Returns:
+        Dict of extracted field values keyed by schema field name.
+    """
+    extractor = get_extractor(use_groq=True)
+    return extractor.extract_evidence_schema_driven(chart_text, extraction_schema, provider=provider)
