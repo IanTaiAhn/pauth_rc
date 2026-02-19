@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from app.routers import rag, documents, pa, authz, normalization, orchestration
+from app.routers import rag, documents, pa, authz, normalization, orchestration, policy_compiler
 
 app = FastAPI(title="P-Auth RC")
 
@@ -27,6 +27,7 @@ app.include_router(pa.router, prefix="/api", tags=["Prior Authorization"])
 app.include_router(authz.router, prefix="/api", tags=["Evaluate"])
 app.include_router(normalization.router, prefix="/api", tags=["Normalization"])
 app.include_router(orchestration.router, prefix="/api", tags=["Orchestration"])
+app.include_router(policy_compiler.router, prefix="/api", tags=["Policy Compiler"])
 
 
 @app.get("/")
