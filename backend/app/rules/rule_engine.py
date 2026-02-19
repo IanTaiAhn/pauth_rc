@@ -197,6 +197,12 @@ def evaluate_rule(patient_data: dict, rule: dict) -> dict:
         met = all(results)
     elif logic == "any":
         met = any(results)
+    elif logic == "count_gte":
+        rule_threshold = rule.get("threshold", 0)
+        met = sum(results) >= rule_threshold
+    elif logic == "count_lte":
+        rule_threshold = rule.get("threshold", len(conditions))
+        met = sum(results) <= rule_threshold
     else:
         met = False
 
@@ -354,6 +360,13 @@ def evaluate_all(patient_data: dict, policy_rules: list, requested_cpt: str = ""
     warning is added to the return value. The warning does not block evaluation —
     standard PA rules are still assessed — but it surfaces for clinician review.
 
+    Rule evaluation order within policy_rules:
+    1. Exclusion rules (exclusion: true) — if any pass, return EXCLUDED immediately.
+    2. Exception rules (exception_pathway: true) — if any pass, their overrides
+       array lists standard rule IDs that are waived.
+    3. Standard rules — evaluated normally, skipping any whose ID appears in an
+       active override set from step 2.
+
     Args:
         patient_data: Normalized patient evidence dict
         policy_rules: List of normalized policy rule dicts
@@ -374,6 +387,7 @@ def evaluate_all(patient_data: dict, policy_rules: list, requested_cpt: str = ""
             "excluded": True,
             "exclusion_reason": wc_exclusion["exclusion_reason"],
             "warnings": [],
+            "active_overrides": [],
         }
 
     # Issue 9: Check for repeat imaging before evaluating standard rules.
@@ -385,13 +399,45 @@ def evaluate_all(patient_data: dict, policy_rules: list, requested_cpt: str = ""
         if repeat_imaging_warning is not None:
             warnings.append(repeat_imaging_warning)
 
-    rule_results = []
-
+    # Step 1: Evaluate exclusion rules. If any pass, return EXCLUDED immediately.
     for rule in policy_rules:
-        result = evaluate_rule(patient_data, rule)
-        rule_results.append(result)
+        if rule.get("exclusion"):
+            result = evaluate_rule(patient_data, rule)
+            if result["met"]:
+                return {
+                    "results": [result],
+                    "all_criteria_met": False,
+                    "total_rules": 1,
+                    "rules_met": 0,
+                    "rules_failed": 1,
+                    "excluded": True,
+                    "exclusion_reason": rule.get("description", "Exclusion criteria met"),
+                    "warnings": warnings,
+                    "active_overrides": [],
+                }
 
-    all_met = all(r["met"] for r in rule_results)
+    # Step 2: Evaluate exception rules. Record overrides for any that pass.
+    active_overrides: set[str] = set()
+    exception_results: list[dict] = []
+    for rule in policy_rules:
+        if rule.get("exception_pathway"):
+            result = evaluate_rule(patient_data, rule)
+            exception_results.append(result)
+            if result["met"]:
+                active_overrides.update(rule.get("overrides", []))
+
+    # Step 3: Evaluate standard rules, skipping any overridden by active exceptions.
+    standard_results: list[dict] = []
+    for rule in policy_rules:
+        if rule.get("exclusion") or rule.get("exception_pathway"):
+            continue
+        if rule.get("id") in active_overrides:
+            continue
+        result = evaluate_rule(patient_data, rule)
+        standard_results.append(result)
+
+    rule_results = exception_results + standard_results
+    all_met = all(r["met"] for r in rule_results) if rule_results else True
 
     return {
         "results": rule_results,
@@ -402,4 +448,5 @@ def evaluate_all(patient_data: dict, policy_rules: list, requested_cpt: str = ""
         "excluded": False,
         "exclusion_reason": None,
         "warnings": warnings,
+        "active_overrides": sorted(active_overrides),
     }
