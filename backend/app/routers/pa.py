@@ -29,7 +29,7 @@ router = APIRouter()
 
 # Compiled rule sets are stored here by compile_policy.py
 COMPILED_RULES_DIR = (
-    Path(__file__).resolve().parent.parent / "api_artifacts" / "compiled_rules"
+    Path(__file__).resolve().parent.parent / "rag_pipeline" / "compiled_rules"
 )
 
 def _load_compiled_rules(payer: str, cpt_code: str) -> dict | None:
@@ -40,6 +40,16 @@ def _load_compiled_rules(payer: str, cpt_code: str) -> dict | None:
     with open(path, "r", encoding="utf-8") as fh:
         return json.load(fh)
 
+def _load_compiled_rules_from_upload(file: UploadFile) -> dict:
+    """Load a compiled rule set from an uploaded JSON file."""
+    try:
+        contents = file.file.read()
+        return json.loads(contents)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded compiled rules file is not valid JSON."
+        )
 
 # ---------------------------------------------------------
 # Endpoints
@@ -48,6 +58,7 @@ def _load_compiled_rules(payer: str, cpt_code: str) -> dict | None:
 @router.post("/extract_patient_chart", response_model=SchemaExtractionResponse)
 async def extract_patient_chart(
     file: UploadFile = File(...),
+    compiled_rules_file: UploadFile = File(...),
     payer: str = Form(...),
     cpt_code: str = Form(...),
 ):
@@ -70,7 +81,7 @@ async def extract_patient_chart(
         text = extract_text(contents)
 
         # Load compiled rules for this payer/CPT pair
-        compiled = _load_compiled_rules(payer, cpt_code)
+        compiled = _load_compiled_rules_from_upload(compiled_rules_file)
         if compiled is None:
             raise HTTPException(
                 status_code=400,
