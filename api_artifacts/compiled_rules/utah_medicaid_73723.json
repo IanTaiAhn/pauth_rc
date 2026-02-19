@@ -1,0 +1,92 @@
+{
+  "payer": "utah_medicaid",
+  "cpt_code": "73721",
+  "rule_count": 3,
+  "schema_field_count": 9,
+  "validation_errors": [],
+  "model": "llama-3.3-70b-versatile",
+  "canonical_rules": [
+    {
+      "id": "utah_medicaid_cpt_73721_standard_criteria",
+      "description": "Standard criteria for CPT 73721",
+      "logic": "all",
+      "conditions": [
+        {
+          "field": "eligible_diagnosis",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "clinical_findings_requirement",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "prior_imaging_within_60_days",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "conservative_treatment_completed",
+          "operator": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "utah_medicaid_cpt_73721_exception_pathway",
+      "description": "Exception pathway for CPT 73721",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "tumor_indication",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "infection_indication",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "exception_pathway": true,
+      "overrides": [
+        "utah_medicaid_cpt_73721_standard_criteria"
+      ]
+    },
+    {
+      "id": "utah_medicaid_cpt_73721_exclusion",
+      "description": "Exclusion criteria for CPT 73721",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "combined_protocol_not_clinically_necessary",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "egfr_less_than_30",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "contrast_clinically_contraindicated",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "exclusion": true
+    }
+  ],
+  "extraction_schema": {
+    "eligible_diagnosis": "Determine if the patient has a diagnosis that is eligible for CPT 73721",
+    "clinical_findings_requirement": "Determine if the patient has clinical findings that require CPT 73721",
+    "prior_imaging_within_60_days": "Determine if the patient has had prior imaging within 60 days",
+    "conservative_treatment_completed": "Determine if the patient has completed conservative treatment",
+    "tumor_indication": "Determine if the patient has a tumor indication that requires CPT 73721",
+    "infection_indication": "Determine if the patient has an infection indication that requires CPT 73721",
+    "combined_protocol_not_clinically_necessary": "Determine if the combined protocol is not clinically necessary",
+    "egfr_less_than_30": "Determine if the patient's eGFR is less than 30",
+    "contrast_clinically_contraindicated": "Determine if contrast is clinically contraindicated"
+  }
+}

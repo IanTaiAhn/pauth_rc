@@ -1,0 +1,194 @@
+{
+  "payer": "utah_medicaid",
+  "cpt_code": "73721",
+  "rule_count": 5,
+  "schema_field_count": 22,
+  "validation_errors": [],
+  "model": "llama-3.3-70b-versatile",
+  "canonical_rules": [
+    {
+      "id": "standard_criteria_rule",
+      "description": "Meets standard criteria for CPT 73721",
+      "logic": "all",
+      "conditions": [
+        {
+          "field": "eligible_diagnosis",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "clinical_findings_requirement",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "prior_imaging_within_60_days",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "conservative_treatment_completed",
+          "operator": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "contrast_specific_indications_rule",
+      "description": "Meets at least one contrast-specific indication",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "suspected_septic_arthritis",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_inflammatory_arthropathy",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_pvns_or_synovial_chondromatosis",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_primary_bone_tumor_or_soft_tissue_neoplasm",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_metastatic_disease",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "known_malignancy",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_avascular_necrosis",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_complex_regional_pain_syndrome",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "evaluation_of_suspected_post_operative_complication",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "assessment_of_post_operative_healing",
+          "operator": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "contrast_safety_documentation_rule",
+      "description": "Meets contrast safety documentation requirements",
+      "logic": "all",
+      "conditions": [
+        {
+          "field": "creatinine_or_egfr_within_6_months",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "egfr_greater_than_or_equal_to_30",
+          "operator": "gte",
+          "value": 30
+        },
+        {
+          "field": "macrocyclic_gbca_required_for_egfr_30_44",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "nephrologist_consultation_for_egfr_less_than_30",
+          "operator": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "exclusion_criteria_rule",
+      "description": "Does not meet exclusion criteria",
+      "logic": "all",
+      "conditions": [
+        {
+          "field": "non_contrast_mri_would_be_clinically_sufficient",
+          "operator": "eq",
+          "value": false
+        },
+        {
+          "field": "contrast_requested_solely_for_patient_or_provider_preference",
+          "operator": "eq",
+          "value": false
+        },
+        {
+          "field": "egfr_less_than_30_without_nephrologist_consultation",
+          "operator": "eq",
+          "value": false
+        },
+        {
+          "field": "patient_declines_contrast_administration",
+          "operator": "eq",
+          "value": false
+        }
+      ],
+      "exclusion": true
+    },
+    {
+      "id": "exception_to_conservative_treatment_rule",
+      "description": "Meets exception criteria for conservative treatment requirement",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "suspected_septic_arthritis",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_inflammatory_arthropathy",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "exception_pathway": true,
+      "overrides": [
+        "standard_criteria_rule"
+      ]
+    }
+  ],
+  "extraction_schema": {
+    "eligible_diagnosis": "Determine if the patient has a diagnosis that is eligible for CPT 73721",
+    "clinical_findings_requirement": "Determine if the patient meets the clinical findings requirement for CPT 73721",
+    "prior_imaging_within_60_days": "Determine if the patient has had prior imaging within 60 days",
+    "conservative_treatment_completed": "Determine if the patient has completed conservative treatment",
+    "suspected_septic_arthritis": "Determine if the patient has suspected septic arthritis",
+    "suspected_inflammatory_arthropathy": "Determine if the patient has suspected inflammatory arthropathy",
+    "suspected_pvns_or_synovial_chondromatosis": "Determine if the patient has suspected PVNS or synovial chondromatosis",
+    "suspected_primary_bone_tumor_or_soft_tissue_neoplasm": "Determine if the patient has suspected primary bone tumor or soft tissue neoplasm",
+    "suspected_metastatic_disease": "Determine if the patient has suspected metastatic disease",
+    "known_malignancy": "Determine if the patient has known malignancy",
+    "suspected_avascular_necrosis": "Determine if the patient has suspected avascular necrosis",
+    "suspected_complex_regional_pain_syndrome": "Determine if the patient has suspected complex regional pain syndrome",
+    "evaluation_of_suspected_post_operative_complication": "Determine if the patient has suspected post-operative complication",
+    "assessment_of_post_operative_healing": "Determine if the patient has assessment of post-operative healing",
+    "creatinine_or_egfr_within_6_months": "Determine if the patient has creatinine or eGFR within 6 months",
+    "egfr_greater_than_or_equal_to_30": "Determine if the patient has eGFR greater than or equal to 30",
+    "macrocyclic_gbca_required_for_egfr_30_44": "Determine if the patient requires macrocyclic GBCA for eGFR 30-44",
+    "nephrologist_consultation_for_egfr_less_than_30": "Determine if the patient has nephrologist consultation for eGFR less than 30",
+    "non_contrast_mri_would_be_clinically_sufficient": "Determine if non-contrast MRI would be clinically sufficient",
+    "contrast_requested_solely_for_patient_or_provider_preference": "Determine if contrast is requested solely for patient or provider preference",
+    "egfr_less_than_30_without_nephrologist_consultation": "Determine if the patient has eGFR less than 30 without nephrologist consultation",
+    "patient_declines_contrast_administration": "Determine if the patient declines contrast administration"
+  }
+}
