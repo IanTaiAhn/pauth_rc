@@ -6,6 +6,9 @@ import re
 from typing import Optional, Dict, Any
 import logging
 import os
+import hashlib
+import uuid
+from datetime import datetime, timezone
 from groq import Groq
 
 # Set up logging for debugging hallucinations
@@ -277,6 +280,168 @@ class EvidenceExtractor:
         ).strip()
 
         return raw_output
+
+    def _generate_with_bedrock(self, prompt: str) -> str:
+        """Generate response using AWS Bedrock (BAA-covered, required for PHI extraction)."""
+        import boto3
+
+        model_id = os.environ.get("BEDROCK_MODEL_ID")
+        if not model_id:
+            raise ValueError("BEDROCK_MODEL_ID environment variable must be set")
+
+        region = os.environ.get("AWS_REGION", "us-east-1")
+
+        try:
+            client = boto3.client("bedrock-runtime", region_name=region)
+
+            if model_id.startswith("anthropic."):
+                body = json.dumps({
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 1024,
+                    "temperature": 0.0,
+                    "system": "You output JSON only.",
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                })
+                response = client.invoke_model(
+                    modelId=model_id,
+                    body=body,
+                    contentType="application/json",
+                    accept="application/json",
+                )
+                response_body = json.loads(response["body"].read())
+                return response_body["content"][0]["text"].strip()
+
+            elif model_id.startswith("meta."):
+                full_prompt = (
+                    "<|system|>\nYou output JSON only.\n"
+                    f"<|user|>\n{prompt}\n<|assistant|>\n"
+                )
+                body = json.dumps({
+                    "prompt": full_prompt,
+                    "max_gen_len": 1024,
+                    "temperature": 0.0,
+                })
+                response = client.invoke_model(
+                    modelId=model_id,
+                    body=body,
+                    contentType="application/json",
+                    accept="application/json",
+                )
+                response_body = json.loads(response["body"].read())
+                return response_body["generation"].strip()
+
+            else:
+                raise ValueError(f"Unsupported Bedrock model ID prefix: {model_id}")
+
+        except Exception as e:
+            logger.error(f"Bedrock API error: {e}")
+            raise
+
+    def extract_evidence_schema_driven(
+        self,
+        chart_text: str,
+        extraction_schema: dict,
+        provider: str = "bedrock",
+    ) -> dict:
+        """Schema-driven PHI extraction using a compiled extraction schema.
+
+        HIPAA NOTE: chart_text contains PHI. Only BAA-covered providers are
+        permitted. Groq must never be used here.
+
+        Args:
+            chart_text: Patient chart text (contains PHI).
+            extraction_schema: Dict mapping field names to field metadata.
+                Each value should be a dict with at least "description" and "type",
+                or a plain string description.
+            provider: LLM provider. Must be "bedrock". Groq is not acceptable.
+
+        Returns:
+            dict with extracted field values. Missing booleans default to False,
+            missing numeric and string fields default to None.
+        """
+        if provider != "bedrock":
+            raise ValueError(
+                f"Provider '{provider}' is not permitted for PHI extraction. "
+                "Only 'bedrock' (AWS Bedrock, BAA-covered) is allowed. "
+                "Groq must never be used for patient chart data."
+            )
+
+        # Build the field list for the prompt
+        field_lines = []
+        for field_name, field_info in extraction_schema.items():
+            if isinstance(field_info, dict):
+                description = field_info.get("description", field_name)
+                field_type = field_info.get("type", "string")
+            else:
+                description = str(field_info)
+                field_type = "string"
+            field_lines.append(f"- {field_name} ({field_type}): {description}")
+
+        fields_text = "\n".join(field_lines)
+
+        prompt = f"""You are a medical chart data extractor. Extract ONLY information explicitly written in the chart note below.
+
+CRITICAL RULES:
+1. Extract facts directly from the chart — do NOT interpret or infer
+2. If information is absent or unclear, use null for strings and numbers, false for booleans
+3. Do NOT make clinical assumptions
+4. Do NOT fill in missing data
+5. Output ONLY valid JSON — no other text
+
+FIELDS TO EXTRACT:
+{fields_text}
+
+CHART NOTE:
+\"\"\"
+{chart_text}
+\"\"\"
+
+OUTPUT (valid JSON object with exactly the listed field names as keys):"""
+
+        # Call the LLM via Bedrock (BAA-covered — required for PHI)
+        raw_output = self._generate_with_bedrock(prompt)
+
+        # Parse JSON response
+        try:
+            cleaned = self._extract_json_object(raw_output)
+            extracted = json.loads(cleaned)
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Schema-driven extraction JSON parse error: {e}")
+            extracted = {}
+
+        # Apply defaults for missing fields
+        result = {}
+        for field_name, field_info in extraction_schema.items():
+            if isinstance(field_info, dict):
+                field_type = field_info.get("type", "string")
+            else:
+                field_type = "string"
+
+            value = extracted.get(field_name)
+            if value is None:
+                if field_type in ("boolean", "bool"):
+                    result[field_name] = False
+                else:
+                    # numeric (number, integer, float) and string fields → null
+                    result[field_name] = None
+            else:
+                result[field_name] = value
+
+        # PHI audit log — records metadata only, never the chart text itself
+        request_id = str(uuid.uuid4())
+        chart_hash = hashlib.sha256(chart_text.encode("utf-8")).hexdigest()
+        audit_entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "request_id": request_id,
+            "chart_text_sha256": chart_hash,
+            "schema_fields": list(extraction_schema.keys()),
+            "provider": provider,
+        }
+        logger.info("PHI_AUDIT: %s", json.dumps(audit_entry))
+
+        return result
 
     def extract_evidence(self, chart_text: str) -> Optional[Dict[str, Any]]:
         """Main extraction function with validation"""
