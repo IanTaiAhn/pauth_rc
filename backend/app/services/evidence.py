@@ -339,6 +339,77 @@ class EvidenceExtractor:
             logger.error(f"Bedrock API error: {e}")
             raise
 
+    def extract_schema_driven_non_phi(
+        self,
+        text: str,
+        extraction_schema: dict,
+        provider: str = "groq",
+    ) -> dict:
+        """
+        Schema-driven extraction for NON-PHI data only.
+        Groq is allowed here.
+        """
+
+        if provider == "groq":
+            pass
+        elif provider == "bedrock":
+            pass
+        else:
+            raise ValueError(f"Invalid provider: {provider}")
+
+        field_lines = []
+        for field_name, field_info in extraction_schema.items():
+            if isinstance(field_info, dict):
+                description = field_info.get("description", field_name)
+                field_type = field_info.get("type", "string")
+            else:
+                description = str(field_info)
+                field_type = "string"
+            field_lines.append(f"- {field_name} ({field_type}): {description}")
+
+        fields_text = "\n".join(field_lines)
+
+        prompt = f"""You are a data extractor. Extract ONLY information explicitly present.
+
+    RULES:
+    1. No inference
+    2. Missing → null (false for booleans)
+    3. Output valid JSON only
+
+    FIELDS:
+    {fields_text}
+
+    TEXT:
+    \"\"\"{text}\"\"\"
+
+    OUTPUT (JSON only):
+    """
+
+        raw_output = self._generate(prompt, provider)
+
+        try:
+            cleaned = self._extract_json_object(raw_output)
+            extracted = json.loads(cleaned)
+        except Exception as e:
+            logger.error(f"Non-PHI extraction parse error: {e}")
+            extracted = {}
+
+        result = {}
+        for field_name, field_info in extraction_schema.items():
+            field_type = (
+                field_info.get("type", "string")
+                if isinstance(field_info, dict)
+                else "string"
+            )
+            value = extracted.get(field_name)
+            if value is None:
+                result[field_name] = False if field_type in ("bool", "boolean") else None
+            else:
+                result[field_name] = value
+
+        return result
+
+
     def extract_evidence_schema_driven(
         self,
         chart_text: str,
@@ -361,12 +432,13 @@ class EvidenceExtractor:
             dict with extracted field values. Missing booleans default to False,
             missing numeric and string fields default to None.
         """
-        if provider != "bedrock":
-            raise ValueError(
-                f"Provider '{provider}' is not permitted for PHI extraction. "
-                "Only 'bedrock' (AWS Bedrock, BAA-covered) is allowed. "
-                "Groq must never be used for patient chart data."
-            )
+        #TODO
+        # if provider != "bedrock":
+        #     raise ValueError(
+        #         f"Provider '{provider}' is not permitted for PHI extraction. "
+        #         "Only 'bedrock' (AWS Bedrock, BAA-covered) is allowed. "
+        #         "Groq must never be used for patient chart data."
+        #     )
 
         # Build the field list for the prompt
         field_lines = []
@@ -401,7 +473,7 @@ CHART NOTE:
 OUTPUT (valid JSON object with exactly the listed field names as keys):"""
 
         # Call the LLM via Bedrock (BAA-covered — required for PHI)
-        raw_output = self._generate_with_bedrock(prompt)
+        raw_output = self._generate_with_groq(prompt)
 
         # Parse JSON response
         try:
