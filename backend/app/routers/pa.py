@@ -29,9 +29,8 @@ router = APIRouter()
 
 # Compiled rule sets are stored here by compile_policy.py
 COMPILED_RULES_DIR = (
-    Path(__file__).resolve().parent.parent / "rag_pipeline" / "compiled_rules"
+    Path(__file__).resolve().parent.parent / "api_artifacts" / "compiled_rules"
 )
-
 
 def _load_compiled_rules(payer: str, cpt_code: str) -> dict | None:
     """Load a compiled rule set from disk. Returns None if not found."""
