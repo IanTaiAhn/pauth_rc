@@ -8,7 +8,9 @@ This endpoint never receives patient data and has no PHI. Groq is used
 as the LLM provider by default.
 """
 
-from fastapi import APIRouter, HTTPException
+import io
+
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
 from app.rag_pipeline.scripts.compile_policy import compile_policy
@@ -17,14 +19,8 @@ router = APIRouter()
 
 
 # ---------------------------------------------------------
-# Request / response models
+# Response model
 # ---------------------------------------------------------
-
-class CompilePolicyRequest(BaseModel):
-    policy_text: str
-    payer: str
-    cpt_code: str
-
 
 class CompilePolicyResponse(BaseModel):
     payer: str
@@ -36,11 +32,28 @@ class CompilePolicyResponse(BaseModel):
 
 
 # ---------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------
+
+def _extract_text(filename: str, file_bytes: bytes) -> str:
+    """Extract plain text from an uploaded TXT or PDF file."""
+    if filename.lower().endswith(".pdf"):
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            return "\n".join(page.extract_text() or "" for page in pdf.pages)
+    return file_bytes.decode("utf-8")
+
+
+# ---------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------
 
 @router.post("/compile_policy", response_model=CompilePolicyResponse)
-def compile_policy_endpoint(request: CompilePolicyRequest) -> CompilePolicyResponse:
+async def compile_policy_endpoint(
+    policy_file: UploadFile = File(..., description="Policy document (PDF or TXT)"),
+    payer: str = Form(..., description="Payer identifier (e.g., 'utah_medicaid')"),
+    cpt_code: str = Form(..., description="CPT code (e.g., '73721')"),
+) -> CompilePolicyResponse:
     """
     Compile a payer policy document into canonical rules and an extraction
     schema, then save the result to compiled_rules/{payer}_{cpt_code}.json.
@@ -48,14 +61,38 @@ def compile_policy_endpoint(request: CompilePolicyRequest) -> CompilePolicyRespo
     This is an index-build-time operation. It does NOT accept patient data
     and involves no PHI. Groq is used as the LLM provider.
 
+    Accepts a file upload (PDF or TXT) rather than raw text in the request
+    body, which avoids JSON encoding issues with large documents.
+
     Returns a summary of the compilation result. The full compiled output is
     written to disk and also available via GET /api/list_compiled_rules.
     """
     try:
+        file_bytes = await policy_file.read()
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Failed to read uploaded file.") from exc
+    finally:
+        await policy_file.close()
+
+    try:
+        policy_text = _extract_text(policy_file.filename or "", file_bytes)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Failed to extract text from file: {exc}",
+        ) from exc
+
+    if not policy_text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Uploaded file contains no extractable text.",
+        )
+
+    try:
         result = compile_policy(
-            policy_text=request.policy_text,
-            payer=request.payer,
-            cpt_code=request.cpt_code,
+            policy_text=policy_text,
+            payer=payer,
+            cpt_code=cpt_code,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
