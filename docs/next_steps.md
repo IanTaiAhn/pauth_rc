@@ -156,3 +156,10 @@ This does not need marketing polish.
 - RAYUS Radiology
 - Fusion Imaging
 - Digital Motion Xray
+
+## Honest Assessment of iteration X:
+
+A knee-MRI-only MVP is a proof of concept and a conversation starter, not a sellable product. Its purpose is to show a billing coordinator what the full product could look like and get them to say "yes, I'd pay for this if it covered shoulder, spine, and my other payers too." It validates the format, the language level, and the workflow fit. It does not validate willingness to pay.
+You'd need to cover roughly 15-30 payer/procedure combinations with ongoing update tracking before you have something that justifies a monthly subscription. At your current estimated speed (1-2 hours per new payer/procedure combination using the compiler + manual curation), that's 15-60 hours of content work on top of the technical MVP. Call it 3-6 weeks of focused curation work after the app is functional.
+The competitive moat isn't the software — anyone can build a checklist app. The moat is that you've read, structured, and maintain 30 policy documents so the billing person doesn't have to. That's a content business with a software wrapper, similar to how UpToDate is a content business for physicians wrapped in a search interface.
+Bottom line: The knee MRI MVP is worth building as a demo and customer conversation tool. It is not sellable standalone. The sellable product is the breadth of coverage across the payer/procedure matrix plus ongoing policy maintenance. Plan your timeline accordingly — the technical build is a week, the content curation to reach sellable breadth is a month or more, and the first paying customer likely comes from a conversation where you show them the knee MRI demo and ask what other procedures and payers they need covered.
