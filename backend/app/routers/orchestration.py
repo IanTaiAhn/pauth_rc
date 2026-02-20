@@ -1,602 +1,225 @@
 """
-Orchestration endpoint for single-call PA readiness check.
+Orchestration endpoint for schema-driven PA readiness check.
 
-Consolidates the entire PA pipeline into one API call:
-1. Ingest patient chart file
-2. Extract clinical evidence via LLM
-3. Retrieve relevant policy rules via RAG
-4. Normalize patient and policy data
-5. Evaluate evidence against rules
-6. Return structured response with verdict, score, criteria, and gaps
+Pipeline (request time — PHI present):
+1. Accept JSON body: chart_text (str), payer (str), cpt_code (str)
+2. Load compiled rules from compiled_rules/{payer}_{cpt_code}.json — 404 if missing
+3. Extract patient data via extract_evidence_schema_driven (Bedrock — BAA required)
+4. Evaluate rules deterministically via rule_engine.evaluate_all
+5. Return OrchestrationResponse with verdict, score, criteria, gaps, and next steps
+
+HIPAA NOTE: chart_text contains PHI. The evidence extraction step routes only
+through BAA-covered providers (AWS Bedrock). Groq must never receive chart text.
 """
 
 import json
 import logging
 from pathlib import Path
-from typing import Literal
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query
 
-from app.services.ingestion import extract_text
-from app.services.evidence import extract_evidence
-from app.rag_pipeline.scripts.extract_policy_rules import extract_policy_rules
-from app.normalization.normalized_custom import (
-    normalize_patient_evidence,
-    normalize_policy_criteria,
-)
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from app.services.evidence import extract_evidence_schema_driven
 from app.rules.rule_engine import evaluate_all
-from app.api_models.schemas import OrchestrationResponse, CriterionResult, DiagnosticArtifacts
+from app.api_models.schemas import OrchestrationResponse, CriterionResult
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Diagnostic output directory
-DIAGNOSTIC_DIR = Path("orchestration_diagnostics")
-DIAGNOSTIC_DIR.mkdir(exist_ok=True)
+# Compiled rule sets live here — produced by compile_policy.py at index-build time
+COMPILED_RULES_DIR = Path(__file__).resolve().parent.parent / "rag_pipeline" / "compiled_rules"
 
-
-def save_diagnostic_json(filename: str, data: dict, step_name: str):
-    """
-    Save intermediate JSON data for debugging.
-
-    Args:
-        filename: Base filename (e.g., patient chart filename)
-        data: Dictionary to save
-        step_name: Pipeline step identifier (e.g., "01_raw_patient", "02_normalized_patient")
-    """
-    try:
-        # Sanitize filename
-        safe_filename = filename.replace(" ", "_").replace("/", "_").replace("\\", "_")
-        output_path = DIAGNOSTIC_DIR / f"{step_name}_{safe_filename}.json"
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-        logger.info(f"Diagnostic JSON saved: {output_path}")
-    except Exception as e:
-        logger.warning(f"Failed to save diagnostic JSON for {step_name}: {e}")
-
-
-# Map (payer, cpt) to FAISS index names
-# NOTE: Using single combined index per payer for related CPT codes
-# This allows the RAG pipeline to retrieve relevant rules across all CPT codes
-# and use metadata filtering to prioritize the specific CPT code
-INDEX_MAP = {
-    # Utah Medicaid - all knee MRI CPT codes use the same combined index
-    ("utah_medicaid", "73721"): "utah_medicaid_73721",
-    ("utah_medicaid", "73722"): "utah_medicaid_73721",
-    ("utah_medicaid", "73723"): "utah_medicaid_73721",
-    # Aetna - separate indexes per CPT (if created separately)
-    ("aetna", "73721"): "aetna_73721",
-    ("aetna", "73722"): "aetna_73722",
-    ("aetna", "73723"): "aetna_73723",
-}
-
-# CPT code labels for human-readable display
-CPT_LABELS = {
+# Human-readable CPT labels
+CPT_LABELS: dict[str, str] = {
     "73721": "MRI Knee Without Contrast",
     "73722": "MRI Knee With Contrast",
     "73723": "MRI Knee Without and With Contrast",
 }
 
-# Payer display names
-PAYER_LABELS = {
+# Human-readable payer names
+PAYER_LABELS: dict[str, str] = {
     "utah_medicaid": "Utah Medicaid",
     "aetna": "Aetna",
 }
 
 
-def resolve_index(payer: str, cpt: str) -> str:
+class CheckPriorAuthRequest(BaseModel):
+    """Request body for the PA readiness check endpoint."""
+
+    chart_text: str
+    payer: str
+    cpt_code: str
+
+
+def _load_compiled_rules(payer: str, cpt_code: str) -> dict:
     """
-    Resolve (payer, cpt) to FAISS index name.
+    Load the compiled rule set for a payer/CPT combination.
 
     Args:
-        payer: Payer identifier (e.g., "utah_medicaid", "aetna")
-        cpt: CPT code string (e.g., "73721")
+        payer: Payer identifier, e.g. "utah_medicaid".
+        cpt_code: CPT code string, e.g. "73721".
 
     Returns:
-        Index name string
+        Parsed JSON dict with "canonical_rules" and "extraction_schema".
 
     Raises:
-        HTTPException: If no index exists for the combination
+        HTTPException 404: No compiled rule set found for this combination.
     """
-    key = (payer.lower(), cpt)
-    if key not in INDEX_MAP:
+    path = COMPILED_RULES_DIR / f"{payer}_{cpt_code}.json"
+    if not path.exists():
         raise HTTPException(
-            status_code=400,
-            detail=f"No policy index found for payer '{payer}' and CPT code '{cpt}'. "
-                   f"Supported combinations: {list(INDEX_MAP.keys())}"
+            status_code=404,
+            detail=(
+                f"No compiled rules found for payer '{payer}' and CPT code '{cpt_code}'. "
+                f"Run the policy compiler first: "
+                f"compile_policy(policy_text, payer='{payer}', cpt_code='{cpt_code}')"
+            ),
         )
-    return INDEX_MAP[key]
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
 
 
-def derive_verdict(
-    readiness_score: float,
-    fail_count: int
-) -> Literal["LIKELY_TO_APPROVE", "LIKELY_TO_DENY", "NEEDS_REVIEW"]:
+def _derive_verdict(readiness_score: int, fail_count: int, excluded: bool) -> str:
     """
-    Derive PA verdict from readiness score and failure count.
+    Map score and failure count to a PA verdict label.
 
-    Logic:
-    - Score >= 80 and no failures → LIKELY_TO_APPROVE
-    - Score < 50 or 2+ failures → LIKELY_TO_DENY
-    - Everything else → NEEDS_REVIEW
+    Returns:
+        "EXCLUDED"          — case is not eligible (e.g. workers' comp)
+        "LIKELY_TO_APPROVE" — score >= 80 and zero failures
+        "LIKELY_TO_DENY"    — score < 50 or 2+ failures
+        "NEEDS_REVIEW"      — everything else
     """
+    if excluded:
+        return "EXCLUDED"
     if readiness_score >= 80 and fail_count == 0:
         return "LIKELY_TO_APPROVE"
     elif readiness_score < 50 or fail_count >= 2:
         return "LIKELY_TO_DENY"
+    return "NEEDS_REVIEW"
+
+
+def _generate_next_steps(gaps: list[str], exception_applied: str | None) -> str:
+    """Generate plain-English guidance based on the gap list."""
+    if not gaps:
+        return "All criteria met. This chart is ready for PA submission."
+    if len(gaps) == 1:
+        step = "One criterion is unmet. Resolve the item in the gaps list before submitting."
     else:
-        return "NEEDS_REVIEW"
-
-
-def generate_next_steps(
-    gaps: list[str],
-    exception_applied: str | None,
-    repeat_imaging_warnings: list[dict] | None = None,
-) -> str:
-    """
-    Generate plain-English next steps guidance based on gaps.
-
-    Issue 9 Fix: If repeat imaging warnings are present, prepend an explicit
-    instruction to review existing imaging before ordering a new study.
-
-    Args:
-        gaps: List of gap descriptions
-        exception_applied: Exception pathway name if any
-        repeat_imaging_warnings: List of repeat imaging warning dicts from evaluate_all()
-
-    Returns:
-        Human-readable next steps string
-    """
-    parts = []
-
-    # Issue 9 Fix: Surface repeat imaging review instruction first
-    if repeat_imaging_warnings:
-        for w in repeat_imaging_warnings:
-            imaging_type = w.get("imaging_type", "imaging")
-            months_ago = w.get("imaging_months_ago")
-            if months_ago is not None:
-                parts.append(
-                    f"Review the existing {imaging_type} from {months_ago} month(s) ago "
-                    f"before ordering a new study. A new {imaging_type} may not be justified "
-                    f"without documented clinical progression since the prior study."
-                )
-            else:
-                parts.append(
-                    f"Review existing {imaging_type} before ordering a new study."
-                )
-
-    # Standard gap guidance
-    # Count only non-repeat-imaging gaps for the gap count message
-    standard_gaps = [g for g in gaps if not g.startswith("[REVIEW REQUIRED]")]
-    gap_count = len(standard_gaps)
-
-    if gap_count == 0 and not repeat_imaging_warnings:
-        parts.append("All criteria met. This chart is ready for PA submission.")
-    elif gap_count == 0:
-        parts.append("Standard PA criteria are met. Resolve the imaging review item above before submitting.")
-    elif gap_count == 1:
-        parts.append("One criterion is unmet. Resolve the item in the gaps list before submitting.")
-    else:
-        parts.append("Multiple criteria are unmet. Review the gaps list and update the chart before submitting.")
-
+        step = "Multiple criteria are unmet. Review the gaps list and update the chart before submitting."
     if exception_applied:
-        parts.append(f"Note: Exception pathway applied — {exception_applied}.")
-
-    return " ".join(parts)
-
-
-def extract_patient_name(patient_json: dict) -> str:
-    """
-    Extract patient name from the raw patient chart JSON.
-
-    Tries multiple paths with fallback to "Unknown Patient".
-    """
-    # Try the patient_name field (added to extraction schema)
-    if "patient_name" in patient_json and patient_json["patient_name"]:
-        return patient_json["patient_name"]
-
-    # Try legacy direct name field (for backwards compatibility)
-    if "name" in patient_json:
-        return patient_json["name"]
-
-    # Try nested in requirements (for backwards compatibility)
-    if "requirements" in patient_json:
-        reqs = patient_json["requirements"]
-        if isinstance(reqs, dict) and "name" in reqs:
-            return reqs["name"]
-
-    # Fallback
-    return "Unknown Patient"
-
-
-def detect_workers_comp(patient_json: dict, chart_text: str) -> bool:
-    """
-    Detect if this is a workers' compensation case.
-
-    AUDIT FIX: Check for WC claim language in the extracted patient data.
-
-    Args:
-        patient_json: Raw patient extraction data
-        chart_text: Original chart text
-
-    Returns:
-        True if WC case detected, False otherwise
-    """
-    # Check evidence notes
-    evidence_notes = patient_json.get("evidence_notes") or []
-    all_notes = " ".join(evidence_notes).lower()
-
-    # Check functional impairment description
-    functional_impair = patient_json.get("functional_impairment") or {}
-    functional_desc = (functional_impair.get("description") or "").lower()
-
-    # Also check the raw chart text for WC indicators
-    chart_lower = chart_text.lower()
-
-    # WC keywords
-    wc_keywords = [
-        "worker's compensation",
-        "workers compensation",
-        "workers' compensation",
-        "workman's compensation",
-        "work comp",
-        "wc claim",
-        "work injury",
-        "workplace injury",
-        "injured at work",
-        "on-the-job injury"
-    ]
-
-    # Check all text sources
-    combined_text = f"{all_notes} {functional_desc} {chart_lower}"
-
-    return any(keyword in combined_text for keyword in wc_keywords)
-
-
-def detect_exception_pathway(patient_json: dict, normalized_patient: dict) -> str | None:
-    """
-    Detect if patient qualifies for an exception pathway.
-
-    AUDIT FIX: Check for exception pathways from Policy Section 3:
-    - Section 3.1: Acute trauma exception (acute injury + inability to bear weight + suspected complete ligament rupture)
-    - Section 3.2: Post-operative exception (within 6 months of surgery)
-    - Section 3.3: Red flag exception (infection, tumor, fracture concerns)
-
-    Args:
-        patient_json: Raw patient extraction data
-        normalized_patient: Normalized patient evidence
-
-    Returns:
-        Exception pathway name if applicable, None otherwise
-    """
-    # Check for red flag exception (Section 3.3)
-    red_flags = patient_json.get("red_flags") or {}
-    if red_flags.get("documented"):
-        red_flag_desc = (red_flags.get("description") or "").lower()
-        # Check for infection, tumor, fracture indicators
-        if any(keyword in red_flag_desc for keyword in ["infection", "tumor", "fracture", "cancer", "septic", "fever"]):
-            return "Red Flag Exception - Section 3.3 (infection/tumor/fracture concern)"
-
-    # Check for acute trauma exception (Section 3.1)
-    # Indicators: traumatic injury + inability to bear weight + ligament rupture suspicion
-    functional_impair = patient_json.get("functional_impairment") or {}
-    functional_desc = (functional_impair.get("description") or "").lower()
-    clinical_indication = (normalized_patient.get("clinical_indication") or "").lower()
-
-    unable_to_bear_weight = "unable to bear weight" in functional_desc or "non-weight-bearing" in functional_desc
-    traumatic_injury = "traumatic injury" in clinical_indication or "trauma" in clinical_indication
-    ligament_concern = "ligament rupture" in clinical_indication or "acl" in clinical_indication
-
-    if unable_to_bear_weight and (traumatic_injury or ligament_concern):
-        return "Acute Trauma Exception - Section 3.1 (acute injury + inability to bear weight + suspected ligament rupture)"
-
-    # Check for post-operative exception (Section 3.2)
-    # Indicator: post-operative in clinical indication
-    conservative = patient_json.get("conservative_therapy") or {}
-    if "post-operative" in clinical_indication or "post-op" in clinical_indication:
-        return "Post-Operative Exception - Section 3.2 (within 6 months of surgery)"
-
-    # Check if there are any surgical history indicators
-    # This is a fallback check for cases where the clinical indication might not be set correctly
-    evidence_notes = patient_json.get("evidence_notes") or []
-    all_text = " ".join(evidence_notes).lower()
-    if any(keyword in all_text for keyword in ["post-op", "post-surgical", "postoperative", "after surgery"]):
-        return "Post-Operative Exception - Section 3.2 (within 6 months of surgery)"
-
-    return None
+        step += f" Note: Exception pathway applied — {exception_applied}."
+    return step
 
 
 @router.post("/check_prior_auth", response_model=OrchestrationResponse)
-async def check_prior_auth(
-    file: UploadFile = File(..., description="Patient chart file (PDF or TXT)"),
-    payer: str = Form(..., description="Payer identifier (e.g., 'utah_medicaid', 'aetna')"),
-    cpt: str = Form(..., description="CPT code (e.g., '73721', '73722', '73723')"),
-    include_diagnostics: bool = Query(
-        default=False,
-        description="Include diagnostic artifacts from each pipeline stage in the response"
-    ),
-):
+async def check_prior_auth(body: CheckPriorAuthRequest):
     """
-    Single-call PA readiness check endpoint.
+    Schema-driven PA readiness check.
 
-    Accepts a patient chart file, payer identifier, and CPT code.
-    Runs the full PA pipeline internally and returns a structured
-    response with verdict, score, criteria results, and actionable gaps.
+    Accepts chart text, payer identifier, and CPT code. Loads the compiled
+    rule set for that payer/CPT, extracts structured patient data from the
+    chart text, evaluates all policy rules, and returns a structured verdict.
 
     Args:
-        file: Patient chart file (PDF or TXT)
-        payer: Payer identifier (e.g., "utah_medicaid", "aetna")
-        cpt: CPT code string (e.g., "73721", "73722", "73723")
-        include_diagnostics: If True, includes diagnostic artifacts from each pipeline stage
+        body: JSON body with chart_text, payer, cpt_code.
 
     Returns:
-        OrchestrationResponse with verdict, score, criteria, gaps, and next steps.
-        If include_diagnostics=True, also includes raw and normalized data from each step.
+        OrchestrationResponse with verdict, readiness_score, criteria, gaps,
+        and next_steps.
 
     Raises:
-        HTTPException 400: Unsupported payer/CPT combination
-        HTTPException 422: File parsing or extraction failure
-        HTTPException 500: Internal pipeline error
+        HTTPException 404: No compiled rules for payer/CPT.
+        HTTPException 422: Evidence extraction failed.
+        HTTPException 500: Rule evaluation or response-building failure.
     """
     try:
-        logger.info(f"Starting PA check for payer={payer}, cpt={cpt}, file={file.filename}")
+        # Step 1: Load compiled rules — 404 if not yet compiled
+        compiled = _load_compiled_rules(body.payer.lower(), body.cpt_code)
+        canonical_rules: list = compiled.get("canonical_rules", [])
+        extraction_schema: dict = compiled.get("extraction_schema", {})
+        logger.info(
+            "Loaded %d rules and %d schema fields for %s/%s",
+            len(canonical_rules),
+            len(extraction_schema),
+            body.payer,
+            body.cpt_code,
+        )
 
-        # Initialize diagnostics collector
-        diagnostics_data = {} if include_diagnostics else None
-
-        # Step 1: Ingest file
+        # Step 2: Extract patient data (PHI path — BAA-covered provider required)
         try:
-            file_contents = await file.read()
-            text = extract_text(file_contents)
-            if not text:
-                raise HTTPException(
-                    status_code=422,
-                    detail="Could not extract text from the uploaded file. Please ensure it's a valid PDF or TXT."
-                )
-            logger.info(f"Extracted {len(text)} characters from {file.filename}")
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"File ingestion failed: {e}")
+            patient_data = extract_evidence_schema_driven(
+                body.chart_text, extraction_schema
+            )
+        except Exception as exc:
+            logger.error("Evidence extraction failed: %s", exc)
             raise HTTPException(
                 status_code=422,
-                detail="Failed to read or parse the uploaded file."
+                detail="Failed to extract clinical evidence from the chart.",
             )
 
-        # Step 2: Extract patient chart evidence
+        # Step 3: Evaluate rules deterministically — no LLM involved
         try:
-            patient_json = extract_evidence(text, use_groq=True)
-            logger.info("Patient evidence extracted via LLM")
-            # DIAGNOSTIC: Save raw patient extraction
-            save_diagnostic_json(file.filename, patient_json, "01_raw_patient")
-            if include_diagnostics:
-                diagnostics_data["raw_patient"] = patient_json
-        except Exception as e:
-            logger.error(f"Patient chart extraction failed: {e}")
-            raise HTTPException(
-                status_code=422,
-                detail="Failed to extract clinical evidence from the chart."
+            evaluation = evaluate_all(
+                patient_data, canonical_rules, requested_cpt=body.cpt_code
             )
-
-        # Step 3: Resolve index and extract policy rules
-        try:
-            index_name = resolve_index(payer, cpt)
-            logger.info(f"Resolved index: {index_name}")
-        except HTTPException:
-            raise
-
-        try:
-            policy_result = extract_policy_rules(payer, cpt, index_name=index_name)
-            policy_json = policy_result.get("rules", {})
-            if not policy_json or "error" in policy_json:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Failed to retrieve policy rules for this payer and CPT code."
-                )
-            logger.info(f"Policy rules extracted via RAG for {index_name}")
-            # DIAGNOSTIC: Save raw policy extraction
-            save_diagnostic_json(file.filename, policy_result, "02_raw_policy")
-            if include_diagnostics:
-                diagnostics_data["raw_policy"] = policy_result
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Policy extraction failed: {e}")
+        except Exception as exc:
+            logger.error("Rule evaluation failed: %s", exc)
             raise HTTPException(
                 status_code=500,
-                detail="Failed to retrieve policy rules."
+                detail="Failed to evaluate patient evidence against policy rules.",
             )
 
-        # Step 4: Normalize patient evidence
-        try:
-            normalized_patient = normalize_patient_evidence(patient_json)
-            logger.info("Patient evidence normalized")
-            # DIAGNOSTIC: Save normalized patient data
-            save_diagnostic_json(file.filename, normalized_patient, "03_normalized_patient")
-            if include_diagnostics:
-                diagnostics_data["normalized_patient"] = normalized_patient
-        except Exception as e:
-            logger.error(f"Patient normalization failed: {e}")
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to normalize patient evidence."
-            )
+        # Step 4: Build response
+        excluded: bool = evaluation.get("excluded", False)
+        results: list[dict] = evaluation["results"]
+        total = len(results)
+        met_count = sum(1 for r in results if r["met"])
+        readiness_score = (
+            0 if excluded else int((met_count / total * 100) if total > 0 else 0)
+        )
 
-        # Step 5: Normalize policy rules
-        try:
-            normalized_policy = normalize_policy_criteria(policy_json)
-            logger.info(f"Policy rules normalized: {len(normalized_policy)} rules")
-            # DIAGNOSTIC: Save normalized policy rules
-            save_diagnostic_json(file.filename, {"rules": normalized_policy}, "04_normalized_policy")
-            if include_diagnostics:
-                diagnostics_data["normalized_policy"] = {"rules": normalized_policy}
-        except Exception as e:
-            logger.error(f"Policy normalization failed: {e}")
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to normalize policy rules."
-            )
+        criteria: list[CriterionResult] = []
+        gaps: list[str] = []
+        fail_count = 0
 
-        # Step 6: Evaluate rules
-        # Issue 9 Fix: Pass requested CPT code so repeat imaging detection can run.
-        try:
-            evaluation = evaluate_all(normalized_patient, normalized_policy, requested_cpt=cpt)
-            logger.info(f"Rule evaluation complete: {evaluation['rules_met']}/{evaluation['total_rules']} met")
-            # DIAGNOSTIC: Save evaluation results
-            save_diagnostic_json(file.filename, evaluation, "05_evaluation")
-            if include_diagnostics:
-                diagnostics_data["evaluation"] = evaluation
-        except Exception as e:
-            logger.error(f"Rule evaluation failed: {e}")
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to evaluate patient evidence against policy rules."
-            )
+        for result in results:
+            met = result["met"]
+            if not met:
+                fail_count += 1
+                gaps.append(result.get("gap_description", result["description"]))
 
-        # Step 7: Build response
-        try:
-            # Extract patient name
-            patient_name = extract_patient_name(patient_json)
-
-            # AUDIT FIX: Compute readiness score
-            # Remove evidence_quality rule from the denominator, or weight it at 0 for scoring purposes
-            # since it is an internal check, not a payer criterion
-            total_rules = evaluation["total_rules"]
-            rules_met = evaluation["rules_met"]
-
-            # Count rules excluding evidence_quality
-            clinical_rules_count = sum(1 for r in evaluation["results"] if r["rule_id"] != "evidence_quality")
-            clinical_rules_met = sum(1 for r in evaluation["results"] if r["rule_id"] != "evidence_quality" and r["met"])
-
-            # Calculate score based only on clinical rules (excluding evidence_quality)
-            readiness_score = int((clinical_rules_met / clinical_rules_count * 100) if clinical_rules_count > 0 else 0)
-
-            # Build criteria list
-            criteria = []
-            fail_count = 0
-            gaps = []
-
-            for result in evaluation["results"]:
-                status = "PASS" if result["met"] else "FAIL"
-                if not result["met"]:
-                    fail_count += 1
-                    # Extract gap description from rule
-                    gap_desc = result.get("gap_description", result["description"])
-                    gaps.append(gap_desc)
-
-                criteria.append(CriterionResult(
+            criteria.append(
+                CriterionResult(
                     criterion=result["description"],
                     required=result.get("required_value", "Must be documented"),
                     found=result.get("patient_value", "Not found in chart"),
-                    status=status,
-                ))
-
-            # Issue 9 Fix: Collect repeat imaging warnings from evaluation and
-            # prepend them to the gaps list so clinicians see them prominently.
-            repeat_imaging_warnings = evaluation.get("warnings", [])
-            for w in repeat_imaging_warnings:
-                warning_msg = w.get("warning", "")
-                if warning_msg:
-                    gaps.insert(0, f"[REVIEW REQUIRED] {warning_msg}")
-                    logger.warning(f"Repeat imaging warning: {warning_msg}")
-
-            # AUDIT FIX: Check for WC exclusion before proceeding
-            # Policy Section 4(d) excludes worker's compensation cases
-            wc_detected = detect_workers_comp(patient_json, text)
-            if wc_detected:
-                # Return a special response for WC cases
-                logger.warning("Workers' compensation case detected - not eligible for Medicaid PA")
-                response = OrchestrationResponse(
-                    verdict="EXCLUDED",
-                    readiness_score=0,
-                    patient_name=extract_patient_name(patient_json),
-                    payer=PAYER_LABELS.get(payer.lower(), payer),
-                    cpt=cpt,
-                    procedure_label=CPT_LABELS.get(cpt, f"CPT {cpt}"),
-                    criteria=[CriterionResult(
-                        criterion="Workers' Compensation Exclusion",
-                        required="Not a WC claim",
-                        found="Workers' compensation claim detected",
-                        status="FAIL"
-                    )],
-                    gaps=["This is a workers' compensation case. Policy Section 4(d) requires billing through the WC carrier, not Medicaid."],
-                    next_steps="This case should be billed through the workers' compensation carrier, not Utah Medicaid. Refer to Policy Section 4(d).",
-                    exception_applied="Workers' Compensation Exclusion - Section 4(d)",
+                    status="PASS" if met else "FAIL",
                 )
-                if include_diagnostics:
-                    diagnostics_data["final_response"] = response.model_dump()
-                    response.diagnostics = DiagnosticArtifacts(**diagnostics_data)
-                save_diagnostic_json(file.filename, response.model_dump(), "06_final_response")
-                return response
-
-            # AUDIT FIX: Implement exception pathway detection
-            # Check red_flags.documented, functional_impairment_description for "unable to bear weight,"
-            # and conservative_therapy context before evaluating standard PA rules
-            exception_applied = detect_exception_pathway(patient_json, normalized_patient)
-
-            # Derive verdict (exception pathway may override)
-            if exception_applied:
-                # Exception pathways typically lead to approval if documented
-                verdict = "LIKELY_TO_APPROVE"
-                logger.info(f"Exception pathway detected: {exception_applied}")
-            else:
-                verdict = derive_verdict(readiness_score, fail_count)
-
-            # Generate next steps (Issue 9 Fix: pass repeat imaging warnings)
-            next_steps = generate_next_steps(gaps, exception_applied, repeat_imaging_warnings)
-
-            # Get display labels
-            payer_label = PAYER_LABELS.get(payer.lower(), payer)
-            procedure_label = CPT_LABELS.get(cpt, f"CPT {cpt}")
-
-            # Build base response
-            response_data = {
-                "verdict": verdict,
-                "readiness_score": readiness_score,
-                "patient_name": patient_name,
-                "payer": payer_label,
-                "cpt": cpt,
-                "procedure_label": procedure_label,
-                "criteria": criteria,
-                "gaps": gaps,
-                "next_steps": next_steps,
-                "exception_applied": exception_applied,
-            }
-
-            # Add diagnostics if requested
-            if include_diagnostics:
-                diagnostics_data["final_response"] = response_data.copy()
-                response_data["diagnostics"] = DiagnosticArtifacts(**diagnostics_data)
-
-            response = OrchestrationResponse(**response_data)
-
-            logger.info(f"PA check complete: verdict={verdict}, score={readiness_score}")
-            # DIAGNOSTIC: Save final response
-            save_diagnostic_json(file.filename, response.model_dump(), "06_final_response")
-            return response
-
-        except Exception as e:
-            logger.error(f"Response building failed: {e}")
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to build response."
             )
 
+        verdict = _derive_verdict(readiness_score, fail_count, excluded)
+        next_steps = _generate_next_steps(gaps, exception_applied=None)
+        patient_name: str = patient_data.get("patient_name") or "Unknown Patient"
+
+        return OrchestrationResponse(
+            verdict=verdict,
+            readiness_score=readiness_score,
+            patient_name=patient_name,
+            payer=PAYER_LABELS.get(body.payer.lower(), body.payer),
+            cpt=body.cpt_code,
+            procedure_label=CPT_LABELS.get(body.cpt_code, f"CPT {body.cpt_code}"),
+            criteria=criteria,
+            gaps=gaps,
+            next_steps=next_steps,
+            exception_applied=None,
+        )
+
     except HTTPException:
-        # Re-raise HTTPExceptions as-is
         raise
-    except Exception as e:
-        # Catch-all for unexpected errors
-        # Log full traceback server-side but return generic message to client
-        logger.exception(f"Unexpected error in PA check pipeline: {e}")
+    except Exception as exc:
+        logger.exception("Unexpected error in PA check: %s", exc)
         raise HTTPException(
             status_code=500,
-            detail="An unexpected error occurred during the PA check."
+            detail="An unexpected error occurred during the PA check.",
         )
-    finally:
-        # Clean up
-        await file.close()
