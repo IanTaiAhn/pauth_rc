@@ -15,6 +15,7 @@ through BAA-covered providers (AWS Bedrock). Groq must never receive chart text.
 import json
 import logging
 from pathlib import Path
+import os
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -74,6 +75,8 @@ def _load_compiled_rules(payer: str, cpt_code: str) -> dict:
                 f"No compiled rules found for payer '{payer}' and CPT code '{cpt_code}'. "
                 f"Run the policy compiler first: "
                 f"compile_policy(policy_text, payer='{payer}', cpt_code='{cpt_code}')"
+                f"Path I'm in currently: {os.getcwd()}"
+                f"Path I tried to access: {path}"
             ),
         )
     with open(path, encoding="utf-8") as fh:
