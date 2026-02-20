@@ -2,7 +2,7 @@
 Orchestration endpoint for schema-driven PA readiness check.
 
 Pipeline (request time — PHI present):
-1. Accept JSON body: chart_text (str), payer (str), cpt_code (str)
+1. Accept multipart/form-data: chart_file (.txt upload), payer (str), cpt_code (str)
 2. Load compiled rules from compiled_rules/{payer}_{cpt_code}.json — 404 if missing
 3. Extract patient data via extract_evidence_schema_driven (Bedrock — BAA required)
 4. Evaluate rules deterministically via rule_engine.evaluate_all
@@ -17,8 +17,7 @@ import logging
 from pathlib import Path
 import os
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.services.evidence import extract_evidence_schema_driven
 from app.rules.rule_engine import evaluate_all
@@ -43,14 +42,6 @@ PAYER_LABELS: dict[str, str] = {
     "utah_medicaid": "Utah Medicaid",
     "aetna": "Aetna",
 }
-
-
-class CheckPriorAuthRequest(BaseModel):
-    """Request body for the PA readiness check endpoint."""
-
-    chart_text: str
-    payer: str
-    cpt_code: str
 
 
 def _load_compiled_rules(payer: str, cpt_code: str) -> dict:
@@ -116,43 +107,63 @@ def _generate_next_steps(gaps: list[str], exception_applied: str | None) -> str:
 
 
 @router.post("/check_prior_auth", response_model=OrchestrationResponse)
-async def check_prior_auth(body: CheckPriorAuthRequest):
+async def check_prior_auth(
+    chart_file: UploadFile = File(..., description="Patient chart as a .txt file (UTF-8 encoded)"),
+    payer: str = Form(..., description="Payer identifier, e.g. 'utah_medicaid'"),
+    cpt_code: str = Form(..., description="CPT code, e.g. '73721'"),
+):
     """
     Schema-driven PA readiness check.
 
-    Accepts chart text, payer identifier, and CPT code. Loads the compiled
-    rule set for that payer/CPT, extracts structured patient data from the
-    chart text, evaluates all policy rules, and returns a structured verdict.
+    Accepts a patient chart .txt file upload along with payer and CPT code
+    as form fields. Loads the compiled rule set for that payer/CPT, extracts
+    structured patient data from the chart text, evaluates all policy rules,
+    and returns a structured verdict.
 
     Args:
-        body: JSON body with chart_text, payer, cpt_code.
+        chart_file: Uploaded .txt file containing the patient chart note (PHI).
+        payer: Payer identifier form field.
+        cpt_code: CPT code form field.
 
     Returns:
         OrchestrationResponse with verdict, readiness_score, criteria, gaps,
         and next_steps.
 
     Raises:
+        HTTPException 400: Uploaded file is not a .txt file.
         HTTPException 404: No compiled rules for payer/CPT.
         HTTPException 422: Evidence extraction failed.
         HTTPException 500: Rule evaluation or response-building failure.
     """
     try:
+        # Validate file type
+        filename = chart_file.filename or ""
+        if not filename.lower().endswith(".txt"):
+            raise HTTPException(
+                status_code=400,
+                detail="Only .txt files are accepted for the patient chart upload.",
+            )
+
+        # Read chart text from uploaded file
+        raw_bytes = await chart_file.read()
+        chart_text = raw_bytes.decode("utf-8")
+
         # Step 1: Load compiled rules — 404 if not yet compiled
-        compiled = _load_compiled_rules(body.payer.lower(), body.cpt_code)
+        compiled = _load_compiled_rules(payer.lower(), cpt_code)
         canonical_rules: list = compiled.get("canonical_rules", [])
         extraction_schema: dict = compiled.get("extraction_schema", {})
         logger.info(
             "Loaded %d rules and %d schema fields for %s/%s",
             len(canonical_rules),
             len(extraction_schema),
-            body.payer,
-            body.cpt_code,
+            payer,
+            cpt_code,
         )
 
         # Step 2: Extract patient data (PHI path — BAA-covered provider required)
         try:
             patient_data = extract_evidence_schema_driven(
-                body.chart_text, extraction_schema
+                chart_text, extraction_schema
             )
         except Exception as exc:
             logger.error("Evidence extraction failed: %s", exc)
@@ -170,7 +181,7 @@ async def check_prior_auth(body: CheckPriorAuthRequest):
         # Step 3: Evaluate rules deterministically — no LLM involved
         try:
             evaluation = evaluate_all(
-                patient_data, canonical_rules, requested_cpt=body.cpt_code
+                patient_data, canonical_rules, requested_cpt=cpt_code
             )
         except Exception as exc:
             logger.error("Rule evaluation failed: %s", exc)
@@ -218,9 +229,9 @@ async def check_prior_auth(body: CheckPriorAuthRequest):
             verdict=verdict,
             readiness_score=readiness_score,
             patient_name=patient_name,
-            payer=PAYER_LABELS.get(body.payer.lower(), body.payer),
-            cpt=body.cpt_code,
-            procedure_label=CPT_LABELS.get(body.cpt_code, f"CPT {body.cpt_code}"),
+            payer=PAYER_LABELS.get(payer.lower(), payer),
+            cpt=cpt_code,
+            procedure_label=CPT_LABELS.get(cpt_code, f"CPT {cpt_code}"),
             criteria=criteria,
             gaps=gaps,
             next_steps=next_steps,
