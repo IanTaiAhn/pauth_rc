@@ -1171,3 +1171,47 @@ replaced by a compiler prompt and a JSON file per CPT code.
 | Adding a CPT requires editing 3+ files | Adding a CPT = upload + build index + run compiler |
 | Groq used for PHI extraction (no BAA) | Groq for compiler (no PHI), Bedrock for extraction (BAA-covered) |
 | No audit log | PHI access logged at extraction boundary |
+
+
+## Quick Architecture Guide
+Policy document (utah_medicaid_73721.txt)
+    ↓
+compile_policy.py runs once
+    ↓
+Produces compiled_rules/utah_medicaid_73721.json
+    Contains:
+      - canonical_rules (what to evaluate)
+      - extraction_schema (what fields to look for in a chart)
+    ↓
+Sits on disk, waiting
+
+Step 1: You call POST /api/check_prior_auth with:
+        {
+          "chart_text": "<the actual patient chart note text>",
+          "payer": "utah_medicaid",
+          "cpt_code": "73721"
+        }
+
+Step 2: orchestration.py loads compiled_rules/utah_medicaid_73721.json
+        from disk (not from you — it's already on the server)
+
+Step 3: orchestration.py sends the chart_text + extraction_schema
+        to the LLM (Bedrock)
+        
+        The LLM reads the chart and fills in the schema fields:
+        "Does this chart mention a positive McMurray's test?" → true
+        "Does this chart mention physical therapy?" → "3x weekly x 8 weeks"
+        "Does this chart mention a workers comp injury?" → null
+        
+        Result: patient_data dict with values for every schema field
+
+Step 4: orchestration.py passes patient_data + canonical_rules
+        to rule_engine.py
+        
+        Pure Python comparisons — no LLM involved:
+        "Is eligible_diagnosis in the approved list?" → PASS
+        "Are at least 2 conservative treatments documented?" → PASS
+        etc.
+
+Step 5: You get back the OrchestrationResponse with verdict,
+        score, gaps, next steps

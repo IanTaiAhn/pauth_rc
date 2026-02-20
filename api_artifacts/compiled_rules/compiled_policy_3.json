@@ -1,0 +1,300 @@
+{
+  "payer": "utah_medicaid",
+  "cpt_code": "73721",
+  "rule_count": 9,
+  "schema_field_count": 32,
+  "validation_errors": [],
+  "model": "llama-3.3-70b-versatile",
+  "canonical_rules": [
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_eligible_diagnosis",
+      "description": "Member must have a documented diagnosis from one of the eligible categories",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "icd10_code",
+          "operator": "in",
+          "value": [
+            "M23.20x",
+            "M23.21x",
+            "M23.22x",
+            "M23.30x",
+            "S83.5xx",
+            "S83.6xx",
+            "S83.9xx",
+            "M23.60x",
+            "M23.61x",
+            "M23.62x",
+            "M93.2xx",
+            "M25.561",
+            "M25.562",
+            "M25.569",
+            "M17.0x",
+            "M17.1x",
+            "M17.2x",
+            "M17.3x"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_clinical_findings",
+      "description": "At least one of the clinical findings must be documented on physical examination within 30 days prior to the PA request",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "mcmurrays_test_result",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "thessaly_test_result",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "joint_line_tenderness",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "persistent_joint_effusion",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "lachman_test_result",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "anterior_posterior_drawer_test_result",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "instability_on_varus_or_valgus_stress_testing",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "restricted_range_of_motion",
+          "operator": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_prior_imaging",
+      "description": "Weight-bearing radiographs of the affected knee must be completed within 60 calendar days prior to the date of the MRI prior authorization request",
+      "logic": "all",
+      "conditions": [
+        {
+          "field": "weight_bearing_radiographs_completed",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "radiograph_report_available",
+          "operator": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_conservative_treatment",
+      "description": "Member must have completed a minimum of six weeks of conservative therapy",
+      "logic": "count_gte",
+      "threshold": 2,
+      "conditions": [
+        {
+          "field": "physical_therapy_completed",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "nsaids_or_oral_analgesics_trial",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "activity_modification_and_home_exercise_program",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "bracing_orthotics_or_assistive_devices",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "intra_articular_injection",
+          "operator": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_special_population_requirements",
+      "description": "Special population requirements",
+      "logic": "all",
+      "conditions": [
+        {
+          "field": "pediatric_orthopedic_evaluation",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "surgical_candidacy_assessment",
+          "operator": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_exception_acute_traumatic_injury",
+      "description": "Acute traumatic injury exception",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "acute_traumatic_injury",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_complete_rupture_of_major_ligament",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "clinical_findings_consistent_with_displaced_meniscal_tear",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "exception_pathway": true,
+      "overrides": [
+        "utah_medicaid_mri_knee_without_contrast_conservative_treatment"
+      ]
+    },
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_exception_post_operative",
+      "description": "Post-operative exception",
+      "logic": "all",
+      "conditions": [
+        {
+          "field": "post_operative_evaluation_required",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "surgical_date",
+          "operator": "neq",
+          "value": null
+        }
+      ],
+      "exception_pathway": true,
+      "overrides": [
+        "utah_medicaid_mri_knee_without_contrast_conservative_treatment"
+      ]
+    },
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_exception_red_flag",
+      "description": "Red flag exception",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "suspected_joint_infection",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_primary_or_metastatic_tumor",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "suspected_occult_fracture",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "exception_pathway": true,
+      "overrides": [
+        "utah_medicaid_mri_knee_without_contrast_conservative_treatment"
+      ]
+    },
+    {
+      "id": "utah_medicaid_mri_knee_without_contrast_exclusion",
+      "description": "Exclusion criteria",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "no_clinical_indication_or_symptoms",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "isolated_anterior_knee_pain",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "mild_osteoarthritis",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "workers_compensation_injury",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "member_declines_surgical_intervention",
+          "operator": "eq",
+          "value": true
+        },
+        {
+          "field": "repeat_mri_within_12_months",
+          "operator": "eq",
+          "value": true
+        }
+      ],
+      "exclusion": true
+    }
+  ],
+  "extraction_schema": {
+    "icd10_code": "ICD-10 diagnosis code",
+    "mcmurrays_test_result": "Result of McMurray's test",
+    "thessaly_test_result": "Result of Thessaly test",
+    "joint_line_tenderness": "Presence of joint line tenderness",
+    "persistent_joint_effusion": "Presence of persistent joint effusion",
+    "lachman_test_result": "Result of Lachman test",
+    "anterior_posterior_drawer_test_result": "Result of anterior/posterior drawer test",
+    "instability_on_varus_or_valgus_stress_testing": "Presence of instability on varus or valgus stress testing",
+    "restricted_range_of_motion": "Presence of restricted range of motion",
+    "weight_bearing_radiographs_completed": "Completion of weight-bearing radiographs",
+    "radiograph_report_available": "Availability of radiograph report",
+    "physical_therapy_completed": "Completion of physical therapy",
+    "nsaids_or_oral_analgesics_trial": "Trial of NSAIDs or oral analgesics",
+    "activity_modification_and_home_exercise_program": "Implementation of activity modification and home exercise program",
+    "bracing_orthotics_or_assistive_devices": "Use of bracing, orthotics, or assistive devices",
+    "intra_articular_injection": "Administration of intra-articular injection",
+    "pediatric_orthopedic_evaluation": "Completion of pediatric orthopedic evaluation",
+    "surgical_candidacy_assessment": "Assessment of surgical candidacy",
+    "acute_traumatic_injury": "Presence of acute traumatic injury",
+    "suspected_complete_rupture_of_major_ligament": "Suspected complete rupture of major ligament",
+    "clinical_findings_consistent_with_displaced_meniscal_tear": "Clinical findings consistent with displaced meniscal tear",
+    "post_operative_evaluation_required": "Requirement for post-operative evaluation",
+    "surgical_date": "Date of surgery",
+    "suspected_joint_infection": "Suspected joint infection",
+    "suspected_primary_or_metastatic_tumor": "Suspected primary or metastatic tumor",
+    "suspected_occult_fracture": "Suspected occult fracture",
+    "no_clinical_indication_or_symptoms": "Absence of clinical indication or symptoms",
+    "isolated_anterior_knee_pain": "Presence of isolated anterior knee pain",
+    "mild_osteoarthritis": "Presence of mild osteoarthritis",
+    "workers_compensation_injury": "Presence of worker's compensation injury",
+    "member_declines_surgical_intervention": "Member's decline of surgical intervention",
+    "repeat_mri_within_12_months": "Repeat MRI within 12 months"
+  }
+}
