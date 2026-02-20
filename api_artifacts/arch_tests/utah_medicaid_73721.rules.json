@@ -1,0 +1,265 @@
+{
+  "payer": "utah_medicaid",
+  "cpt_code": "73721",
+  "policy_reference": "DMHF-IMG-MRI-001",
+  "effective_date": "2025-01-01",
+  "domain": "knee_mri",
+  "domain_registry_version": "1.0.0",
+
+  "_review_status": {
+    "reviewed_by": null,
+    "review_date": null,
+    "approved": false,
+    "notes": "DRAFT — requires human review against policy document before use"
+  },
+
+  "canonical_rules": [
+
+    {
+      "id": "eligible_diagnosis",
+      "policy_section": "2.1",
+      "description": "Member must have a documented diagnosis from Category A or B",
+      "logic": "any",
+      "conditions": [
+        {
+          "field": "icd10_code",
+          "operator": "in",
+          "value": [
+            "M23.20x", "M23.21x", "M23.22x", "M23.30x",
+            "S83.5xx", "S83.6xx", "S83.9xx",
+            "M23.60x", "M23.61x", "M23.62x",
+            "M93.2xx",
+            "M25.561", "M25.562", "M25.569",
+            "M17.0x", "M17.1x", "M17.2x", "M17.3x"
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "clinical_findings",
+      "policy_section": "2.2",
+      "description": "At least one clinical finding documented on physical exam within 30 days",
+      "logic": "any",
+      "conditions": [
+        { "field": "mcmurray_test",                "operator": "eq", "value": true },
+        { "field": "thessaly_test",                "operator": "eq", "value": true },
+        { "field": "joint_line_tenderness",        "operator": "eq", "value": true },
+        { "field": "persistent_effusion",          "operator": "eq", "value": true },
+        { "field": "lachman_test",                 "operator": "eq", "value": true },
+        { "field": "anterior_posterior_drawer",    "operator": "eq", "value": true },
+        { "field": "varus_valgus_instability",     "operator": "eq", "value": true },
+        { "field": "restricted_rom_mechanical_block", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "prior_imaging",
+      "policy_section": "2.3",
+      "description": "Weight-bearing radiographs completed within 60 days, report available",
+      "logic": "all",
+      "conditions": [
+        { "field": "xray_completed",       "operator": "eq", "value": true },
+        { "field": "xray_report_available", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "conservative_treatment",
+      "policy_section": "2.4",
+      "description": "At least 2 of 5 conservative treatment modalities completed over minimum 6 weeks",
+      "logic": "count_gte",
+      "threshold": 2,
+      "conditions": [
+        { "field": "pt_completed",         "operator": "eq", "value": true },
+        { "field": "nsaid_trial",          "operator": "eq", "value": true },
+        { "field": "activity_modification", "operator": "eq", "value": true },
+        { "field": "bracing_orthotics",    "operator": "eq", "value": true },
+        { "field": "injection",            "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "special_population_under_18",
+      "policy_section": "2.5(a)",
+      "description": "Pediatric orthopedic evaluation and growth plate assessment (age < 18 only)",
+      "logic": "all",
+      "age_condition": "lt_18",
+      "conditions": [
+        { "field": "pediatric_ortho_eval",    "operator": "eq", "value": true },
+        { "field": "growth_plate_assessment", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "special_population_over_65",
+      "policy_section": "2.5(b)",
+      "description": "Functional impact and surgical candidacy assessment (age ≥ 65 only)",
+      "logic": "all",
+      "age_condition": "gte_65",
+      "conditions": [
+        { "field": "functional_impact_adl",       "operator": "eq", "value": true },
+        { "field": "surgical_candidacy_assessed", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "exception_acute_trauma",
+      "policy_section": "3.1",
+      "description": "Acute traumatic injury exception — waives conservative treatment",
+      "logic": "any",
+      "exception_pathway": true,
+      "overrides": ["conservative_treatment"],
+      "conditions": [
+        { "field": "acute_trauma",              "operator": "eq", "value": true },
+        { "field": "inability_bear_weight",     "operator": "eq", "value": true },
+        { "field": "suspected_ligament_rupture", "operator": "eq", "value": true },
+        { "field": "displaced_meniscal_tear",   "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "exception_post_op",
+      "policy_section": "3.2",
+      "description": "Post-operative evaluation within 6 months — waives conservative treatment",
+      "logic": "all",
+      "exception_pathway": true,
+      "overrides": ["conservative_treatment"],
+      "conditions": [
+        { "field": "post_op_evaluation", "operator": "eq",  "value": true },
+        { "field": "surgical_date",      "operator": "neq", "value": null }
+      ]
+    },
+
+    {
+      "id": "exception_red_flag",
+      "policy_section": "3.3",
+      "description": "Red flag symptoms — waives conservative treatment",
+      "logic": "any",
+      "exception_pathway": true,
+      "overrides": ["conservative_treatment"],
+      "conditions": [
+        { "field": "suspected_infection",       "operator": "eq", "value": true },
+        { "field": "suspected_tumor",           "operator": "eq", "value": true },
+        { "field": "suspected_occult_fracture", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "exclusion_no_clinical_indication",
+      "policy_section": "4(a)",
+      "description": "No clinical indication — routine screening",
+      "logic": "all",
+      "exclusion": true,
+      "conditions": [
+        { "field": "no_clinical_indication", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "exclusion_isolated_anterior_knee_pain",
+      "policy_section": "4(b)",
+      "description": "Isolated anterior knee pain without mechanical symptoms or instability",
+      "logic": "all",
+      "exclusion": true,
+      "conditions": [
+        { "field": "isolated_anterior_knee_pain", "operator": "eq", "value": true },
+        { "field": "mechanical_symptoms_absent",  "operator": "eq", "value": true },
+        { "field": "instability_absent",          "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "exclusion_mild_oa",
+      "policy_section": "4(c)",
+      "description": "Mild osteoarthritis without surgical planning",
+      "logic": "all",
+      "exclusion": true,
+      "conditions": [
+        { "field": "mild_osteoarthritis",     "operator": "eq", "value": true },
+        { "field": "surgical_planning_absent", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "exclusion_workers_comp",
+      "policy_section": "4(d)",
+      "description": "Worker's compensation injury",
+      "logic": "all",
+      "exclusion": true,
+      "conditions": [
+        { "field": "workers_comp", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "exclusion_declines_surgery",
+      "policy_section": "4(e)",
+      "description": "Member declines surgical intervention",
+      "logic": "all",
+      "exclusion": true,
+      "conditions": [
+        { "field": "declines_surgery", "operator": "eq", "value": true }
+      ]
+    },
+
+    {
+      "id": "exclusion_repeat_mri",
+      "policy_section": "4(f)",
+      "description": "Repeat MRI within 12 months without change, failed intervention, or preop planning",
+      "logic": "all",
+      "exclusion": true,
+      "conditions": [
+        { "field": "repeat_mri_within_12mo",   "operator": "eq", "value": true },
+        { "field": "no_clinical_status_change", "operator": "eq", "value": true },
+        { "field": "no_failed_intervention",    "operator": "eq", "value": true },
+        { "field": "no_preop_planning",         "operator": "eq", "value": true }
+      ]
+    }
+  ],
+
+  "extraction_schema": {
+    "_comment": "This is auto-derived from canonical_rules. Every field referenced in any rule condition above must appear here. The descriptions come from the domain registry.",
+    "icd10_code":                      "ICD-10 diagnosis code(s) documented in chart supporting medical necessity",
+    "mcmurray_test":                   "Positive McMurray's test documented on physical examination",
+    "thessaly_test":                   "Positive Thessaly test documented on physical examination",
+    "joint_line_tenderness":           "Joint line tenderness WITH mechanical symptoms (locking, catching, or giving way)",
+    "persistent_effusion":             "Persistent joint effusion present for more than 4 weeks",
+    "lachman_test":                    "Positive Lachman test documented on physical examination",
+    "anterior_posterior_drawer":       "Positive anterior or posterior drawer test documented on physical examination",
+    "varus_valgus_instability":        "Instability documented on varus or valgus stress testing",
+    "restricted_rom_mechanical_block": "Restricted range of motion with a documented mechanical block",
+    "xray_completed":                  "Weight-bearing radiographs of the affected knee completed",
+    "xray_report_available":           "Radiograph report available in the medical record",
+    "pt_completed":                    "Physical therapy completed (minimum 6 sessions with licensed PT)",
+    "nsaid_trial":                     "NSAIDs or oral analgesics trial completed (minimum 4 weeks)",
+    "activity_modification":           "Activity modification and documented home exercise program",
+    "bracing_orthotics":               "Bracing, orthotics, or assistive devices used",
+    "injection":                       "Intra-articular injection completed (corticosteroid or hyaluronic acid)",
+    "pediatric_ortho_eval":            "Pediatric orthopedic evaluation by board-certified/eligible pediatric orthopedic surgeon",
+    "growth_plate_assessment":         "Growth plate (physeal) assessment included in evaluation",
+    "functional_impact_adl":           "Functional impact on activities of daily living documented",
+    "surgical_candidacy_assessed":     "Surgical candidacy assessment documented",
+    "acute_trauma":                    "Acute traumatic injury documented",
+    "inability_bear_weight":           "Inability to bear weight at time of evaluation",
+    "suspected_ligament_rupture":      "Suspected complete rupture of major ligament (ACL, PCL, MCL, or LCL)",
+    "displaced_meniscal_tear":         "Clinical findings consistent with displaced meniscal tear (locked knee)",
+    "post_op_evaluation":              "Post-operative evaluation required within 6 months of knee surgery",
+    "surgical_date":                   "Date of prior knee surgery",
+    "suspected_infection":             "Suspected joint infection (septic arthritis)",
+    "suspected_tumor":                 "Suspected primary or metastatic tumor of bone or soft tissue",
+    "suspected_occult_fracture":       "Suspected occult fracture not visualized on X-ray",
+    "no_clinical_indication":          "No clinical indication or symptoms — routine screening only",
+    "isolated_anterior_knee_pain":     "Isolated anterior knee pain (patellofemoral syndrome)",
+    "mechanical_symptoms_absent":      "Mechanical symptoms (locking, catching, giving way) are NOT present",
+    "instability_absent":              "Knee instability is NOT present",
+    "mild_osteoarthritis":             "Mild osteoarthritis diagnosed",
+    "surgical_planning_absent":        "No surgical planning is intended",
+    "workers_comp":                    "Worker's compensation injury",
+    "declines_surgery":                "Member declines surgical intervention",
+    "repeat_mri_within_12mo":          "This is a repeat MRI within 12 months of prior MRI",
+    "no_clinical_status_change":       "No documented change in clinical status since prior MRI",
+    "no_failed_intervention":          "No failed intervention since prior imaging",
+    "no_preop_planning":               "No pre-operative planning requirement"
+  }
+}

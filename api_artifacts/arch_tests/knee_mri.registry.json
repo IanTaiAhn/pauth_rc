@@ -1,0 +1,277 @@
+{
+  "domain": "knee_mri",
+  "version": "1.0.0",
+  "description": "Field registry for knee MRI prior authorization. Defines all clinical fields that payer policies may evaluate. Fields are domain-specific (knee MRI), not payer-specific. Payer rule files reference these fields by name.",
+  "last_reviewed": "2025-02-20",
+  "reviewed_by": null,
+
+  "fields": {
+
+    "_comment_diagnosis": "=== DIAGNOSIS (Section 2.1 equivalent) ===",
+
+    "icd10_code": {
+      "type": "string",
+      "category": "diagnosis",
+      "description": "ICD-10 diagnosis code(s) documented in chart supporting medical necessity",
+      "extraction_hint": "Look for ICD-10 codes, diagnosis lines, or assessment sections. May appear as codes (M23.21) or descriptions (meniscal tear)."
+    },
+
+    "_comment_clinical_findings": "=== CLINICAL FINDINGS (Section 2.2 equivalent) ===",
+
+    "mcmurray_test": {
+      "type": "boolean",
+      "category": "clinical_finding",
+      "description": "Positive McMurray's test documented on physical examination",
+      "extraction_hint": "Look for 'McMurray' in physical exam section. Must be explicitly positive, not equivocal or negative."
+    },
+    "thessaly_test": {
+      "type": "boolean",
+      "category": "clinical_finding",
+      "description": "Positive Thessaly test documented on physical examination",
+      "extraction_hint": "Look for 'Thessaly' in physical exam section. Must be explicitly positive."
+    },
+    "joint_line_tenderness": {
+      "type": "boolean",
+      "category": "clinical_finding",
+      "description": "Joint line tenderness WITH mechanical symptoms (locking, catching, or giving way)",
+      "extraction_hint": "Both components required: tenderness AND mechanical symptoms. Tenderness alone is not sufficient."
+    },
+    "persistent_effusion": {
+      "type": "boolean",
+      "category": "clinical_finding",
+      "description": "Persistent joint effusion present for more than 4 weeks",
+      "extraction_hint": "Must note duration > 4 weeks or 'persistent'. Acute effusion alone does not qualify."
+    },
+    "lachman_test": {
+      "type": "boolean",
+      "category": "clinical_finding",
+      "description": "Positive Lachman test documented on physical examination",
+      "extraction_hint": "Look for 'Lachman' in physical exam. Must be explicitly positive."
+    },
+    "anterior_posterior_drawer": {
+      "type": "boolean",
+      "category": "clinical_finding",
+      "description": "Positive anterior or posterior drawer test documented on physical examination",
+      "extraction_hint": "Look for 'anterior drawer' or 'posterior drawer' in physical exam. Either one qualifies."
+    },
+    "varus_valgus_instability": {
+      "type": "boolean",
+      "category": "clinical_finding",
+      "description": "Instability documented on varus or valgus stress testing",
+      "extraction_hint": "Look for 'varus stress', 'valgus stress', or 'collateral ligament instability' in physical exam."
+    },
+    "restricted_rom_mechanical_block": {
+      "type": "boolean",
+      "category": "clinical_finding",
+      "description": "Restricted range of motion with a documented mechanical block",
+      "extraction_hint": "Both components required: restricted ROM AND mechanical block. Limited ROM from pain alone does not qualify."
+    },
+
+    "_comment_prior_imaging": "=== PRIOR IMAGING (Section 2.3 equivalent) ===",
+
+    "xray_completed": {
+      "type": "boolean",
+      "category": "prior_imaging",
+      "description": "Weight-bearing radiographs of the affected knee completed",
+      "extraction_hint": "Look for X-ray, radiograph, or plain film references. Must be weight-bearing (or contraindication documented)."
+    },
+    "xray_report_available": {
+      "type": "boolean",
+      "category": "prior_imaging",
+      "description": "Radiograph report available in the medical record",
+      "extraction_hint": "Look for X-ray findings, radiology report references, or imaging results documented in chart."
+    },
+
+    "_comment_conservative_tx": "=== CONSERVATIVE TREATMENT (Section 2.4 equivalent) ===",
+
+    "pt_completed": {
+      "type": "boolean",
+      "category": "conservative_treatment",
+      "description": "Physical therapy completed (minimum 6 sessions with licensed PT)",
+      "extraction_hint": "Look for PT notes, physical therapy references, number of sessions. Must be ≥6 sessions."
+    },
+    "nsaid_trial": {
+      "type": "boolean",
+      "category": "conservative_treatment",
+      "description": "NSAIDs or oral analgesics trial completed (minimum 4 weeks)",
+      "extraction_hint": "Look for medication names (ibuprofen, naproxen, meloxicam, etc.), duration of use. Contraindication with alternative satisfies this."
+    },
+    "activity_modification": {
+      "type": "boolean",
+      "category": "conservative_treatment",
+      "description": "Activity modification and documented home exercise program",
+      "extraction_hint": "Look for activity restrictions, work modifications, home exercise instructions."
+    },
+    "bracing_orthotics": {
+      "type": "boolean",
+      "category": "conservative_treatment",
+      "description": "Bracing, orthotics, or assistive devices (cane, crutches) used",
+      "extraction_hint": "Look for knee brace, sleeve, crutches, cane, walker references."
+    },
+    "injection": {
+      "type": "boolean",
+      "category": "conservative_treatment",
+      "description": "Intra-articular injection completed (corticosteroid or hyaluronic acid)",
+      "extraction_hint": "Look for injection references with date, medication name, and response documented."
+    },
+
+    "_comment_special_pop": "=== SPECIAL POPULATION (Section 2.5 equivalent) ===",
+
+    "pediatric_ortho_eval": {
+      "type": "boolean",
+      "category": "special_population",
+      "description": "Pediatric orthopedic evaluation by board-certified/eligible pediatric orthopedic surgeon",
+      "extraction_hint": "Only applicable if patient age < 18. Look for pediatric orthopedic consult or referral."
+    },
+    "growth_plate_assessment": {
+      "type": "boolean",
+      "category": "special_population",
+      "description": "Growth plate (physeal) assessment included in evaluation",
+      "extraction_hint": "Only applicable if patient age < 18. Look for physeal status, growth plate, or skeletal maturity references."
+    },
+    "functional_impact_adl": {
+      "type": "boolean",
+      "category": "special_population",
+      "description": "Functional impact on activities of daily living documented",
+      "extraction_hint": "Only applicable if patient age ≥ 65. Look for ADL limitations, functional status, mobility impairment."
+    },
+    "surgical_candidacy_assessed": {
+      "type": "boolean",
+      "category": "special_population",
+      "description": "Surgical candidacy assessment documented by provider",
+      "extraction_hint": "Only applicable if patient age ≥ 65. Look for surgical candidate discussion, operative risk assessment."
+    },
+
+    "_comment_exceptions": "=== EXCEPTION PATHWAY FIELDS (Section 3 equivalent) ===",
+
+    "acute_trauma": {
+      "type": "boolean",
+      "category": "exception",
+      "description": "Acute traumatic injury documented",
+      "extraction_hint": "Look for acute injury, trauma, fall, sports injury, MVA with acute onset."
+    },
+    "inability_bear_weight": {
+      "type": "boolean",
+      "category": "exception",
+      "description": "Inability to bear weight at time of evaluation",
+      "extraction_hint": "Look for non-weight-bearing status, inability to walk, crutch dependence at eval."
+    },
+    "suspected_ligament_rupture": {
+      "type": "boolean",
+      "category": "exception",
+      "description": "Suspected complete rupture of major ligament (ACL, PCL, MCL, or LCL)",
+      "extraction_hint": "Must be suspected COMPLETE rupture, not partial. Look for gross instability, clinical suspicion of complete tear."
+    },
+    "displaced_meniscal_tear": {
+      "type": "boolean",
+      "category": "exception",
+      "description": "Clinical findings consistent with displaced meniscal tear (locked knee)",
+      "extraction_hint": "Look for locked knee, inability to achieve full extension, bucket-handle tear suspicion."
+    },
+    "post_op_evaluation": {
+      "type": "boolean",
+      "category": "exception",
+      "description": "Post-operative evaluation required within 6 months of knee surgery",
+      "extraction_hint": "Look for prior knee surgery reference with need for follow-up imaging."
+    },
+    "surgical_date": {
+      "type": "string",
+      "category": "exception",
+      "description": "Date of prior knee surgery (required with post_op_evaluation)",
+      "extraction_hint": "Look for operative date, surgery date. Format as YYYY-MM-DD if possible."
+    },
+    "suspected_infection": {
+      "type": "boolean",
+      "category": "exception",
+      "description": "Suspected joint infection (septic arthritis)",
+      "extraction_hint": "Look for fever + joint symptoms, elevated inflammatory markers, turbid aspirate."
+    },
+    "suspected_tumor": {
+      "type": "boolean",
+      "category": "exception",
+      "description": "Suspected primary or metastatic tumor of bone or soft tissue",
+      "extraction_hint": "Look for mass, lesion suspicious for neoplasm, bone destruction, night pain with constitutional symptoms."
+    },
+    "suspected_occult_fracture": {
+      "type": "boolean",
+      "category": "exception",
+      "description": "Suspected occult fracture not visualized on X-ray",
+      "extraction_hint": "Look for negative X-ray with high clinical suspicion for fracture, point tenderness over bone."
+    },
+
+    "_comment_exclusions": "=== EXCLUSION FIELDS (Section 4 equivalent) ===",
+
+    "no_clinical_indication": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "No clinical indication or symptoms — routine screening only",
+      "extraction_hint": "True only if chart explicitly shows no symptoms and imaging is for screening/routine purposes."
+    },
+    "isolated_anterior_knee_pain": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "Isolated anterior knee pain (patellofemoral syndrome) present",
+      "extraction_hint": "Look for anterior knee pain, patellofemoral pain, chondromalacia without other pathology."
+    },
+    "mechanical_symptoms_absent": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "Mechanical symptoms (locking, catching, giving way) are NOT present",
+      "extraction_hint": "True if chart does NOT document any mechanical symptoms. Used with isolated_anterior_knee_pain exclusion."
+    },
+    "instability_absent": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "Knee instability is NOT present",
+      "extraction_hint": "True if chart does NOT document instability. Used with isolated_anterior_knee_pain exclusion."
+    },
+    "mild_osteoarthritis": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "Mild osteoarthritis diagnosed",
+      "extraction_hint": "Look for mild OA, early degenerative changes, Kellgren-Lawrence grade 1-2."
+    },
+    "surgical_planning_absent": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "No surgical planning is intended",
+      "extraction_hint": "True if chart does NOT mention surgical planning, pre-op evaluation, or surgical candidacy."
+    },
+    "workers_comp": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "Worker's compensation injury",
+      "extraction_hint": "Look for work injury, WC claim, employer liability references."
+    },
+    "declines_surgery": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "Member declines surgical intervention regardless of MRI findings",
+      "extraction_hint": "Look for patient refusal of surgery, declines operative treatment."
+    },
+    "repeat_mri_within_12mo": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "This is a repeat MRI within 12 months of prior MRI",
+      "extraction_hint": "Look for prior MRI references, previous imaging dates within the last year."
+    },
+    "no_clinical_status_change": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "No documented change in clinical status since prior MRI",
+      "extraction_hint": "True if chart does NOT document worsening, new symptoms, or change since prior imaging."
+    },
+    "no_failed_intervention": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "No failed intervention since prior imaging",
+      "extraction_hint": "True if chart does NOT document failed treatment since last MRI."
+    },
+    "no_preop_planning": {
+      "type": "boolean",
+      "category": "exclusion",
+      "description": "No pre-operative planning requirement",
+      "extraction_hint": "True if chart does NOT reference pre-operative planning as reason for repeat MRI."
+    }
+  }
+}
