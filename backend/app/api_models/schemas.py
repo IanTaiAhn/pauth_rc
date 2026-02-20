@@ -184,6 +184,9 @@ class CriterionResult(BaseModel):
     required: str = Field(..., description="What is required by the policy")
     found: str = Field(..., description="What was found in the patient chart")
     status: Literal["PASS", "FAIL"] = Field(..., description="Whether the criterion was met")
+    field_evaluated: str | None = None  # the schema field name checked, e.g. "conservative_therapy_weeks"
+    operator: str | None = None         # the comparison used, e.g. "gte", "equals", "exists"
+    rule_id: str | None = None          # stable rule identifier from the compiled rule, e.g. "R-03"
 
 
 class DiagnosticArtifacts(BaseModel):
@@ -249,4 +252,20 @@ class OrchestrationResponse(BaseModel):
     diagnostics: Optional[DiagnosticArtifacts] = Field(
         None,
         description="Diagnostic artifacts from each pipeline stage (only included when include_diagnostics=true)"
+    )
+    extracted_fields: dict = Field(
+        default_factory=dict,
+        description="The full patient_data dict returned by evidence extraction"
+    )
+    rules_evaluated: int = Field(
+        default=0,
+        description="Total number of rules that were run"
+    )
+    rules_met: int = Field(
+        default=0,
+        description="Number of rules that passed"
+    )
+    extraction_warnings: list[str] = Field(
+        default_factory=list,
+        description="Names of schema fields that came back null or empty string"
     )

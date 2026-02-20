@@ -161,6 +161,12 @@ async def check_prior_auth(body: CheckPriorAuthRequest):
                 detail="Failed to extract clinical evidence from the chart.",
             )
 
+        # Compute extraction warnings — schema fields that came back null or empty
+        extraction_warnings = [
+            field for field in extraction_schema
+            if not patient_data.get(field)
+        ]
+
         # Step 3: Evaluate rules deterministically — no LLM involved
         try:
             evaluation = evaluate_all(
@@ -198,6 +204,9 @@ async def check_prior_auth(body: CheckPriorAuthRequest):
                     required=result.get("required_value", "Must be documented"),
                     found=result.get("patient_value", "Not found in chart"),
                     status="PASS" if met else "FAIL",
+                    field_evaluated=result.get("field"),
+                    operator=result.get("operator"),
+                    rule_id=result.get("rule_id"),
                 )
             )
 
@@ -216,6 +225,10 @@ async def check_prior_auth(body: CheckPriorAuthRequest):
             gaps=gaps,
             next_steps=next_steps,
             exception_applied=None,
+            extracted_fields=patient_data,
+            rules_evaluated=total,
+            rules_met=met_count,
+            extraction_warnings=extraction_warnings,
         )
 
     except HTTPException:
