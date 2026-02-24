@@ -1,0 +1,25 @@
+[project]
+name = "pauth-rc"
+version = "0.1.0"
+description = ""
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "pdfplumber",
+    "groq",
+    "python-multipart",
+    "python-dotenv",
+]
+
+[tool.uv]
+index-url = "https://pypi.org/simple"
+extra-index-url = ["https://download.pytorch.org/whl/cpu"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
