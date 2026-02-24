@@ -66,3 +66,8 @@ SENT_TRANSFORMER_MODEL=app/rag_pipeline/models/minilm
 VECTOR_STORE_PATH=app/rag_pipeline/vectorstore
 MODEL_PATH=app/rag_pipeline/models/qwen2.5
 ```
+### New plans
+No more medicaid, we want to do Medicare.
+Also, let's focus on joint replacements.
+So we are staying in Orthopedics, but going to surgical documentation compliance.
+Read the Claude chat for the useful articles.
