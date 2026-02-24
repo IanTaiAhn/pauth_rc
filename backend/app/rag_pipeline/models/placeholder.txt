@@ -1,1 +1,0 @@
-I am here just to get git to recognize this folder since I have my locally installed models here.
