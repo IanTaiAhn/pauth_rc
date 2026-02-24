@@ -1,0 +1,319 @@
+{
+  "payer": "utah_medicaid",
+  "cpt_code": "73721",
+  "policy_source": "UTAH MEDICAID PROGRAM — PRIOR AUTHORIZATION CLINICAL CRITERIA, Section 2: COVERAGE CRITERIA",
+  "policy_effective_date": "2025-01-01",
+  "section_count": 4,
+  "exception_count": 3,
+  "exclusion_count": 6,
+  "validation_errors": [],
+  "model": "llama-3.3-70b-versatile",
+  "checklist_sections": [
+    {
+      "id": "eligible_diagnosis",
+      "title": "Eligible Diagnosis",
+      "description": "Member must have a documented diagnosis from one of the following categories",
+      "requirement_type": "any",
+      "help_text": "Check the diagnosis code(s) that apply to the member's condition",
+      "items": [
+        {
+          "field": "suspected_meniscal_tear",
+          "label": "Meniscal Tear",
+          "help_text": "ICD-10: M23.20x, M23.21x, M23.22x, M23.30x",
+          "icd10_codes": [
+            "M23.20x",
+            "M23.21x",
+            "M23.22x",
+            "M23.30x"
+          ],
+          "input_type": "checkbox"
+        },
+        {
+          "field": "suspected_ligamentous_injury",
+          "label": "Ligamentous Injury",
+          "help_text": "ICD-10: S83.5xx, S83.6xx, S83.9xx, M23.60x, M23.61x, M23.62x",
+          "icd10_codes": [
+            "S83.5xx",
+            "S83.6xx",
+            "S83.9xx",
+            "M23.60x",
+            "M23.61x",
+            "M23.62x"
+          ],
+          "input_type": "checkbox"
+        },
+        {
+          "field": "suspected_osteochondral_lesion",
+          "label": "Osteochondral Lesion",
+          "help_text": "ICD-10: M93.2xx",
+          "icd10_codes": [
+            "M93.2xx"
+          ],
+          "input_type": "checkbox"
+        },
+        {
+          "field": "knee_pain_mechanical_symptoms",
+          "label": "Knee Pain with Mechanical Symptoms",
+          "help_text": "ICD-10: M25.561, M25.562, M25.569",
+          "icd10_codes": [
+            "M25.561",
+            "M25.562",
+            "M25.569"
+          ],
+          "input_type": "checkbox"
+        },
+        {
+          "field": "osteoarthritis_surgical_planning",
+          "label": "Osteoarthritis Requiring Surgical Planning",
+          "help_text": "ICD-10: M17.0x, M17.1x, M17.2x, M17.3x",
+          "icd10_codes": [
+            "M17.0x",
+            "M17.1x",
+            "M17.2x",
+            "M17.3x"
+          ],
+          "input_type": "checkbox"
+        }
+      ]
+    },
+    {
+      "id": "clinical_findings",
+      "title": "Clinical Findings",
+      "description": "At least one of the following clinical findings must be documented on physical examination within 30 days prior to the PA request",
+      "requirement_type": "any",
+      "help_text": "Check the clinical findings that apply to the member's condition",
+      "items": [
+        {
+          "field": "positive_mcmurrays_test",
+          "label": "Positive McMurray's Test",
+          "help_text": "Documented positive McMurray's test",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "joint_line_tenderness",
+          "label": "Joint Line Tenderness",
+          "help_text": "Documented joint line tenderness with mechanical symptoms",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "persistent_joint_effusion",
+          "label": "Persistent Joint Effusion",
+          "help_text": "Documented persistent joint effusion present for more than 4 weeks",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "positive_lachman_test",
+          "label": "Positive Lachman Test",
+          "help_text": "Documented positive Lachman test",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "instability_on_varus_valgus_stress",
+          "label": "Instability on Varus/Valgus Stress",
+          "help_text": "Documented instability on varus or valgus stress testing",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "restricted_range_of_motion",
+          "label": "Restricted Range of Motion",
+          "help_text": "Documented restricted range of motion with a mechanical block",
+          "input_type": "checkbox"
+        }
+      ]
+    },
+    {
+      "id": "prior_imaging",
+      "title": "Prior Imaging",
+      "description": "Weight-bearing radiographs (X-rays) of the affected knee must be completed within 60 calendar days prior to the date of the MRI prior authorization request",
+      "requirement_type": "all",
+      "help_text": "Ensure that the X-ray report is available in the medical record",
+      "items": [
+        {
+          "field": "x_ray_report",
+          "label": "X-ray Report",
+          "help_text": "X-ray report dated within 60 days of PA request",
+          "input_type": "date"
+        },
+        {
+          "field": "weight_bearing_ap_view",
+          "label": "Weight-Bearing AP View",
+          "help_text": "Weight-bearing AP view is required except when contraindicated",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "radiograph_report_available",
+          "label": "Radiograph Report Available",
+          "help_text": "Radiograph report must be available in the medical record",
+          "input_type": "checkbox"
+        }
+      ]
+    },
+    {
+      "id": "conservative_treatment",
+      "title": "Conservative Treatment",
+      "description": "Member must have completed a minimum of six weeks of conservative therapy",
+      "requirement_type": "all",
+      "help_text": "Ensure that the conservative treatment records are complete",
+      "items": [
+        {
+          "field": "physical_therapy",
+          "label": "Physical Therapy",
+          "help_text": "Minimum of 6 documented sessions with a licensed physical therapist",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "medication_trial",
+          "label": "Medication Trial",
+          "help_text": "Documented trial of at least 4 weeks duration",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "activity_modification",
+          "label": "Activity Modification",
+          "help_text": "Documented activity modification and home exercise program",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "bracing_orthotics",
+          "label": "Bracing/Orthotics",
+          "help_text": "Bracing, orthotics, or assistive devices (cane, crutches)",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "intra_articular_injection",
+          "label": "Intra-Articular Injection",
+          "help_text": "Intra-articular injection (corticosteroid or hyaluronic acid)",
+          "input_type": "checkbox"
+        }
+      ]
+    }
+  ],
+  "exception_pathways": [
+    {
+      "id": "acute_traumatic_injury",
+      "title": "Acute Traumatic Injury",
+      "description": "The 6-week conservative treatment requirement is waived for acute traumatic injuries",
+      "waives": [
+        "conservative_treatment"
+      ],
+      "requirement_type": "any",
+      "help_text": "Document the specific exception criterion met",
+      "items": [
+        {
+          "field": "inability_to_bear_weight",
+          "label": "Inability to Bear Weight",
+          "help_text": "Documented inability to bear weight at the time of evaluation",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "suspected_complete_ligament_rupture",
+          "label": "Suspected Complete Ligament Rupture",
+          "help_text": "Suspected complete rupture of a major ligament (ACL, PCL, MCL, LCL)",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "clinical_findings_displaced_meniscal_tear",
+          "label": "Clinical Findings of Displaced Meniscal Tear",
+          "help_text": "Clinical findings consistent with displaced meniscal tear (locked knee)",
+          "input_type": "checkbox"
+        }
+      ]
+    },
+    {
+      "id": "post_operative",
+      "title": "Post-Operative",
+      "description": "The 6-week conservative treatment requirement is waived for post-operative evaluations",
+      "waives": [
+        "conservative_treatment"
+      ],
+      "requirement_type": "any",
+      "help_text": "Document the specific exception criterion met",
+      "items": [
+        {
+          "field": "post_operative_evaluation",
+          "label": "Post-Operative Evaluation",
+          "help_text": "Post-operative evaluation required within 6 months of knee surgery",
+          "input_type": "checkbox"
+        }
+      ]
+    },
+    {
+      "id": "red_flag",
+      "title": "Red Flag",
+      "description": "The 6-week conservative treatment requirement is waived for red flag symptoms",
+      "waives": [
+        "conservative_treatment"
+      ],
+      "requirement_type": "any",
+      "help_text": "Document the specific exception criterion met",
+      "items": [
+        {
+          "field": "suspected_joint_infection",
+          "label": "Suspected Joint Infection",
+          "help_text": "Suspected joint infection (septic arthritis)",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "suspected_primary_metastatic_tumor",
+          "label": "Suspected Primary/Metastatic Tumor",
+          "help_text": "Suspected primary or metastatic tumor of bone or soft tissue",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "suspected_occult_fracture",
+          "label": "Suspected Occult Fracture",
+          "help_text": "Suspected occult fracture not visualized on X-ray",
+          "input_type": "checkbox"
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "no_clinical_indication",
+      "title": "No Clinical Indication",
+      "description": "MRI knee without contrast is not covered when there is no clinical indication or symptoms",
+      "severity": "hard_stop"
+    },
+    {
+      "id": "isolated_anterior_knee_pain",
+      "title": "Isolated Anterior Knee Pain",
+      "description": "MRI knee without contrast is not covered for isolated anterior knee pain without mechanical symptoms or instability",
+      "severity": "hard_stop"
+    },
+    {
+      "id": "mild_osteoarthritis",
+      "title": "Mild Osteoarthritis",
+      "description": "MRI knee without contrast is not covered for mild osteoarthritis when no surgical planning is intended",
+      "severity": "hard_stop"
+    },
+    {
+      "id": "workers_compensation",
+      "title": "Worker's Compensation",
+      "description": "MRI knee without contrast is not covered for worker's compensation injuries",
+      "severity": "hard_stop"
+    },
+    {
+      "id": "member_declines_surgical_intervention",
+      "title": "Member Declines Surgical Intervention",
+      "description": "MRI knee without contrast is not covered when the member declines surgical intervention regardless of MRI findings",
+      "severity": "hard_stop"
+    },
+    {
+      "id": "repeat_mri",
+      "title": "Repeat MRI",
+      "description": "MRI knee without contrast is not covered when there is no documented change in clinical status, failed intervention since prior imaging, or pre-operative planning requirement",
+      "severity": "hard_stop"
+    }
+  ],
+  "denial_prevention_tips": [
+    "Ensure that the prior authorization request includes all required documentation, including clinical notes, conservative treatment records, and X-ray reports",
+    "Verify that the member meets the eligible diagnosis and clinical findings requirements",
+    "Confirm that the conservative treatment requirement is met or that an exception applies"
+  ],
+  "submission_reminders": [
+    "Submit the prior authorization request via the Utah Medicaid PA Portal or by fax to 1-801-555-0100",
+    "Ensure that the authorization is valid for 60 calendar days from the approval date",
+    "Include all required documentation, including the X-ray report and conservative treatment records"
+  ]
+}

@@ -2,7 +2,8 @@
 Policy Compiler router — index-build time (no PHI).
 
 Provides an HTTP interface to compile a payer policy document into a
-structured rule set and save it to compiled_rules/{payer}_{cpt_code}.json.
+human-readable checklist for clinic billing staff and save it to
+compiled_rules/{payer}_{cpt_code}.json.
 
 This endpoint never receives patient data and has no PHI. Groq is used
 as the LLM provider by default.
@@ -26,12 +27,18 @@ router = APIRouter()
 class CompilePolicyResponse(BaseModel):
     payer: str
     cpt_code: str
-    rule_count: int
-    schema_field_count: int
+    policy_source: str | None = None
+    policy_effective_date: str | None = None
+    section_count: int
+    exception_count: int
+    exclusion_count: int
     validation_errors: list[str]
     model: str
-    canonical_rules: list[Any]
-    extraction_schema: dict[str, Any]
+    checklist_sections: list[Any]
+    exception_pathways: list[Any]
+    exclusions: list[Any]
+    denial_prevention_tips: list[str]
+    submission_reminders: list[str]
 
 
 # ---------------------------------------------------------
@@ -54,21 +61,28 @@ def _extract_text(filename: str, file_bytes: bytes) -> str:
 @router.post("/compile_policy", response_model=CompilePolicyResponse)
 async def compile_policy_endpoint(
     policy_file: UploadFile = File(..., description="Policy document (PDF or TXT)"),
-    payer: str = Form(..., description="Payer identifier (e.g., 'utah_medicaid')"),
+    payer: str = Form(..., description="Payer identifier (e.g., 'evicore', 'utah_medicaid')"),
     cpt_code: str = Form(..., description="CPT code (e.g., '73721')"),
 ) -> CompilePolicyResponse:
     """
-    Compile a payer policy document into canonical rules and an extraction
-    schema, then save the result to compiled_rules/{payer}_{cpt_code}.json.
+    Compile a payer policy document into a human-readable checklist for
+    clinic billing staff, then save to compiled_rules/{payer}_{cpt_code}.json.
 
     This is an index-build-time operation. It does NOT accept patient data
     and involves no PHI. Groq is used as the LLM provider.
 
+    Output includes:
+    - checklist_sections: requirement sections (diagnosis, imaging, treatment)
+    - exception_pathways: scenarios that waive certain requirements
+    - exclusions: hard stop scenarios
+    - denial_prevention_tips: common denial reasons
+    - submission_reminders: important PA submission notes
+
     Accepts a file upload (PDF or TXT) rather than raw text in the request
     body, which avoids JSON encoding issues with large documents.
 
-    Returns a summary of the compilation result. The full compiled output is
-    written to disk and also available via GET /api/list_compiled_rules.
+    Returns a summary of the compilation result. The full compiled checklist is
+    written to disk and ready for use in the MVP web app.
     """
     try:
         file_bytes = await policy_file.read()
@@ -100,16 +114,23 @@ async def compile_policy_endpoint(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-    canonical_rules = result.get("canonical_rules", [])
-    extraction_schema = result.get("extraction_schema", {})
+    checklist_sections = result.get("checklist_sections", [])
+    exception_pathways = result.get("exception_pathways", [])
+    exclusions = result.get("exclusions", [])
 
     return CompilePolicyResponse(
-        payer=result["_payer"],
-        cpt_code=result["_cpt_code"],
-        rule_count=len(canonical_rules),
-        schema_field_count=len(extraction_schema),
+        payer=result.get("payer", payer),
+        cpt_code=result.get("cpt_code", cpt_code),
+        policy_source=result.get("policy_source"),
+        policy_effective_date=result.get("policy_effective_date"),
+        section_count=len(checklist_sections),
+        exception_count=len(exception_pathways),
+        exclusion_count=len(exclusions),
         validation_errors=result.get("_validation_errors", []),
         model=result.get("_model", ""),
-        canonical_rules=canonical_rules,
-        extraction_schema=extraction_schema,
+        checklist_sections=checklist_sections,
+        exception_pathways=exception_pathways,
+        exclusions=exclusions,
+        denial_prevention_tips=result.get("denial_prevention_tips", []),
+        submission_reminders=result.get("submission_reminders", []),
     )

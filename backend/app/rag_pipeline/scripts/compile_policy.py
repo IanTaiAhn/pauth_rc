@@ -2,11 +2,13 @@
 Policy Compiler — index-build time step (no PHI).
 
 Reads the full text of a payer policy document and uses an LLM (Groq) to
-produce two artifacts:
+produce a human-readable checklist for clinic billing staff:
 
-  canonical_rules   — list of evaluable rule objects for rule_engine.py
-  extraction_schema — dict mapping field names to descriptions (what to
-                      extract from a patient chart to evaluate the rules)
+  checklist_sections      — list of requirement sections (diagnosis, imaging, etc.)
+  exception_pathways      — rules that waive certain requirements
+  exclusions              — hard stop scenarios
+  denial_prevention_tips  — common denial reasons
+  submission_reminders    — important notes for PA submission
 
 The output is validated and saved to:
   rag_pipeline/compiled_rules/{payer}_{cpt_code}.json
@@ -39,71 +41,103 @@ def _build_prompt(policy_text: str, payer: str, cpt_code: str) -> str:
     """
     Build the structured extraction prompt sent to the LLM.
 
-    The prompt asks the model to read the full policy document and produce a
-    JSON object with two keys:
-
-    - canonical_rules: list of rule objects the rule engine can evaluate
-    - extraction_schema: dict of field names to descriptions
-
-    Rule object schema:
-      {
-        "id": str,                          # snake_case unique identifier
-        "description": str,                 # human-readable description
-        "logic": "all" | "any" | "count_gte" | "count_lte",
-        "threshold": int,                   # required when logic is count_gte/count_lte
-        "conditions": [
-          { "field": str, "operator": str, "value": any }
-        ],
-        "exception_pathway": true,          # optional — waives rules listed in overrides
-        "exclusion": true,                  # optional — immediate exclusion if condition fails
-        "overrides": ["rule_id", ...]       # optional — list of rule IDs waived by exception
-      }
-
-    Valid operators for conditions: eq, neq, gte, gt, lte, lt, in, contains, any_in
+    The prompt asks the model to convert the policy into a human-readable
+    checklist format for clinic billing staff.
     """
-    return f"""You are a medical policy analyst. Your task is to read the following payer policy document and extract structured prior authorization (PA) rules for CPT code {cpt_code} under payer "{payer}".
+    return f"""You are a medical policy analyst converting insurance PA policies into checklists for clinic billing staff.
 
-Output ONLY a valid JSON object with exactly two top-level keys:
+Read the following payer policy document and create a structured checklist for CPT code {cpt_code} under payer "{payer}".
 
-1. "canonical_rules" — a JSON array of rule objects.
-2. "extraction_schema" — a JSON object mapping every field name referenced in conditions to a plain-English description of what to extract from a patient chart.
+Your audience is a billing coordinator (not a physician). Use plain English, be specific about what documentation is required, and highlight common denial reasons.
 
-Rule object structure:
+Output ONLY valid JSON with this exact structure:
+
 {{
-  "id": "<snake_case_unique_id>",
-  "description": "<human-readable description of what this rule checks>",
-  "logic": "<all | any | count_gte | count_lte>",
-  "threshold": <integer, REQUIRED when logic is count_gte or count_lte>,
-  "conditions": [
-    {{ "field": "<field_name>", "operator": "<eq|neq|gte|gt|lte|lt|in|contains|any_in>", "value": <value> }}
+  "payer": "{payer}",
+  "cpt_code": "{cpt_code}",
+  "policy_source": "<document title and section reference>",
+  "policy_effective_date": "YYYY-MM-DD or null if not stated",
+
+  "checklist_sections": [
+    {{
+      "id": "snake_case_section_id",
+      "title": "Human-Readable Section Title",
+      "description": "What this section requires, in plain English",
+      "requirement_type": "any | all | count_gte",
+      "threshold": 2,  // ONLY include if requirement_type is count_gte
+      "help_text": "Guidance for the person filling this out",
+      "items": [
+        {{
+          "field": "snake_case_field_name",
+          "label": "Short checkbox/field label (1-8 words)",
+          "help_text": "Specific documentation guidance - what the payer expects to see",
+          "icd10_codes": ["M23.200", "M23.201"],  // include if applicable, otherwise omit
+          "input_type": "checkbox | date | number | text | checkbox_with_detail",
+          "detail_fields": [...]  // ONLY for checkbox_with_detail - nested fields for additional info
+        }}
+      ]
+    }}
   ],
-  "exception_pathway": true,           (include only if this is an exception rule)
-  "exclusion": true,                   (include only if a failed condition means immediate exclusion)
-  "overrides": ["<rule_id>", ...]      (include only for exception rules, lists rule IDs this waives)
+
+  "exception_pathways": [
+    {{
+      "id": "exception_snake_case_id",
+      "title": "Exception Title",
+      "description": "What this exception does",
+      "waives": ["section_id_1", "section_id_2"],  // which section IDs this exception waives
+      "requirement_type": "any | all | count_gte",
+      "threshold": 2,  // if count_gte
+      "help_text": "When this exception applies",
+      "items": [
+        {{
+          "field": "field_name",
+          "label": "Label",
+          "help_text": "Documentation requirements",
+          "input_type": "checkbox"
+        }}
+      ]
+    }}
+  ],
+
+  "exclusions": [
+    {{
+      "id": "exclusion_id",
+      "title": "Exclusion Title",
+      "description": "What scenarios are NOT covered",
+      "severity": "hard_stop"
+    }}
+  ],
+
+  "denial_prevention_tips": [
+    "Common denial reason 1 — be specific about what triggers denials",
+    "Common denial reason 2 with concrete documentation advice"
+  ],
+
+  "submission_reminders": [
+    "Authorization valid X days from approval",
+    "Include: list of required documents",
+    "Decision timeline information"
+  ]
 }}
 
-Logic operator meanings:
-- "all"       : every condition must pass (AND)
-- "any"       : at least one condition must pass (OR)
-- "count_gte" : at least `threshold` conditions must pass
-- "count_lte" : at most `threshold` conditions must pass
-
-Boolean field values must be JSON true or false (not strings).
-
-Extraction schema format:
-{{
-  "<field_name>": "<description of what this field represents and how to extract it from a chart>"
-}}
-
-Every field name used in any condition must appear as a key in extraction_schema.
-
-IMPORTANT:
-- Output only the JSON object. Do not add markdown code fences, commentary, or any text before or after the JSON.
-- Use snake_case for all field names and rule IDs.
-- Be exhaustive: capture every PA criterion, exclusion, and exception pathway documented in the policy.
-- For conservative treatment requirements with "at least N of the following" language, use logic "count_gte" with the appropriate threshold.
-- For exclusion criteria (cases where coverage is denied outright), set "exclusion": true.
-- For exception pathways that waive standard criteria, set "exception_pathway": true and list the rule IDs they override in "overrides".
+REQUIREMENTS:
+- Use snake_case for all IDs and field names
+- Labels and titles should be concise and clear
+- help_text must be specific and actionable (not vague)
+- Include ICD-10 codes when the policy references specific diagnoses
+- requirement_type meanings:
+  * "any" = at least ONE item must be checked
+  * "all" = ALL items must be checked
+  * "count_gte" = at least `threshold` items must be checked
+- For input_type:
+  * "checkbox" = simple yes/no checkbox
+  * "date" = date field (often with validation like "within 30 days")
+  * "number" = numeric field
+  * "text" = free text field
+  * "checkbox_with_detail" = checkbox that reveals additional fields when checked
+- Be exhaustive: capture ALL requirements, exceptions, and exclusions
+- Extract common denial reasons from policy language (look for "will be denied if..." patterns)
+- Output ONLY the JSON - no markdown fences, no commentary
 
 ---
 POLICY DOCUMENT:
@@ -146,112 +180,155 @@ def _extract_json_from_response(raw: str) -> Optional[dict]:
 
 def _validate_output(data: dict) -> list[str]:
     """
-    Validate the LLM output and return a list of validation error strings.
+    Validate the LLM output checklist format.
 
     Checks:
-    1. canonical_rules is a list
-    2. extraction_schema is a dict
-    3. Each rule has required fields (id, description, logic, conditions)
-    4. Each rule's logic operator is valid
-    5. count_gte / count_lte rules have a numeric threshold
-    6. Every field referenced in any condition exists in extraction_schema
+    1. Required top-level fields exist
+    2. checklist_sections is a list with valid structure
+    3. Each section has required fields and valid requirement_type
+    4. count_gte sections have a threshold
+    5. exception_pathways and exclusions are valid
     """
     errors: list[str] = []
 
-    canonical_rules = data.get("canonical_rules")
-    extraction_schema = data.get("extraction_schema")
+    # Check required top-level fields
+    required_top_level = ["payer", "cpt_code", "checklist_sections"]
+    for field in required_top_level:
+        if field not in data:
+            errors.append(f"Missing required top-level field: '{field}'")
 
-    # Top-level structure checks
-    if not isinstance(canonical_rules, list):
-        errors.append("'canonical_rules' must be a list")
-        canonical_rules = []
+    # Validate checklist_sections
+    sections = data.get("checklist_sections")
+    if not isinstance(sections, list):
+        errors.append("'checklist_sections' must be a list")
+        sections = []
 
-    if not isinstance(extraction_schema, dict):
-        errors.append("'extraction_schema' must be a dict")
-        extraction_schema = {}
+    section_ids = set()
+    valid_requirement_types = {"any", "all", "count_gte"}
 
-    schema_fields = set(extraction_schema.keys())
+    for i, section in enumerate(sections):
+        section_id = section.get("id", f"<section[{i}]>")
+        prefix = f"Section '{section_id}'"
 
-    for i, rule in enumerate(canonical_rules):
-        rule_id = rule.get("id", f"<rule[{i}]>")
-        prefix = f"Rule '{rule_id}'"
+        section_ids.add(section_id)
 
-        # Required fields
-        for required_field in ("id", "description", "logic", "conditions"):
-            if required_field not in rule:
-                errors.append(f"{prefix}: missing required field '{required_field}'")
+        # Required fields for sections
+        for field in ("id", "title", "description", "requirement_type", "items"):
+            if field not in section:
+                errors.append(f"{prefix}: missing required field '{field}'")
 
-        # Logic operator validity
-        logic = rule.get("logic")
-        if logic is not None and logic not in VALID_LOGIC_OPERATORS:
+        # Validate requirement_type
+        req_type = section.get("requirement_type")
+        if req_type and req_type not in valid_requirement_types:
             errors.append(
-                f"{prefix}: invalid logic operator '{logic}'. "
-                f"Must be one of: {sorted(VALID_LOGIC_OPERATORS)}"
+                f"{prefix}: invalid requirement_type '{req_type}'. "
+                f"Must be one of: {sorted(valid_requirement_types)}"
             )
 
-        # Threshold requirement for count operators
-        if logic in COUNT_OPERATORS:
-            threshold = rule.get("threshold")
+        # Check threshold for count_gte
+        if req_type == "count_gte":
+            threshold = section.get("threshold")
             if threshold is None:
-                errors.append(
-                    f"{prefix}: logic '{logic}' requires a 'threshold' field"
-                )
+                errors.append(f"{prefix}: requirement_type 'count_gte' requires a 'threshold' field")
             elif not isinstance(threshold, (int, float)):
-                errors.append(
-                    f"{prefix}: 'threshold' must be a number, got {type(threshold).__name__}"
-                )
+                errors.append(f"{prefix}: 'threshold' must be a number")
 
-        # Conditions structure and field coverage
-        conditions = rule.get("conditions")
-        if not isinstance(conditions, list):
-            errors.append(f"{prefix}: 'conditions' must be a list")
+        # Validate items
+        items = section.get("items")
+        if not isinstance(items, list):
+            errors.append(f"{prefix}: 'items' must be a list")
             continue
 
-        for j, condition in enumerate(conditions):
-            cond_prefix = f"{prefix} condition[{j}]"
+        for j, item in enumerate(items):
+            item_prefix = f"{prefix} item[{j}]"
 
-            if not isinstance(condition, dict):
-                errors.append(f"{cond_prefix}: must be an object")
+            if not isinstance(item, dict):
+                errors.append(f"{item_prefix}: must be an object")
                 continue
 
-            for required_field in ("field", "operator", "value"):
-                if required_field not in condition:
-                    errors.append(f"{cond_prefix}: missing required field '{required_field}'")
+            # Required fields for items
+            for field in ("field", "label", "input_type"):
+                if field not in item:
+                    errors.append(f"{item_prefix}: missing required field '{field}'")
 
-            field_name = condition.get("field")
-            if field_name and field_name not in schema_fields:
+            # Validate input_type
+            valid_input_types = {"checkbox", "date", "number", "text", "checkbox_with_detail"}
+            input_type = item.get("input_type")
+            if input_type and input_type not in valid_input_types:
                 errors.append(
-                    f"{cond_prefix}: field '{field_name}' is not defined in extraction_schema"
+                    f"{item_prefix}: invalid input_type '{input_type}'. "
+                    f"Must be one of: {sorted(valid_input_types)}"
                 )
+
+    # Validate exception_pathways
+    exceptions = data.get("exception_pathways", [])
+    if not isinstance(exceptions, list):
+        errors.append("'exception_pathways' must be a list")
+        exceptions = []
+
+    for i, exception in enumerate(exceptions):
+        exc_id = exception.get("id", f"<exception[{i}]>")
+        prefix = f"Exception '{exc_id}'"
+
+        # Required fields
+        for field in ("id", "title", "waives", "requirement_type", "items"):
+            if field not in exception:
+                errors.append(f"{prefix}: missing required field '{field}'")
+
+        # Validate waives references
+        waives = exception.get("waives", [])
+        if not isinstance(waives, list):
+            errors.append(f"{prefix}: 'waives' must be a list")
+        else:
+            for waived_id in waives:
+                if waived_id not in section_ids:
+                    errors.append(
+                        f"{prefix}: waives unknown section_id '{waived_id}'"
+                    )
+
+    # Validate exclusions
+    exclusions = data.get("exclusions", [])
+    if not isinstance(exclusions, list):
+        errors.append("'exclusions' must be a list")
+
+    # Validate tips and reminders are lists
+    if "denial_prevention_tips" in data and not isinstance(data["denial_prevention_tips"], list):
+        errors.append("'denial_prevention_tips' must be a list")
+
+    if "submission_reminders" in data and not isinstance(data["submission_reminders"], list):
+        errors.append("'submission_reminders' must be a list")
 
     return errors
 
 
 def compile_policy(policy_text: str, payer: str, cpt_code: str) -> dict:
     """
-    Compile a payer policy document into a structured rule set.
+    Compile a payer policy document into a human-readable checklist.
 
     This is an index-build-time operation. It does NOT receive patient data
     and has no PHI. Any LLM provider is acceptable; Groq is used by default.
 
     Args:
         policy_text: Full text of the payer policy document.
-        payer:       Payer identifier (e.g. "utah_medicaid").
+        payer:       Payer identifier (e.g. "evicore", "utah_medicaid").
         cpt_code:    CPT code string (e.g. "73721").
 
     Returns:
         A dict with:
-          - "canonical_rules": list of rule objects
-          - "extraction_schema": dict of field name → description
+          - "payer": payer identifier
+          - "cpt_code": CPT code
+          - "checklist_sections": list of requirement sections
+          - "exception_pathways": list of exceptions that waive requirements
+          - "exclusions": list of hard stop scenarios
+          - "denial_prevention_tips": list of common denial reasons
+          - "submission_reminders": list of submission notes
           - "_validation_errors": list of validation error strings (empty if valid)
-          - "_payer": payer identifier
-          - "_cpt_code": CPT code
           - "_model": model used for compilation
 
     The dict is also saved to:
         rag_pipeline/compiled_rules/{payer}_{cpt_code}.json
     """
-    logger.info(f"Compiling policy for payer={payer}, cpt_code={cpt_code}")
+    logger.info(f"Compiling policy checklist for payer={payer}, cpt_code={cpt_code}")
 
     # Initialise Groq generator (no PHI — any provider acceptable here)
     generator = MedicalGenerator(provider="groq")
@@ -259,7 +336,7 @@ def compile_policy(policy_text: str, payer: str, cpt_code: str) -> dict:
 
     prompt = _build_prompt(policy_text, payer, cpt_code)
 
-    # Use a high token limit — compiled rule sets can be large
+    # Use a high token limit — compiled checklists can be large
     raw_response = generator.generate_answer(
         prompt,
         max_tokens=4096,
@@ -269,11 +346,14 @@ def compile_policy(policy_text: str, payer: str, cpt_code: str) -> dict:
     if not raw_response:
         logger.error("LLM returned an empty response")
         result = {
-            "canonical_rules": [],
-            "extraction_schema": {},
-            "_validation_errors": ["LLM returned an empty response — no rules compiled"],
-            "_payer": payer,
-            "_cpt_code": cpt_code,
+            "payer": payer,
+            "cpt_code": cpt_code,
+            "checklist_sections": [],
+            "exception_pathways": [],
+            "exclusions": [],
+            "denial_prevention_tips": [],
+            "submission_reminders": [],
+            "_validation_errors": ["LLM returned an empty response — no checklist compiled"],
             "_model": model_name,
         }
         _save_result(result, payer, cpt_code)
@@ -284,44 +364,45 @@ def compile_policy(policy_text: str, payer: str, cpt_code: str) -> dict:
     if parsed is None:
         logger.error("Could not parse JSON from LLM response")
         result = {
-            "canonical_rules": [],
-            "extraction_schema": {},
+            "payer": payer,
+            "cpt_code": cpt_code,
+            "checklist_sections": [],
+            "exception_pathways": [],
+            "exclusions": [],
+            "denial_prevention_tips": [],
+            "submission_reminders": [],
             "_validation_errors": [
                 "LLM response did not contain parseable JSON",
                 f"Raw response (first 500 chars): {raw_response[:500]}",
             ],
-            "_payer": payer,
-            "_cpt_code": cpt_code,
             "_model": model_name,
         }
         _save_result(result, payer, cpt_code)
         return result
 
-    # Validate structure and field coverage
+    # Validate structure
     validation_errors = _validate_output(parsed)
 
     if validation_errors:
         logger.warning(
-            f"Compiled rules for {payer}/{cpt_code} have {len(validation_errors)} validation error(s). "
+            f"Compiled checklist for {payer}/{cpt_code} has {len(validation_errors)} validation error(s). "
             "Human review required before deploying."
         )
         for err in validation_errors:
             logger.warning(f"  - {err}")
     else:
+        section_count = len(parsed.get('checklist_sections', []))
+        exception_count = len(parsed.get('exception_pathways', []))
         logger.info(
-            f"Compiled {len(parsed.get('canonical_rules', []))} rules and "
-            f"{len(parsed.get('extraction_schema', {}))} schema fields for "
+            f"Compiled {section_count} checklist sections and "
+            f"{exception_count} exception pathways for "
             f"{payer}/{cpt_code} — no validation errors"
         )
 
-    result = {
-        "canonical_rules": parsed.get("canonical_rules", []),
-        "extraction_schema": parsed.get("extraction_schema", {}),
-        "_validation_errors": validation_errors,
-        "_payer": payer,
-        "_cpt_code": cpt_code,
-        "_model": model_name,
-    }
+    # Add metadata
+    result = {**parsed}
+    result["_validation_errors"] = validation_errors
+    result["_model"] = model_name
 
     _save_result(result, payer, cpt_code)
     return result
