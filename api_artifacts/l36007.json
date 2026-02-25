@@ -1,0 +1,196 @@
+{
+  "payer": "medicare",
+  "cpt_code": "L36007",
+  "policy_source": "Local Coverage Determination (LCD) L36007, Lower Extremity Major Joint Replacement (Hip and Knee)",
+  "policy_effective_date": "2019-11-14",
+  "checklist_sections": [
+    {
+      "id": "medical_necessity",
+      "title": "Medical Necessity",
+      "description": "The procedure must be medically reasonable and necessary for the patient's condition.",
+      "requirement_type": "count_gte",
+      "threshold": 3,
+      "help_text": null,
+      "items": [
+        {
+          "field": "advanced_joint_disease",
+          "label": "Advanced Joint Disease",
+          "help_text": "Radiographic supported evidence or magnetic resonance imaging (MRI) demonstrating subchondral cysts, subchondral sclerosis, periarticular osteophytes, joint subluxation, joint space narrowing, avascular necrosis, or bone on bone articulations.",
+          "input_type": "checkbox",
+          "icd10_codes": [
+            "M16.0",
+            "M16.1",
+            "M16.2",
+            "M16.3",
+            "M16.4",
+            "M16.5",
+            "M16.6",
+            "M16.7",
+            "M16.9"
+          ],
+          "detail_fields": null
+        },
+        {
+          "field": "history_of_unsuccessful_conservative_therapy",
+          "label": "History of Unsuccessful Conservative Therapy",
+          "help_text": "Documentation of a reasonable attempt (typically 3 months or more) at conservative therapy, including anti-inflammatory medications, analgesics, flexibility and muscle strengthening exercises with supervised physical therapy, and activity modification.",
+          "input_type": "checkbox",
+          "icd10_codes": null,
+          "detail_fields": null
+        },
+        {
+          "field": "pain_with_functional_disability",
+          "label": "Pain with Functional Disability",
+          "help_text": "Pain that interferes with activities of daily living (ADLs), increases with initiation of activities, or restricts weight bearing, impairs sleep, and precludes activity.",
+          "input_type": "checkbox",
+          "icd10_codes": [
+            "M25.561",
+            "M25.562",
+            "M25.571",
+            "M25.572"
+          ],
+          "detail_fields": null
+        },
+        {
+          "field": "distinct_structural_abnormalities",
+          "label": "Distinct Structural Abnormalities",
+          "help_text": "Documentation of distal femur fracture, proximal tibia fracture, malignancy of the distal femur, proximal tibia, knee joint, or adjacent soft tissues, avascular or other form of osteonecrosis of the knee, or rheumatologic changes precluding or inconsistent with rehabilitation.",
+          "input_type": "checkbox",
+          "icd10_codes": [
+            "S82.001",
+            "S82.002",
+            "S82.011",
+            "S82.012",
+            "C40.00",
+            "C40.01",
+            "C40.10",
+            "C40.11"
+          ],
+          "detail_fields": null
+        },
+        {
+          "field": "failed_previous_joint_replacement",
+          "label": "Failed Previous Joint Replacement",
+          "help_text": "Documentation of loosening, fracture, or mechanical failure of one or more components, technical or functional failure of previous knee surgery, previous osteotomy or partial arthroplasty, infection, periprosthetic fracture or bone loss, implant or knee malalignment, bearing surface wear leading to symptomatic synovitis, tibiofemoral or extensor mechanism instability, or knee stiffness, arthrofibrosis, or other destructive conditions that render the knee impaired to the extent to preclude employment or functional activities.",
+          "input_type": "checkbox",
+          "icd10_codes": [
+            "T84.030",
+            "T84.031",
+            "T84.032",
+            "T84.039"
+          ],
+          "detail_fields": null
+        }
+      ]
+    },
+    {
+      "id": "provider_qualifications",
+      "title": "Provider Qualifications",
+      "description": "The provider must be appropriately trained and qualified to perform the procedure.",
+      "requirement_type": "all",
+      "threshold": null,
+      "help_text": null,
+      "items": [
+        {
+          "field": "accredited_residency_or_fellowship",
+          "label": "Accredited Residency or Fellowship",
+          "help_text": "The provider must have completed an accredited residency or fellowship program in orthopedic surgery.",
+          "input_type": "checkbox",
+          "icd10_codes": null,
+          "detail_fields": null
+        },
+        {
+          "field": "extensive_continued_medical_education",
+          "label": "Extensive Continued Medical Education",
+          "help_text": "The provider must have completed extensive continued medical education activities, including Category 1 Credit from the American Medical Association (AMA).",
+          "input_type": "checkbox",
+          "icd10_codes": null,
+          "detail_fields": null
+        }
+      ]
+    },
+    {
+      "id": "documentation_requirements",
+      "title": "Documentation Requirements",
+      "description": "The medical record must contain sufficient documentation to support the medical necessity of the procedure.",
+      "requirement_type": "all",
+      "threshold": null,
+      "help_text": null,
+      "items": [
+        {
+          "field": "legible_signature",
+          "label": "Legible Signature",
+          "help_text": "The medical record must include a legible signature of the physician or non-physician practitioner responsible for and providing the care to the patient.",
+          "input_type": "checkbox",
+          "icd10_codes": null,
+          "detail_fields": null
+        },
+        {
+          "field": "patient_identification",
+          "label": "Patient Identification",
+          "help_text": "The medical record must include patient identification information, such as complete name and dates of service.",
+          "input_type": "checkbox",
+          "icd10_codes": null,
+          "detail_fields": null
+        },
+        {
+          "field": "medical_necessity_documentation",
+          "label": "Medical Necessity Documentation",
+          "help_text": "The medical record must include documentation that supports the medical necessity of the procedure, including diagnostic criteria, treatment options, and patient outcomes.",
+          "input_type": "checkbox",
+          "icd10_codes": null,
+          "detail_fields": null
+        }
+      ]
+    }
+  ],
+  "exception_pathways": [
+    {
+      "id": "revision_procedure",
+      "title": "Revision Procedure",
+      "description": "The procedure is a revision of a previous joint replacement.",
+      "waives": [
+        "medical_necessity"
+      ],
+      "requirement_type": "any",
+      "threshold": null,
+      "help_text": null,
+      "items": [
+        {
+          "field": "reason_for_revision",
+          "label": "Reason for Revision",
+          "help_text": "The medical record must include documentation of the reason for the revision procedure, including loosening, fracture, or mechanical failure of one or more components, technical or functional failure of previous knee surgery, previous osteotomy or partial arthroplasty, infection, periprosthetic fracture or bone loss, implant or knee malalignment, bearing surface wear leading to symptomatic synovitis, tibiofemoral or extensor mechanism instability, or knee stiffness, arthrofibrosis, or other destructive conditions that render the knee impaired to the extent to preclude employment or functional activities.",
+          "input_type": "text",
+          "icd10_codes": null,
+          "detail_fields": null
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "active_infection",
+      "title": "Active Infection",
+      "description": "The patient has an active infection of the hip or knee joint.",
+      "severity": "hard_stop"
+    },
+    {
+      "id": "progressive_neurological_disease",
+      "title": "Progressive Neurological Disease",
+      "description": "The patient has a progressive neurological disease that is the cause of their pain, instability, or disability.",
+      "severity": "hard_stop"
+    }
+  ],
+  "denial_prevention_tips": [
+    "Ensure that the medical record includes documentation of the medical necessity of the procedure.",
+    "Verify that the provider is appropriately trained and qualified to perform the procedure.",
+    "Confirm that the patient has undergone a reasonable attempt at conservative therapy before proceeding with surgery."
+  ],
+  "submission_reminders": [
+    "Ensure that all required documentation is included with the claim submission.",
+    "Verify that the claim is submitted within the required timeframe.",
+    "Confirm that the claim includes all necessary information, including patient identification, procedure codes, and diagnosis codes."
+  ],
+  "validation_errors": [],
+  "model": null
+}

@@ -1,0 +1,150 @@
+{
+  "policy_source": "Local Coverage Determination (LCD) L36007, Lower Extremity Major Joint Replacement (Hip and Knee)",
+  "policy_effective_date": "2019-11-14",
+  "checklist_sections": [
+    {
+      "id": "medical_necessity",
+      "title": "Medical Necessity",
+      "description": "The procedure must be medically reasonable and necessary for the patient's condition.",
+      "requirement_type": "count_gte",
+      "threshold": 3,
+      "items": [
+        {
+          "field": "advanced_joint_disease",
+          "label": "Advanced Joint Disease",
+          "input_type": "checkbox",
+          "help_text": "Check if the patient has advanced joint disease demonstrated by radiographic supported evidence or magnetic resonance imaging (MRI).",
+          "icd10_codes": [
+            "M16.0",
+            "M16.1",
+            "M16.2",
+            "M16.3",
+            "M16.4",
+            "M16.5",
+            "M16.6",
+            "M16.7",
+            "M16.9"
+          ]
+        },
+        {
+          "field": "history_of_unsuccessful_conservative_therapy",
+          "label": "History of Unsuccessful Conservative Therapy",
+          "input_type": "checkbox",
+          "help_text": "Check if the patient has a history of unsuccessful conservative therapy that is clearly documented in the pre-procedure medical record."
+        },
+        {
+          "field": "pain_with_functional_disability",
+          "label": "Pain with Functional Disability",
+          "input_type": "checkbox",
+          "help_text": "Check if the patient has pain with functional disability due to arthritis or trauma to the knee joint."
+        },
+        {
+          "field": "distinct_structural_abnormalities",
+          "label": "Distinct Structural Abnormalities",
+          "input_type": "checkbox",
+          "help_text": "Check if the patient has distinct structural abnormalities such as distal femur fracture, proximal tibia fracture, malignancy of the distal femur, proximal tibia, knee joint or adjacent soft tissues.",
+          "icd10_codes": [
+            "M84.351A",
+            "M84.351D",
+            "M84.351S",
+            "M84.352A",
+            "M84.352D",
+            "M84.352S"
+          ]
+        },
+        {
+          "field": "failed_previous_joint_replacement",
+          "label": "Failed Previous Joint Replacement",
+          "input_type": "checkbox",
+          "help_text": "Check if the patient has a failed previous joint replacement necessitating revision as indicated by loosening, fracture, or mechanical failure of one or more components."
+        }
+      ]
+    },
+    {
+      "id": "provider_qualifications",
+      "title": "Provider Qualifications",
+      "description": "The provider must be appropriately trained and qualified to perform the procedure.",
+      "requirement_type": "all",
+      "items": [
+        {
+          "field": "accredited_residency_or_fellowship",
+          "label": "Accredited Residency or Fellowship",
+          "input_type": "checkbox",
+          "help_text": "Check if the provider has completed an accredited residency or fellowship program in the applicable specialty/subspecialty."
+        },
+        {
+          "field": "continued_medical_education",
+          "label": "Continued Medical Education",
+          "input_type": "checkbox",
+          "help_text": "Check if the provider has completed continued medical education activities that are comprehensive and designated by the American Medical Association (AMA) as Category 1 Credit."
+        }
+      ]
+    },
+    {
+      "id": "documentation_requirements",
+      "title": "Documentation Requirements",
+      "description": "The medical record must contain sufficient documentation to support the medical necessity of the procedure.",
+      "requirement_type": "all",
+      "items": [
+        {
+          "field": "medical_record_documentation",
+          "label": "Medical Record Documentation",
+          "input_type": "checkbox",
+          "help_text": "Check if the medical record contains documentation that supports the medical necessity of the services as directed in this policy."
+        },
+        {
+          "field": "signature_requirements",
+          "label": "Signature Requirements",
+          "input_type": "checkbox",
+          "help_text": "Check if the medical record contains the legible signature of the physician or non-physician practitioner responsible for and providing the care to the patient."
+        }
+      ]
+    }
+  ],
+  "exception_pathways": [
+    {
+      "id": "exceptional_circumstances",
+      "title": "Exceptional Circumstances",
+      "description": "The patient has exceptional circumstances that warrant an exception to the standard requirements.",
+      "waives": [
+        "medical_necessity"
+      ],
+      "requirement_type": "any",
+      "items": [
+        {
+          "field": "exceptional_circumstances_description",
+          "label": "Description of Exceptional Circumstances",
+          "input_type": "text",
+          "help_text": "Provide a description of the exceptional circumstances that warrant an exception to the standard requirements."
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "active_infection",
+      "title": "Active Infection",
+      "description": "The patient has an active infection that contraindicates the procedure.",
+      "severity": "hard_stop"
+    },
+    {
+      "id": "progressive_neurological_disease",
+      "title": "Progressive Neurological Disease",
+      "description": "The patient has a progressive neurological disease that contraindicates the procedure.",
+      "severity": "hard_stop"
+    }
+  ],
+  "payer": "medicare",
+  "cpt_code": "L36007",
+  "denial_prevention_tips": [
+    "Ensure that the medical record contains sufficient documentation to support the medical necessity of the procedure.",
+    "Verify that the provider has completed an accredited residency or fellowship program in the applicable specialty/subspecialty.",
+    "Check that the medical record contains the legible signature of the physician or non-physician practitioner responsible for and providing the care to the patient."
+  ],
+  "submission_reminders": [
+    "Ensure that all required documentation is submitted with the claim.",
+    "Verify that the claim is submitted within the required timeframe.",
+    "Check that the claim is complete and accurate before submission."
+  ],
+  "validation_errors": []
+}

@@ -56,3 +56,23 @@ class PolicyTemplate(BaseModel):
     submission_reminders: list[str]
     validation_errors: list[str] = []
     model: Optional[str] = None
+
+
+class StepDebugInfo(BaseModel):
+    """Debug metadata for a single pipeline step."""
+    step_name: str
+    prompt: str
+    raw_response: str
+    parsed_output: dict
+
+
+class CompilationDebug(BaseModel):
+    """Debug metadata for the full two-step compilation pipeline."""
+    step1_structure: StepDebugInfo
+    step2_detail: StepDebugInfo
+
+
+class CompilationResponse(BaseModel):
+    """API response that includes the compiled template and optional debug data."""
+    template: PolicyTemplate
+    debug: Optional[CompilationDebug] = None

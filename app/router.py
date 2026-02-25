@@ -7,10 +7,10 @@ Returns the compiled PolicyTemplate JSON and saves it to templates/.
 
 import logging
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
 
 from app.reader import read_file
-from app.schemas import PolicyTemplate
+from app.schemas import CompilationResponse, PolicyTemplate
 from app.services import compiler
 
 logger = logging.getLogger(__name__)
@@ -18,16 +18,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/compile", response_model=PolicyTemplate)
+@router.post("/compile", response_model=CompilationResponse)
 async def compile_policy(
     policy_file: UploadFile = File(..., description="Policy document (PDF or TXT)"),
     payer: str = Form(..., description="Payer identifier, e.g. 'utah_medicaid'"),
     cpt_code: str = Form(..., description="CPT code, e.g. '73721'"),
-) -> PolicyTemplate:
+    include_debug: bool = Query(False, description="Include prompts and raw LLM responses in the response"),
+) -> CompilationResponse:
     """
     Compile a payer policy document into a structured checklist JSON.
 
     No patient data. No PHI. Template-creation only.
+
+    Set include_debug=true to receive prompts and raw LLM responses for both pipeline steps.
     """
     try:
         file_bytes = await policy_file.read()
@@ -45,9 +48,10 @@ async def compile_policy(
         raise HTTPException(status_code=422, detail="Uploaded file contains no extractable text.")
 
     try:
-        result = compiler.compile(policy_text, payer, cpt_code)
+        result = compiler.compile(policy_text, payer, cpt_code, include_debug=include_debug)
     except Exception as exc:
         logger.exception("Compilation failed for payer=%s cpt=%s", payer, cpt_code)
         raise HTTPException(status_code=500, detail="Policy compilation failed.")
 
-    return PolicyTemplate(**result)
+    # Result is now {"template": {...}, "debug": {...}} or just {"template": {...}}
+    return CompilationResponse(**result)

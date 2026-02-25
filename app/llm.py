@@ -73,3 +73,31 @@ class GroqClient:
         except Exception as exc:
             logger.warning("JSON parse failed: %s", exc)
             return None
+
+    def generate_json_with_debug(self, prompt: str, max_tokens: int = 4096) -> tuple[Optional[dict], str]:
+        """
+        Call generate(), strip markdown fences, parse JSON, and return both.
+
+        Returns:
+            (parsed_dict, raw_response)
+        """
+        import json
+
+        raw = self.generate(prompt, max_tokens=max_tokens)
+        if not raw:
+            return None, ""
+
+        cleaned = re.sub(r"```(?:json)?", "", raw).strip()
+        start = cleaned.find("{")
+        end = cleaned.rfind("}") + 1
+
+        if start < 0 or end <= start:
+            logger.warning("No JSON object found in LLM response")
+            return None, raw
+
+        try:
+            parsed = json.loads(cleaned[start:end])
+            return parsed, raw
+        except Exception as exc:
+            logger.warning("JSON parse failed: %s", exc)
+            return None, raw
