@@ -1,0 +1,114 @@
+{
+  "payer": "medicare",
+  "lcd_code": "l36007",
+  "checklist_sections": [
+    {
+      "id": "medical_necessity",
+      "title": "Medical Necessity",
+      "description": "The procedure must be medically reasonable and necessary for the diagnosis or treatment of illness or injury.",
+      "requirement_type": "count_gte",
+      "threshold": 3,
+      "items": [
+        {
+          "field": "advanced_joint_disease",
+          "label": "Advanced Joint Disease",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "history_of_unsuccessful_conservative_therapy",
+          "label": "Unsuccessful Conservative Therapy",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "pain_with_functional_disability",
+          "label": "Pain with Functional Disability",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "distinct_structural_abnormalities",
+          "label": "Distinct Structural Abnormalities",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "failed_previous_joint_replacement",
+          "label": "Failed Previous Joint Replacement",
+          "input_type": "checkbox"
+        }
+      ]
+    },
+    {
+      "id": "provider_qualifications",
+      "title": "Provider Qualifications",
+      "description": "The provider must be appropriately trained and qualified to perform the procedure.",
+      "requirement_type": "all",
+      "items": [
+        {
+          "field": "accredited_residency_or_fellowship",
+          "label": "Accredited Residency or Fellowship",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "continued_medical_education",
+          "label": "Continued Medical Education",
+          "input_type": "checkbox"
+        }
+      ]
+    },
+    {
+      "id": "documentation_requirements",
+      "title": "Documentation Requirements",
+      "description": "The medical record must contain documentation that supports the medical necessity of the procedure.",
+      "requirement_type": "all",
+      "items": [
+        {
+          "field": "legible_signature",
+          "label": "Legible Signature",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "patient_identification",
+          "label": "Patient Identification",
+          "input_type": "checkbox"
+        },
+        {
+          "field": "medical_necessity_documentation",
+          "label": "Medical Necessity Documentation",
+          "input_type": "checkbox"
+        }
+      ]
+    }
+  ],
+  "exception_pathways": [
+    {
+      "id": "revision_surgery",
+      "title": "Revision Surgery",
+      "description": "The procedure is a revision of a previous joint replacement surgery.",
+      "waives": [
+        "medical_necessity"
+      ],
+      "requirement_type": "any",
+      "items": [
+        {
+          "field": "reason_for_revision",
+          "label": "Reason for Revision",
+          "input_type": "text"
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "active_infection",
+      "title": "Active Infection",
+      "description": "The patient has an active infection of the joint or systemic bacteremia.",
+      "severity": "hard_stop"
+    },
+    {
+      "id": "progressive_neurological_disease",
+      "title": "Progressive Neurological Disease",
+      "description": "The patient has a progressive neurological disease that is the cause of pain, instability, or disability.",
+      "severity": "hard_stop"
+    }
+  ],
+  "saved": false
+}
