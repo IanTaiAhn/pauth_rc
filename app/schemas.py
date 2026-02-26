@@ -67,8 +67,7 @@ class StepDebugInfo(BaseModel):
 
 
 class CompilationDebug(BaseModel):
-    """Debug metadata for the full two-step compilation pipeline."""
-    step1_structure: StepDebugInfo
+    """Debug metadata for the detail step."""
     step2_detail: StepDebugInfo
 
 
@@ -76,13 +75,3 @@ class CompilationResponse(BaseModel):
     """API response that includes the compiled template and optional debug data."""
     template: PolicyTemplate
     debug: Optional[CompilationDebug] = None
-
-
-class SkeletonResponse(BaseModel):
-    """API response for the POST /api/structure endpoint (Step 1 only)."""
-    payer: str
-    lcd_code: str
-    checklist_sections: list[dict]
-    exception_pathways: list[dict]
-    exclusions: list[dict]
-    saved: bool = False

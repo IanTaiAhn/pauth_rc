@@ -1,6 +1,6 @@
 """
-Orchestrates the two-step policy compilation pipeline:
-  structurer → detailer → validate → save
+Orchestrates the policy compilation pipeline:
+  load_skeleton → detailer → validate → save
 
 This is the only entry point for compiling a policy document.
 """
@@ -9,45 +9,39 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
-from app.llm import GroqClient
-from app.prompts.structure_prompt import build_structure_prompt
 from app.prompts.detail_prompt import build_detail_prompt
+from app.llm import GroqClient
 from app.validation import validate
-from app.schemas import CompilationDebug, StepDebugInfo
 
 logger = logging.getLogger(__name__)
 
 _TEMPLATES_DIR = Path(os.environ.get("TEMPLATES_DIR", "./templates"))
+_SKELETONS_DIR = Path(os.environ.get("SKELETONS_DIR", "./api_artifacts"))
 
 
 def compile(policy_text: str, payer: str, lcd_code: str, include_debug: bool = False) -> dict:
     """
     Compile a payer policy document into a filled checklist.
 
+    Loads a pre-built skeleton JSON from the skeletons directory and feeds it
+    along with the policy text into the detail extractor.
+
     Args:
         policy_text: Full text of the payer policy document.
         payer:       Payer identifier (e.g. "medicare").
         lcd_code:    LCD code string (e.g. "L36007").
-        include_debug: If True, collect prompts and raw responses.
+        include_debug: If True, collect prompts and raw responses from the detail step.
 
     Returns:
         A dict with keys:
         - "template": PolicyTemplate dict
-        - "debug": CompilationDebug dict (only if include_debug=True)
+        - "debug": dict with step2_detail info (only if include_debug=True)
     """
-    debug_info = None
+    # Load pre-built skeleton
+    skeleton = _load_skeleton(lcd_code, payer)
 
-    # Step 1: structure
-    if include_debug:
-        skeleton, step1_debug = _create_skeleton_with_debug(policy_text, payer, lcd_code)
-    else:
-        from app.services import structurer
-        skeleton = structurer.create_skeleton(policy_text, payer, lcd_code)
-        step1_debug = None
-
-    # Step 2: fill details
+    # Fill details
     if include_debug:
         filled, step2_debug = _fill_details_with_debug(policy_text, skeleton)
     else:
@@ -72,63 +66,54 @@ def compile(policy_text: str, payer: str, lcd_code: str, include_debug: bool = F
 
     # Build response
     result = {"template": filled}
-    if include_debug and step1_debug and step2_debug:
-        result["debug"] = {
-            "step1_structure": step1_debug,
-            "step2_detail": step2_debug,
-        }
+    if include_debug and step2_debug:
+        result["debug"] = {"step2_detail": step2_debug}
 
     return result
 
 
-def _create_skeleton_with_debug(policy_text: str, payer: str, lcd_code: str) -> tuple[dict, dict]:
-    """Step 1 with debug collection."""
-    client = GroqClient()
-    prompt = build_structure_prompt(policy_text, payer, lcd_code)
+def _load_skeleton(lcd_code: str, payer: str) -> dict:
+    """Load a pre-built skeleton JSON from the skeletons directory."""
+    skeleton_path = _SKELETONS_DIR / f"{lcd_code.lower()}_skeleton.json"
+    if not skeleton_path.exists():
+        raise FileNotFoundError(
+            f"Skeleton file not found: {skeleton_path}. "
+            f"Expected at {_SKELETONS_DIR}/{lcd_code.lower()}_skeleton.json"
+        )
+    with open(skeleton_path, "r", encoding="utf-8") as fh:
+        skeleton = json.load(fh)
 
-    logger.info("Step 1 — structuring policy for payer=%s lcd=%s", payer, lcd_code)
-    skeleton, raw_response = client.generate_json_with_debug(prompt, max_tokens=4096)
-
-    if skeleton is None:
-        raise ValueError("Step 1 (structurer): LLM returned no parseable JSON")
-
-    skeleton["payer"] = payer
-    skeleton["lcd_code"] = lcd_code
+    # Ensure identity fields are set
+    skeleton.setdefault("payer", payer)
+    skeleton.setdefault("lcd_code", lcd_code)
 
     logger.info(
-        "Step 1 complete — %d sections, %d exceptions, %d exclusions",
+        "Loaded skeleton from %s — %d sections, %d exceptions, %d exclusions",
+        skeleton_path,
         len(skeleton.get("checklist_sections", [])),
         len(skeleton.get("exception_pathways", [])),
         len(skeleton.get("exclusions", [])),
     )
-
-    debug = {
-        "step_name": "structure",
-        "prompt": prompt,
-        "raw_response": raw_response,
-        "parsed_output": skeleton,
-    }
-
-    return skeleton, debug
+    return skeleton
 
 
 def _fill_details_with_debug(policy_text: str, skeleton: dict) -> tuple[dict, dict]:
-    """Step 2 with debug collection."""
+    """Detail step with debug collection."""
     client = GroqClient()
     prompt = build_detail_prompt(policy_text, skeleton)
 
-    logger.info("Step 2 — detailing policy for payer=%s lcd=%s", skeleton.get("payer"), skeleton.get("lcd_code"))
+    logger.info("Detailing policy for payer=%s lcd=%s", skeleton.get("payer"), skeleton.get("lcd_code"))
     filled, raw_response = client.generate_json_with_debug(prompt, max_tokens=4096)
 
     if filled is None:
-        raise ValueError("Step 2 (detailer): LLM returned no parseable JSON")
+        raise ValueError("Detailer: LLM returned no parseable JSON")
 
     filled.setdefault("payer", skeleton.get("payer"))
     filled.setdefault("lcd_code", skeleton.get("lcd_code"))
     filled.setdefault("denial_prevention_tips", [])
     filled.setdefault("submission_reminders", [])
 
-    logger.info("Step 2 complete — checklist filled")
+    logger.info("Detail step complete — checklist filled")
 
     debug = {
         "step_name": "detail",
