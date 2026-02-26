@@ -25,7 +25,7 @@ def fill_details(policy_text: str, skeleton: dict) -> dict:
     client = GroqClient()
     prompt = build_detail_prompt(policy_text, skeleton)
 
-    logger.info("Step 2 — detailing policy for payer=%s cpt=%s", skeleton.get("payer"), skeleton.get("cpt_code"))
+    logger.info("Step 2 — detailing policy for payer=%s lcd=%s", skeleton.get("payer"), skeleton.get("lcd_code"))
     filled = client.generate_json(prompt, max_tokens=4096)
 
     if filled is None:
@@ -33,7 +33,7 @@ def fill_details(policy_text: str, skeleton: dict) -> dict:
 
     # Preserve identity fields from skeleton in case LLM dropped them
     filled.setdefault("payer", skeleton.get("payer"))
-    filled.setdefault("cpt_code", skeleton.get("cpt_code"))
+    filled.setdefault("lcd_code", skeleton.get("lcd_code"))
     filled.setdefault("denial_prevention_tips", [])
     filled.setdefault("submission_reminders", [])
 

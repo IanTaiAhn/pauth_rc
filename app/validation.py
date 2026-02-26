@@ -22,7 +22,7 @@ def validate(template: dict) -> list[str]:
     errors: list[str] = []
 
     # --- Top-level required fields ---
-    for field in ("payer", "cpt_code", "checklist_sections"):
+    for field in ("payer", "lcd_code", "checklist_sections"):
         if field not in template:
             errors.append(f"Missing required top-level field: '{field}'")
 

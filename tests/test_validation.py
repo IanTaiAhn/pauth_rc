@@ -7,8 +7,8 @@ from app.validation import validate
 
 def test_valid_template_passes():
     template = {
-        "payer": "utah_medicaid",
-        "cpt_code": "73721",
+        "payer": "medicare",
+        "lcd_code": "L36007",
         "checklist_sections": [
             {
                 "id": "eligible_diagnosis",
@@ -31,18 +31,18 @@ def test_valid_template_passes():
 
 def test_missing_required_field():
     template = {
-        "payer": "utah_medicaid",
-        # cpt_code missing
+        "payer": "medicare",
+        # lcd_code missing
         "checklist_sections": [],
     }
     errors = validate(template)
-    assert any("cpt_code" in e for e in errors)
+    assert any("lcd_code" in e for e in errors)
 
 
 def test_count_gte_without_threshold():
     template = {
-        "payer": "utah_medicaid",
-        "cpt_code": "73721",
+        "payer": "medicare",
+        "lcd_code": "L36007",
         "checklist_sections": [
             {
                 "id": "conservative_treatment",
@@ -67,8 +67,8 @@ def test_count_gte_without_threshold():
 
 def test_semantic_count_gte_mismatch():
     template = {
-        "payer": "utah_medicaid",
-        "cpt_code": "73721",
+        "payer": "medicare",
+        "lcd_code": "L36007",
         "checklist_sections": [
             {
                 "id": "conservative_treatment",

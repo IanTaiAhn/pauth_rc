@@ -46,7 +46,7 @@ class Exclusion(BaseModel):
 
 class PolicyTemplate(BaseModel):
     payer: str
-    cpt_code: str
+    lcd_code: str
     policy_source: Optional[str] = None
     policy_effective_date: Optional[str] = None
     checklist_sections: list[TemplateSection]

@@ -2,9 +2,9 @@
 
 ## What This Is
 
-A policy compiler that converts insurance prior authorization (PA) policy documents into structured checklist JSONs. A clinic uses the checklist to verify they have the required documentation before submitting a PA request.
+A policy compiler that converts Medicare prior authorization (PA) policy documents into structured checklist JSONs. A clinic uses the checklist to verify they have the required documentation before submitting a PA request for total joint arthroplasty.
 
-**Input:** A payer's PA policy document (PDF or TXT) for a specific CPT code.
+**Input:** A Medicare LCD policy document (PDF or TXT) for a specific LCD code.
 **Output:** A structured JSON checklist with sections, fields, requirement logic, exceptions, exclusions, denial tips, and submission reminders.
 
 This is the template-creation tool only. No patient data, no PHI, no chart extraction.
@@ -60,10 +60,10 @@ Single endpoint:
 POST /api/compile
   multipart/form-data:
     policy_file: PDF or TXT
-    payer: string         (e.g., "utah_medicaid")
-    cpt_code: string      (e.g., "73721")
+    payer: string         (e.g., "medicare")
+    lcd_code: string      (e.g., "L36007")
   Returns: PolicyTemplate JSON
-  Side effect: saves to templates/{payer}_{cpt_code}.json
+  Side effect: saves to templates/{payer}_{lcd_code}.json
 ```
 
 ---
@@ -122,6 +122,6 @@ fastapi, uvicorn, pydantic, pdfplumber, groq, python-multipart
 
 ## Current Scope
 
-**In scope:** Utah Medicaid knee MRI (CPT 73721, 73722, 73723). Expanding by adding more policy documents and running the compiler — no Python changes needed.
+**In scope:** Medicare total joint arthroplasty (LCD L36007). Expanding by adding more LCD policy documents and running the compiler — no Python changes needed.
 
 **Not in scope (yet):** Patient chart extraction, PHI handling, rule evaluation engine, frontend, EHR integration.

@@ -1,7 +1,7 @@
 """
 Single API endpoint: POST /api/compile
 
-Accepts a policy document (PDF or TXT), payer ID, and CPT code.
+Accepts a policy document (PDF or TXT), payer ID, and LCD code.
 Returns the compiled PolicyTemplate JSON and saves it to templates/.
 """
 
@@ -21,8 +21,8 @@ router = APIRouter()
 @router.post("/compile", response_model=CompilationResponse)
 async def compile_policy(
     policy_file: UploadFile = File(..., description="Policy document (PDF or TXT)"),
-    payer: str = Form(..., description="Payer identifier, e.g. 'utah_medicaid'"),
-    cpt_code: str = Form(..., description="CPT code, e.g. '73721'"),
+    payer: str = Form(..., description="Payer identifier, e.g. 'medicare'"),
+    lcd_code: str = Form(..., description="LCD code, e.g. 'L36007'"),
     include_debug: bool = Query(False, description="Include prompts and raw LLM responses in the response"),
 ) -> CompilationResponse:
     """
@@ -48,9 +48,9 @@ async def compile_policy(
         raise HTTPException(status_code=422, detail="Uploaded file contains no extractable text.")
 
     try:
-        result = compiler.compile(policy_text, payer, cpt_code, include_debug=include_debug)
+        result = compiler.compile(policy_text, payer, lcd_code, include_debug=include_debug)
     except Exception as exc:
-        logger.exception("Compilation failed for payer=%s cpt=%s", payer, cpt_code)
+        logger.exception("Compilation failed for payer=%s lcd=%s", payer, lcd_code)
         raise HTTPException(status_code=500, detail="Policy compilation failed.")
 
     # Result is now {"template": {...}, "debug": {...}} or just {"template": {...}}

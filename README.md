@@ -1,5 +1,7 @@
 # P-Auth RC — Prior Authorization Readiness Checker
 
+A policy compiler for Medicare total joint arthroplasty. Converts Medicare LCD policy documents into structured prior authorization checklist JSONs.
+
 ## Quick Start
 
 ### Prerequisites
@@ -57,17 +59,25 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 ### Environment Variables
-OPTIONAL atm
 Create a `.env` file in the `backend` directory with the following variables:
 
 ```
 GROQ_API_KEY=your_groq_api_key
-SENT_TRANSFORMER_MODEL=app/rag_pipeline/models/minilm
-VECTOR_STORE_PATH=app/rag_pipeline/vectorstore
-MODEL_PATH=app/rag_pipeline/models/qwen2.5
+TEMPLATES_DIR=./templates
+LOG_LEVEL=INFO
 ```
-### New plans
-No more medicaid, we want to do Medicare.
-Also, let's focus on joint replacements.
-So we are staying in Orthopedics, but going to surgical documentation compliance.
-Read the Claude chat for the useful articles.
+
+## API
+
+```
+POST /api/compile
+  multipart/form-data:
+    policy_file: PDF or TXT   (Medicare LCD policy document)
+    payer: string             (e.g., "medicare")
+    lcd_code: string          (e.g., "L36007")
+  Returns: PolicyTemplate JSON
+```
+
+## Scope
+
+This MVP targets **Medicare total joint arthroplasty** LCD policies. Add more LCD policy documents to `policies/` and run the compiler — no Python changes needed.
