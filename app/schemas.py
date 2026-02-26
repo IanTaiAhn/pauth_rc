@@ -46,7 +46,7 @@ class Exclusion(BaseModel):
 
 class PolicyTemplate(BaseModel):
     payer: str
-    cpt_code: str
+    lcd_code: str
     policy_source: Optional[str] = None
     policy_effective_date: Optional[str] = None
     checklist_sections: list[TemplateSection]
@@ -76,3 +76,13 @@ class CompilationResponse(BaseModel):
     """API response that includes the compiled template and optional debug data."""
     template: PolicyTemplate
     debug: Optional[CompilationDebug] = None
+
+
+class SkeletonResponse(BaseModel):
+    """API response for the POST /api/structure endpoint (Step 1 only)."""
+    payer: str
+    lcd_code: str
+    checklist_sections: list[dict]
+    exception_pathways: list[dict]
+    exclusions: list[dict]
+    saved: bool = False

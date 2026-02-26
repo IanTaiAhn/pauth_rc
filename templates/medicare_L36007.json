@@ -135,7 +135,7 @@
     }
   ],
   "payer": "medicare",
-  "cpt_code": "L36007",
+  "lcd_code": "L36007",
   "denial_prevention_tips": [
     "Ensure that the medical record contains sufficient documentation to support the medical necessity of the procedure.",
     "Verify that the provider has completed an accredited residency or fellowship program in the applicable specialty/subspecialty.",
