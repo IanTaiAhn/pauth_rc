@@ -14,7 +14,7 @@ from app.prompts.structure_prompt import build_structure_prompt
 logger = logging.getLogger(__name__)
 
 
-def create_skeleton(policy_text: str, payer: str, cpt_code: str) -> dict:
+def create_skeleton(policy_text: str, payer: str, lcd_code: str) -> dict:
     """
     Call the LLM to identify the logical structure of the policy.
 
@@ -26,17 +26,17 @@ def create_skeleton(policy_text: str, payer: str, cpt_code: str) -> dict:
     Raises ValueError if the LLM returns nothing or unparseable JSON.
     """
     client = GroqClient()
-    prompt = build_structure_prompt(policy_text, payer, cpt_code)
+    prompt = build_structure_prompt(policy_text, payer, lcd_code)
 
-    logger.info("Step 1 — structuring policy for payer=%s cpt=%s", payer, cpt_code)
+    logger.info("Step 1 — structuring policy for payer=%s lcd=%s", payer, lcd_code)
     skeleton = client.generate_json(prompt, max_tokens=4096)
 
     if skeleton is None:
         raise ValueError("Step 1 (structurer): LLM returned no parseable JSON")
 
-    # Inject payer/cpt so the skeleton carries identity through the pipeline
+    # Inject payer/lcd_code so the skeleton carries identity through the pipeline
     skeleton["payer"] = payer
-    skeleton["cpt_code"] = cpt_code
+    skeleton["lcd_code"] = lcd_code
 
     logger.info(
         "Step 1 complete — %d sections, %d exceptions, %d exclusions",

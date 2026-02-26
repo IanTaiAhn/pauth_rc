@@ -27,8 +27,8 @@ router = APIRouter()
 @router.post("/compile", response_model=CompilationResponse)
 async def compile_policy(
     policy_file: UploadFile = File(..., description="Policy document (PDF or TXT)"),
-    payer: str = Form(..., description="Payer identifier, e.g. 'utah_medicaid'"),
-    lcd_code: str = Form(..., description="CPT code, e.g. '73721'"),
+    payer: str = Form(..., description="Payer identifier, e.g. 'medicare'"),
+    lcd_code: str = Form(..., description="LCD code, e.g. 'L36007'"),
     include_debug: bool = Query(False, description="Include prompts and raw LLM responses in the response"),
 ) -> CompilationResponse:
     """
@@ -56,7 +56,7 @@ async def compile_policy(
     try:
         result = compiler.compile(policy_text, payer, lcd_code, include_debug=include_debug)
     except Exception as exc:
-        logger.exception("Compilation failed for payer=%s cpt=%s", payer, lcd_code)
+        logger.exception("Compilation failed for payer=%s lcd=%s", payer, lcd_code)
         raise HTTPException(status_code=500, detail="Policy compilation failed.")
 
     # Result is now {"template": {...}, "debug": {...}} or just {"template": {...}}

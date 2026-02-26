@@ -6,4 +6,4 @@ Tests for the two-step compilation pipeline.
 # Suggested test cases:
 #   - compile() returns a dict with all required keys
 #   - structurer.create_skeleton() returns valid section structure
-#   - detailer.fill_details() preserves payer/cpt_code identity
+#   - detailer.fill_details() preserves payer/lcd_code identity

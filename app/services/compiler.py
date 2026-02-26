@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 _TEMPLATES_DIR = Path(os.environ.get("TEMPLATES_DIR", "./templates"))
 
 
-def compile(policy_text: str, payer: str, cpt_code: str, include_debug: bool = False) -> dict:
+def compile(policy_text: str, payer: str, lcd_code: str, include_debug: bool = False) -> dict:
     """
     Compile a payer policy document into a filled checklist.
 
     Args:
         policy_text: Full text of the payer policy document.
-        payer:       Payer identifier (e.g. "utah_medicaid").
-        cpt_code:    CPT code string (e.g. "73721").
+        payer:       Payer identifier (e.g. "medicare").
+        lcd_code:    LCD code string (e.g. "L36007").
         include_debug: If True, collect prompts and raw responses.
 
     Returns:
@@ -41,10 +41,10 @@ def compile(policy_text: str, payer: str, cpt_code: str, include_debug: bool = F
 
     # Step 1: structure
     if include_debug:
-        skeleton, step1_debug = _create_skeleton_with_debug(policy_text, payer, cpt_code)
+        skeleton, step1_debug = _create_skeleton_with_debug(policy_text, payer, lcd_code)
     else:
         from app.services import structurer
-        skeleton = structurer.create_skeleton(policy_text, payer, cpt_code)
+        skeleton = structurer.create_skeleton(policy_text, payer, lcd_code)
         step1_debug = None
 
     # Step 2: fill details
@@ -60,7 +60,7 @@ def compile(policy_text: str, payer: str, cpt_code: str, include_debug: bool = F
     if errors:
         logger.warning(
             "%d validation error(s) for %s/%s — human review required",
-            len(errors), payer, cpt_code,
+            len(errors), payer, lcd_code,
         )
         for err in errors:
             logger.warning("  %s", err)
@@ -68,7 +68,7 @@ def compile(policy_text: str, payer: str, cpt_code: str, include_debug: bool = F
     filled["validation_errors"] = errors
 
     # Save
-    _save(filled, payer, cpt_code)
+    _save(filled, payer, lcd_code)
 
     # Build response
     result = {"template": filled}
@@ -81,19 +81,19 @@ def compile(policy_text: str, payer: str, cpt_code: str, include_debug: bool = F
     return result
 
 
-def _create_skeleton_with_debug(policy_text: str, payer: str, cpt_code: str) -> tuple[dict, dict]:
+def _create_skeleton_with_debug(policy_text: str, payer: str, lcd_code: str) -> tuple[dict, dict]:
     """Step 1 with debug collection."""
     client = GroqClient()
-    prompt = build_structure_prompt(policy_text, payer, cpt_code)
+    prompt = build_structure_prompt(policy_text, payer, lcd_code)
 
-    logger.info("Step 1 — structuring policy for payer=%s cpt=%s", payer, cpt_code)
+    logger.info("Step 1 — structuring policy for payer=%s lcd=%s", payer, lcd_code)
     skeleton, raw_response = client.generate_json_with_debug(prompt, max_tokens=4096)
 
     if skeleton is None:
         raise ValueError("Step 1 (structurer): LLM returned no parseable JSON")
 
     skeleton["payer"] = payer
-    skeleton["cpt_code"] = cpt_code
+    skeleton["lcd_code"] = lcd_code
 
     logger.info(
         "Step 1 complete — %d sections, %d exceptions, %d exclusions",
@@ -117,14 +117,14 @@ def _fill_details_with_debug(policy_text: str, skeleton: dict) -> tuple[dict, di
     client = GroqClient()
     prompt = build_detail_prompt(policy_text, skeleton)
 
-    logger.info("Step 2 — detailing policy for payer=%s cpt=%s", skeleton.get("payer"), skeleton.get("cpt_code"))
+    logger.info("Step 2 — detailing policy for payer=%s lcd=%s", skeleton.get("payer"), skeleton.get("lcd_code"))
     filled, raw_response = client.generate_json_with_debug(prompt, max_tokens=4096)
 
     if filled is None:
         raise ValueError("Step 2 (detailer): LLM returned no parseable JSON")
 
     filled.setdefault("payer", skeleton.get("payer"))
-    filled.setdefault("cpt_code", skeleton.get("cpt_code"))
+    filled.setdefault("lcd_code", skeleton.get("lcd_code"))
     filled.setdefault("denial_prevention_tips", [])
     filled.setdefault("submission_reminders", [])
 
@@ -140,9 +140,9 @@ def _fill_details_with_debug(policy_text: str, skeleton: dict) -> tuple[dict, di
     return filled, debug
 
 
-def _save(result: dict, payer: str, cpt_code: str) -> None:
+def _save(result: dict, payer: str, lcd_code: str) -> None:
     _TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = _TEMPLATES_DIR / f"{payer}_{cpt_code}.json"
+    output_path = _TEMPLATES_DIR / f"{payer}_{lcd_code}.json"
     with open(output_path, "w", encoding="utf-8") as fh:
         json.dump(result, fh, indent=2, ensure_ascii=False)
     logger.info("Saved template to %s", output_path)

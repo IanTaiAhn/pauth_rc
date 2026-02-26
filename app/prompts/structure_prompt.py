@@ -5,7 +5,7 @@ The LLM focuses only on logic and structure — not on extracting details.
 """
 
 
-def build_structure_prompt(policy_text: str, payer: str, cpt_code: str) -> str:
+def build_structure_prompt(policy_text: str, payer: str, lcd_code: str) -> str:
     return f"""You are a medical policy analyst. Your task is to identify the LOGICAL STRUCTURE of this prior authorization policy.
 
 Do NOT extract specific details (ICD-10 codes, exact timeframes, documentation requirements) yet.
@@ -16,7 +16,7 @@ Focus ONLY on:
 - What exclusion scenarios exist
 
 Payer: {payer}
-CPT Code: {cpt_code}
+LCD Code: {lcd_code}
 
 Output ONLY valid JSON with this exact structure:
 

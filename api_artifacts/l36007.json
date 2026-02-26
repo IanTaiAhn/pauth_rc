@@ -1,6 +1,6 @@
 {
   "payer": "medicare",
-  "cpt_code": "L36007",
+  "lcd_code": "L36007",
   "policy_source": "Local Coverage Determination (LCD) L36007, Lower Extremity Major Joint Replacement (Hip and Knee)",
   "policy_effective_date": "2019-11-14",
   "checklist_sections": [
