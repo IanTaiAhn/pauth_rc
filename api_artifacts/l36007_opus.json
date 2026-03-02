@@ -1,0 +1,230 @@
+{
+  "policy_id": "L36007",
+  "policy_title": "Lower Extremity Major Joint Replacement (Hip and Knee)",
+  "policy_type": "Local Coverage Determination (LCD)",
+  "scope": "Total Hip Arthroplasty (THA) and Total Knee Arthroplasty (TKA)",
+  "exclusions_from_scope": [
+    "Unicompartmental knee replacement surgery"
+  ],
+
+  "coverage_criteria": {
+    "total_knee_arthroplasty": {
+      "threshold": "3 or more of the following criteria must be met",
+      "minimum_criteria_count": 3,
+      "criteria": [
+        {
+          "id": "TKA-1",
+          "label": "Advanced Joint Disease (Imaging)",
+          "description": "Advanced joint disease demonstrated by radiographic or MRI evidence",
+          "qualifying_findings": [
+            "Fracture or deterioration",
+            "Distortion of joint surfaces",
+            "Subchondral cysts",
+            "Subchondral sclerosis",
+            "Periarticular osteophytes",
+            "Joint subluxation",
+            "Joint space narrowing",
+            "Avascular necrosis"
+          ]
+        },
+        {
+          "id": "TKA-2",
+          "label": "Failed Conservative Therapy",
+          "description": "History of unsuccessful appropriate conservative therapy clearly documented in pre-procedure medical record",
+          "duration": "Usually 3 months or more",
+          "conservative_treatments": [
+            "Anti-inflammatory medications",
+            "Analgesics",
+            "Flexibility and muscle strengthening exercises with supervised physical therapy"
+          ]
+        },
+        {
+          "id": "TKA-3",
+          "label": "Pain with Functional Disability",
+          "description": "Pain with functional disability due to arthritis or trauma to the knee joint; ADLs diminished despite compliance with plan of care",
+          "plan_of_care_elements": [
+            "Activity restrictions",
+            "Assistive device use",
+            "Weight reduction as appropriate",
+            "Therapeutic injections into the knee as appropriate"
+          ]
+        },
+        {
+          "id": "TKA-4",
+          "label": "Distinct Structural Abnormalities",
+          "description": "Distinct structural abnormalities present",
+          "qualifying_conditions": [
+            "Distal femur fracture",
+            "Proximal tibia fracture",
+            "Malignancy of the distal femur, proximal tibia, knee joint or adjacent soft tissues",
+            "Avascular or other form of osteonecrosis of the knee",
+            "Rheumatologic changes precluding or inconsistent with rehabilitation"
+          ]
+        },
+        {
+          "id": "TKA-5",
+          "label": "Failed Previous Joint Replacement / Revision",
+          "description": "Failed previous joint replacement/arthroplasty necessitating revision",
+          "qualifying_conditions": [
+            "Loosening, fracture, or mechanical failure of one or more components",
+            "Technical or functional failure of previous knee surgery (e.g., unicompartmental knee replacement)",
+            "Previous osteotomy or partial arthroplasty",
+            "Infection",
+            "Periprosthetic fracture or bone loss of distal femur, proximal tibia or patella",
+            "Implant or knee malalignment",
+            "Bearing surface wear leading to symptomatic synovitis",
+            "Tibiofemoral or extensor mechanism instability",
+            "Knee stiffness, arthrofibrosis or other destructive conditions precluding employment or functional activities"
+          ]
+        }
+      ]
+    },
+
+    "total_hip_arthroplasty": {
+      "threshold": "3 or more of the following indications must be met",
+      "minimum_criteria_count": 3,
+      "criteria": [
+        {
+          "id": "THA-1",
+          "label": "Advanced Joint Disease (Imaging)",
+          "description": "Advanced joint disease demonstrated by radiographic or MRI evidence",
+          "qualifying_findings": [
+            "Subchondral cysts",
+            "Subchondral sclerosis",
+            "Periarticular osteophytes",
+            "Joint subluxation",
+            "Joint space narrowing",
+            "Avascular necrosis"
+          ]
+        },
+        {
+          "id": "THA-2",
+          "label": "Pain and Functional Disability",
+          "description": "Pain and functional disability from injury due to trauma or arthritis; ADLs diminished despite completing a plan of care",
+          "plan_of_care_elements": [
+            "Activity restrictions",
+            "Assistive device use",
+            "Appropriate weight reduction",
+            "Flexibility and muscle strengthening exercises with supervised physical therapy"
+          ]
+        },
+        {
+          "id": "THA-3",
+          "label": "Failed Conservative Treatment",
+          "description": "History of unsuccessful conservative treatment or non-surgical medical management clearly documented in pre-procedure medical record",
+          "duration": "Usually 3 months or more",
+          "conservative_treatments": [
+            "Anti-inflammatory medications",
+            "Analgesics",
+            "Therapeutic injections when appropriate",
+            "Physical therapy or assist devices"
+          ]
+        },
+        {
+          "id": "THA-4",
+          "label": "Distinct Structural Abnormalities",
+          "description": "Distinct structural abnormalities present",
+          "qualifying_conditions": [
+            "Malignancy of the joint involving bones or soft tissues of the pelvis or proximal femur",
+            "Avascular necrosis (osteonecrosis of femoral head)",
+            "Fracture of the femoral neck",
+            "Acetabular fracture",
+            "Non-union or failure of previous hip fracture surgery",
+            "Mal-union of acetabular or proximal femur fracture"
+          ]
+        },
+        {
+          "id": "THA-5",
+          "label": "Failed Previous Hip Arthroplasty / Revision",
+          "description": "Failed previous Hip Arthroplasty necessitating revision",
+          "qualifying_conditions": [
+            "Loosening, fracture or mechanical failure of the implant",
+            "Instability of one or more components",
+            "Recurrent or irreducible dislocation",
+            "Infection",
+            "Displaced periprosthetic fracture",
+            "Clinically significant leg length inequality",
+            "Progressive soft tissue or bone reaction or substantial bone loss",
+            "Clinically significant audible noise",
+            "Bearing surface wear leading to symptomatic synovitis",
+            "Other disease or destructive process precluding employment or functional activities"
+          ]
+        }
+      ]
+    }
+  },
+
+  "contraindications": {
+    "description": "Procedures are NOT medically reasonable and necessary when any of the following are present",
+    "logic": "ANY of the following present → DENY",
+    "conditions": [
+      "Active infection of the hip or knee joint or active systemic bacteremia",
+      "Active skin infection or open wound within the planned surgical site",
+      "Progressive neurological disease etiologic for pain, instability or disability"
+    ]
+  },
+
+  "limitations": [
+    "TKA and THA not considered reasonable and necessary when covered indications are not met"
+  ],
+
+  "provider_qualifications": {
+    "required_credentials": ["MD", "DO"],
+    "board_certification": "Certified or eligible for certification by the American Board of Orthopaedic Surgery",
+    "training_pathways": [
+      "Accredited residency or fellowship program in the applicable specialty/subspecialty",
+      "Extensive CME activities — comprehensive courses offered/sponsored/endorsed by a US academic institution or applicable specialty society, designated AMA Category 1 Credit"
+    ]
+  },
+
+  "documentation_requirements": {
+    "general": [
+      "All documentation maintained in patient medical record and available to contractor upon request",
+      "Every page legible with appropriate patient identification and dates of service",
+      "Legible signature of responsible physician or non-physician practitioner",
+      "Documentation must support medical necessity as directed by this policy",
+      "Must support CMS signature requirements (Pub. 100-08, Chapter 3)"
+    ],
+    "for_advanced_joint_disease": {
+      "logic": "ALL of the following must be documented",
+      "required_elements": [
+        "Arthritis of knee or hip supported by X-ray or MRI showing qualifying findings (subchondral cysts, subchondral sclerosis, periarticular osteophytes, joint subluxation, joint space narrowing, avascular necrosis, or bone on bone articulations)",
+        "Pain with functional disability at hip or knee (e.g., pain interfering with ADLs, pain increased with activity initiation, pain with weight bearing, pain precluding sleep)",
+        "History of reasonable attempt (typically 3+ months) at conservative therapy (e.g., NSAID trial or documented contraindication, supervised physical therapy)",
+        "Documentation that ADLs are diminished despite non-surgical management",
+        "Risk/benefit of surgery appropriately addressed for patients with significant comorbidities"
+      ]
+    },
+    "for_other_indications": {
+      "required_elements": [
+        "Supporting evidence (e.g., pathology reports, oncologist referral for malignancy, X-ray for fracture)",
+        "Documentation of functional disability when pain is a reason for procedure",
+        "Risk/benefit addressed for patients with significant comorbidities",
+        "Lab or pathology reports when infection is the reason for revision surgery, plus documentation of infection treatment and physician note supporting appropriateness of surgery"
+      ]
+    },
+    "hospital_record_requirements": [
+      "History and physical describing present issue, duration, current signs/symptoms, and comorbidities",
+      "Physician progress notes with physical exam findings (deformity, ROM abnormalities, crepitus, effusion, tenderness, gait abnormalities)",
+      "Operative report",
+      "Any other relevant information addressing coverage criteria related to the episode of care prior to hospitalization",
+      "Discharge summary"
+    ],
+    "bilateral_procedures": "All criteria apply to bilateral surgery; medical record must also support medical necessity for performing THA or TKA bilaterally"
+  },
+
+  "utilization_guidelines": {
+    "standard_of_practice": "Consistent with locally acceptable standards of practice (CMS Ruling 95-1)",
+    "review_triggers": "Services performed in excess of peer norms based on data analysis may be subject to prepay or post-pay medical review",
+    "device_requirements": "Devices/implants must be FDA-regulated Class II or Class III devices meeting CFR 21, Chapter 1, Subchapter H, Part 888"
+  },
+
+  "decision_logic_summary": {
+    "approve": "At least 3 of the 5 covered indication criteria are met AND no contraindications are present AND provider qualifications are met AND documentation requirements are satisfied",
+    "deny": "Fewer than 3 criteria are met OR any contraindication is present OR documentation is insufficient"
+  },
+
+  "related_documents": {
+    "billing_and_coding_article": "A56796 — Billing and Coding: Lower Extremity Major Joint Replacement (Hip and Knee)"
+  }
+}
