@@ -8,3 +8,7 @@ https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?LCDId=34163
 https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?LCDId=34220
 https://www.cms.gov/medicare-coverage-database/view/lcd.aspx?lcdid=37373
 https://www.cms.gov/medicare-coverage-database/view/ncd.aspx?ncdid=177
+
+
+Try not to think json checklist application. 
+Rather, it is a logic helper and assists in making the correct assesments when submitting prior authorization.
